@@ -1,7 +1,7 @@
 /* Tracking · registro de peso. Todo se guarda en este dispositivo (IndexedDB). */
 'use strict';
 
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.1.0';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -83,7 +83,10 @@ const DB = {
       const t = this.db.transaction(store, mode);
       let req;
       try { req = fn(t.objectStore(store)); } catch (e) { rej(e); return; }
-      t.oncomplete = () => res(req && 'result' in req ? req.result : undefined);
+      t.oncomplete = () => {
+        if (mode === 'readwrite' && typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
+        res(req && 'result' in req ? req.result : undefined);
+      };
       t.onerror = () => rej(t.error);
       t.onabort = () => rej(t.error);
     });
@@ -947,7 +950,9 @@ function renderSettings() {
   if (document.activeElement !== hi) hi.value = S.height != null ? String(S.height) : '';
   $$('#theme-seg button').forEach(b => b.classList.toggle('on', b.dataset.themeOpt === S.theme));
   $('#last-backup').textContent = S.lastBackup ? `Última copia: ${fmtD(F.dayMonYear, S.lastBackup)}` : 'Aún no has hecho ninguna copia.';
-  $('#version').innerHTML = `Tracking ${APP_VERSION}<br>Tus datos se guardan solo en este dispositivo.`;
+  $('#version').innerHTML = isNative()
+    ? `Tracking ${APP_VERSION} · app Android<br>Tus datos se guardan en este móvil y entran en la copia de seguridad de Android (cuenta de Google), si la tienes activada.`
+    : `Tracking ${APP_VERSION}<br>Tus datos se guardan solo en este dispositivo.`;
 }
 
 /* ================= Añadir / editar ================= */
@@ -1110,16 +1115,64 @@ async function copyAll() {
   else toast('No se pudo copiar');
 }
 
-async function exportFile() {
+/* ----- App nativa (Android con Capacitor) ----- */
+const isNative = () => !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+const nativeCall = (plugin, method, opts) => window.Capacitor.nativePromise(plugin, method, opts || {});
+const AUTO_FILE = 'tracking-auto.json';
+let autoTimer = 0;
+let dbReady = false;
+
+function backupData() {
   const gym = typeof gymBackupData === 'function' ? gymBackupData() : {};
-  if (!entries.length && !(gym.workouts && gym.workouts.length) && !(gym.routines && gym.routines.length)) return toast('No hay datos que exportar');
-  const name = `tracking-${todayISO()}.json`;
-  const data = {
+  return {
     app: 'tracking', version: 2, exported: new Date().toISOString(),
     entries, settings: { goal: S.goal, height: S.height, rest: S.rest, bar: S.bar },
     ...gym,
   };
+}
+const hasData = d => !!(d.entries.length || (d.workouts && d.workouts.length) || (d.routines && d.routines.length));
+
+// Copia automática: en la app nativa se guarda un archivo con todo en la carpeta privada de la app.
+// Android incluye esa carpeta en la copia de seguridad de la cuenta de Google del móvil.
+function scheduleAutoBackup() {
+  if (!isNative() || !dbReady) return;
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(writeAutoBackup, 4000);
+}
+async function writeAutoBackup() {
+  clearTimeout(autoTimer); autoTimer = 0;
+  if (!isNative() || !dbReady) return;
+  try {
+    const d = backupData();
+    if (!hasData(d)) return;
+    await nativeCall('Filesystem', 'writeFile', { path: AUTO_FILE, data: JSON.stringify(d), directory: 'DATA', encoding: 'utf8' });
+  } catch (e) { console.warn('Copia automática:', e); }
+}
+async function offerAutoRestore() {
+  if (!isNative() || hasData(backupData())) return;
+  try {
+    const r = await nativeCall('Filesystem', 'readFile', { path: AUTO_FILE, directory: 'DATA', encoding: 'utf8' });
+    if (r && r.data) await importJSON(r.data, 'He encontrado una copia automática de tus datos. ');
+  } catch (_) { /* no hay copia */ }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && autoTimer) writeAutoBackup(); });
+
+async function exportFile() {
+  const data = backupData();
+  if (!hasData(data)) return toast('No hay datos que exportar');
+  const name = `tracking-${todayISO()}.json`;
   const text = JSON.stringify(data);
+  if (isNative()) {
+    try {
+      const w = await nativeCall('Filesystem', 'writeFile', { path: name, data: text, directory: 'CACHE', encoding: 'utf8' });
+      await nativeCall('Share', 'share', { title: 'Copia de Tracking', dialogTitle: 'Guardar o enviar la copia', files: [w.uri] });
+      toast('Copia exportada');
+      markBackup();
+    } catch (e) {
+      if (!/cancel/i.test(String((e && e.message) || e))) toast('No se pudo exportar la copia');
+    }
+    return;
+  }
   const blob = new Blob([text], { type: 'application/json' });
   try {
     const file = new File([blob], name, { type: 'application/json' });
@@ -1261,7 +1314,7 @@ fileInput.addEventListener('change', async () => {
   } catch (_) { toast('No se pudo leer el archivo'); }
 });
 
-async function importJSON(text) {
+async function importJSON(text, intro = '') {
   let d;
   try { d = JSON.parse(text); } catch (_) { return toast('El archivo no es una copia válida'); }
   if (!d || d.app !== 'tracking') return toast('El archivo no es una copia de Tracking');
@@ -1269,7 +1322,7 @@ async function importJSON(text) {
   const n = k => (Array.isArray(d[k]) ? d[k].length : 0);
   const ok = await ask({
     title: 'Importar copia',
-    message: `Copia del ${d.exported ? fmtD(F.dayMonYear, d.exported.slice(0, 10)) : '¿?'}: ${ents.length} pesos, ${n('workouts')} entrenos, ${n('routines')} rutinas y ${n('exercises')} ejercicios. Se combinará con lo que ya tienes (si algo coincide, gana la copia).`,
+    message: `${intro}Copia del ${d.exported ? fmtD(F.dayMonYear, d.exported.slice(0, 10)) : '¿?'}: ${ents.length} pesos, ${n('workouts')} entrenos, ${n('routines')} rutinas y ${n('exercises')} ejercicios. Se combinará con lo que ya tienes (si algo coincide, gana la copia).`,
     ok: 'Importar', cancel: 'Cancelar',
   });
   if (!ok) return;
@@ -1297,6 +1350,7 @@ async function wipeAll() {
   await DB.replaceEntries([]);
   entries = [];
   if (typeof gymWipe === 'function') await gymWipe();
+  if (isNative()) { clearTimeout(autoTimer); autoTimer = 0; try { await nativeCall('Filesystem', 'deleteFile', { path: AUTO_FILE, directory: 'DATA' }); } catch (_) {} }
   S = { ...DEFAULTS, theme: S.theme, firstUse: todayISO() };
   await saveSettings();
   renderAll();
@@ -1454,6 +1508,7 @@ async function init() {
     S = { ...DEFAULTS, ...(st || {}) };
     if (!S.firstUse) { S.firstUse = todayISO(); await saveSettings(); }
     await gymLoad();
+    dbReady = true;
   } catch (err) {
     console.error(err);
     toast('No se puede guardar en este navegador (¿modo privado?)', { ms: 8000 });
@@ -1461,6 +1516,7 @@ async function init() {
   applyTheme();
   showPesoView(S.pesoView || 'resumen');
   renderAll();
+  offerAutoRestore();
   // Pide al navegador que no borre los datos para liberar espacio.
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   setupSW();

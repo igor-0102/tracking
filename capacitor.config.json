@@ -1,0 +1,14 @@
+{
+  "appId": "io.github.igor0102.tracking",
+  "appName": "Tracking",
+  "webDir": "www",
+  "backgroundColor": "#0e1015",
+  "server": {
+    "url": "https://igor-0102.github.io/tracking/",
+    "errorPath": "offline.html",
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#0e1015"
+  }
+}
