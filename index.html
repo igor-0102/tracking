@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tracking</title>
-<meta name="description" content="Registro de peso corporal. Tus datos se guardan solo en tu móvil.">
+<meta name="description" content="Registro de peso y entrenamientos. Tus datos se guardan solo en tu móvil.">
 <meta name="theme-color" content="#0e1015">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,7 +14,6 @@
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <script>
-  // Aplica el tema antes de pintar para evitar parpadeos.
   try {
     var t = localStorage.getItem('tracking-theme') || 'dark';
     if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
@@ -34,76 +33,109 @@
     <div class="banner-text"><b>Nueva versión disponible</b><span>Toca para actualizar la app.</span></div>
     <button class="btn btn-small btn-primary" id="update-btn">Actualizar</button>
   </div>
+  <div id="backup-banner" class="banner" hidden>
+    <div class="banner-text"><b>Toca hacer copia de seguridad</b><span id="backup-banner-sub">Ha pasado un mes desde la última.</span></div>
+    <div class="banner-actions">
+      <button class="btn btn-small btn-primary" id="backup-now">Hacer copia</button>
+      <button class="btn btn-small btn-ghost" id="backup-later">En 3 días</button>
+    </div>
+  </div>
 
   <!-- INICIO -->
   <section class="tab" id="tab-inicio" data-title="Inicio">
-    <div id="backup-banner" class="banner" hidden>
-      <div class="banner-text"><b>Toca hacer copia de seguridad</b><span id="backup-banner-sub">Ha pasado un mes desde la última.</span></div>
-      <div class="banner-actions">
-        <button class="btn btn-small btn-primary" id="backup-now">Hacer copia</button>
-        <button class="btn btn-small btn-ghost" id="backup-later">En 3 días</button>
-      </div>
+    <div class="big-actions">
+      <button class="big-action" data-action="add-weight">
+        <span class="ba-icon"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 9.5a5 5 0 0 1 8 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 10l1.5-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+        <span class="ba-text"><b>Añadir peso</b><small id="ba-weight-sub">Apunta tu peso de hoy</small></span>
+      </button>
+      <button class="big-action big-action-2" data-action="start-workout">
+        <span class="ba-icon"><svg viewBox="0 0 24 24"><path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span>
+        <span class="ba-text"><b id="ba-gym-title">Empezar entrenamiento</b><small id="ba-gym-sub">Elige una rutina o empieza vacío</small></span>
+      </button>
+    </div>
+    <div id="home-quick"></div>
+  </section>
+
+  <!-- PESO -->
+  <section class="tab" id="tab-peso" data-title="Peso" hidden>
+    <div class="seg seg-block" id="peso-seg">
+      <button data-view="resumen">Resumen</button>
+      <button data-view="medias">Medias</button>
+      <button data-view="historial">Historial</button>
     </div>
 
-    <div id="welcome" class="card welcome" hidden>
-      <div class="welcome-icon" aria-hidden="true">
-        <svg viewBox="0 0 48 48"><path d="M6 14l11 10 8-6 17 18" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="42" cy="36" r="4" fill="currentColor"/></svg>
+    <div class="view" id="peso-resumen">
+      <div id="welcome" class="card welcome" hidden>
+        <div class="welcome-icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48"><path d="M6 14l11 10 8-6 17 18" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="42" cy="36" r="4" fill="currentColor"/></svg>
+        </div>
+        <h2>Tu registro de peso</h2>
+        <p>Apunta tu peso cada día con el botón <b>＋ Añadir</b>. Si ya tienes registros anteriores, pégalos aquí y los cargo de golpe.</p>
+        <button class="btn btn-primary btn-block" data-action="import-text">Pegar mis datos</button>
+        <button class="btn btn-ghost btn-block" data-action="import-file">Importar archivo</button>
+        <p class="fine">Tus datos se guardan solo en este móvil.</p>
       </div>
-      <h2>Bienvenido a Tracking</h2>
-      <p>Apunta tu peso cada día con el botón <b>＋ Añadir</b>. Si ya tienes registros anteriores, pégalos aquí y los cargo de golpe.</p>
-      <button class="btn btn-primary btn-block" data-action="import-text">Pegar mis datos</button>
-      <button class="btn btn-ghost btn-block" data-action="import-file">Importar archivo</button>
-      <p class="fine">Tus datos se guardan solo en este móvil.</p>
-    </div>
 
-    <div id="home-content" hidden>
-      <div id="summary"></div>
-
-      <div class="card chart-card">
-        <div class="card-head">
-          <h2>Progreso</h2>
-          <div class="seg seg-small" id="range-seg" role="tablist">
-            <button data-range="1m">1M</button>
-            <button data-range="3m">3M</button>
-            <button data-range="6m">6M</button>
-            <button data-range="all">Todo</button>
+      <div id="home-content" hidden>
+        <div id="summary"></div>
+        <div class="card chart-card">
+          <div class="card-head">
+            <h2>Progreso</h2>
+            <div class="seg seg-small" id="range-seg">
+              <button data-range="1m">1M</button>
+              <button data-range="3m">3M</button>
+              <button data-range="6m">6M</button>
+              <button data-range="all">Todo</button>
+            </div>
           </div>
+          <div class="chart-wrap" id="chart-wrap" role="button" aria-label="Ampliar gráfico">
+            <canvas id="chart"></canvas>
+            <span class="expand-hint" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </div>
+          <div class="legend" id="legend"></div>
         </div>
-        <div class="chart-wrap" id="chart-wrap" role="button" aria-label="Ampliar gráfico">
-          <canvas id="chart"></canvas>
-          <span class="expand-hint" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </span>
-        </div>
-        <div class="legend" id="legend"></div>
+        <div id="pace"></div>
       </div>
+    </div>
 
-      <div id="pace"></div>
+    <div class="view" id="peso-medias" hidden>
+      <div class="seg seg-block" id="avg-seg">
+        <button data-avg="week">Semanas</button>
+        <button data-avg="month">Meses</button>
+      </div>
+      <div id="avg-list"></div>
+    </div>
+
+    <div class="view" id="peso-historial" hidden>
+      <button class="btn btn-secondary btn-block btn-icon" data-action="copy">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        Copiar pesos
+      </button>
+      <p class="fine center">Toca un registro para editarlo o borrarlo.</p>
+      <div id="history-list"></div>
     </div>
   </section>
 
-  <!-- MEDIAS -->
-  <section class="tab" id="tab-medias" data-title="Medias" hidden>
-    <div class="seg seg-block" id="avg-seg">
-      <button data-avg="week">Semanas</button>
-      <button data-avg="month">Meses</button>
+  <!-- ENTRENO -->
+  <section class="tab" id="tab-entreno" data-title="Entreno" hidden>
+    <div class="seg seg-block" id="gym-seg">
+      <button data-view="rutinas">Rutinas</button>
+      <button data-view="historial">Historial</button>
+      <button data-view="ejercicios">Ejercicios</button>
     </div>
-    <div id="avg-list"></div>
-  </section>
-
-  <!-- HISTORIAL -->
-  <section class="tab" id="tab-historial" data-title="Historial" hidden>
-    <button class="btn btn-secondary btn-block btn-icon" data-action="copy">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-      Copiar pesos
-    </button>
-    <p class="fine center">Toca un registro para editarlo o borrarlo.</p>
-    <div id="history-list"></div>
+    <div class="view" id="gym-rutinas"></div>
+    <div class="view" id="gym-historial" hidden></div>
+    <div class="view" id="gym-ejercicios" hidden>
+      <div class="search"><input id="ex-search" type="search" placeholder="Buscar ejercicio" autocomplete="off"></div>
+      <div id="ex-list"></div>
+    </div>
   </section>
 
   <!-- AJUSTES -->
   <section class="tab" id="tab-ajustes" data-title="Ajustes" hidden>
-    <h3 class="section-title">Objetivo</h3>
+    <h3 class="section-title">Peso</h3>
     <div class="card form-card">
       <label class="field">
         <span>Peso objetivo</span>
@@ -113,6 +145,22 @@
         <span>Estatura (para el IMC)</span>
         <span class="input-unit"><input id="height-input" type="text" inputmode="numeric" placeholder="—" autocomplete="off"><em>cm</em></span>
       </label>
+    </div>
+
+    <h3 class="section-title">Entrenamiento</h3>
+    <div class="card form-card">
+      <div class="field">
+        <span>Descanso por defecto</span>
+        <button class="pill-btn" id="set-rest"></button>
+      </div>
+      <label class="field">
+        <span>Sonido al terminar el descanso</span>
+        <input type="checkbox" class="switch" id="set-sound">
+      </label>
+      <div class="field">
+        <span>Barra (calculadora de discos)</span>
+        <button class="pill-btn" id="set-bar"></button>
+      </div>
     </div>
 
     <h3 class="section-title">Apariencia</h3>
@@ -125,10 +173,10 @@
     <h3 class="section-title">Copias de seguridad</h3>
     <div class="card list-card">
       <p class="fine" id="last-backup"></p>
+      <button class="row-btn" data-action="export"><span>Exportar copia completa</span><small>Pesos, entrenos y rutinas en un archivo</small></button>
+      <button class="row-btn" data-action="import-file"><span>Importar archivo</span><small>Copia de Tracking (.json), pesos (.txt) o CSV de Hevy</small></button>
       <button class="row-btn" data-action="copy"><span>Copiar pesos</span><small>Al portapapeles, en texto</small></button>
-      <button class="row-btn" data-action="export"><span>Exportar archivo</span><small>Guárdalo en Archivos, Drive o envíatelo</small></button>
-      <button class="row-btn" data-action="import-file"><span>Importar archivo</span><small>Un .txt exportado desde Tracking</small></button>
-      <button class="row-btn" data-action="import-text"><span>Importar pegando texto</span><small>Una línea por registro: 21-02-2026 88,8</small></button>
+      <button class="row-btn" data-action="import-text"><span>Importar pesos pegando texto</span><small>Una línea por registro: 21-02-2026 88,8</small></button>
     </div>
 
     <h3 class="section-title">Datos</h3>
@@ -140,23 +188,41 @@
   </section>
 </main>
 
-<button class="fab" id="fab" aria-label="Añadir peso">
+<button class="fab" id="fab" aria-label="Añadir peso" hidden>
   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
   Añadir
 </button>
 
+<!-- Entreno en curso (minimizado) -->
+<button class="active-bar" id="active-bar" hidden>
+  <span class="ab-dot"></span>
+  <span class="ab-text"><b id="ab-title">Entreno en curso</b><small data-clock>0:00</small></span>
+  <span class="ab-go">Continuar</span>
+</button>
+
+<!-- Descanso -->
+<div class="rest-bar" id="rest-bar" hidden>
+  <div class="rest-progress"><div id="rest-fill"></div></div>
+  <div class="rest-row">
+    <button class="rest-btn" data-rest="-15">−15</button>
+    <div class="rest-time"><small>Descanso</small><b id="rest-time">1:30</b></div>
+    <button class="rest-btn" data-rest="15">+15</button>
+    <button class="rest-btn rest-skip" data-rest="skip">Saltar</button>
+  </div>
+</div>
+
 <nav class="tabbar" id="tabbar">
   <button data-tab="inicio" class="active">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-5 4 3 8-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 7h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-6H9v6H5.5A1.5 1.5 0 0 1 4 19z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
     <span>Inicio</span>
   </button>
-  <button data-tab="medias">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-    <span>Medias</span>
+  <button data-tab="peso">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-5 4 3 8-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 7h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Peso</span>
   </button>
-  <button data-tab="historial">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="4" cy="6" r="1.3" fill="currentColor"/><circle cx="4" cy="12" r="1.3" fill="currentColor"/><circle cx="4" cy="18" r="1.3" fill="currentColor"/></svg>
-    <span>Historial</span>
+  <button data-tab="entreno">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span>Entreno</span>
   </button>
   <button data-tab="ajustes">
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
@@ -186,7 +252,7 @@
 
 <div class="sheet" id="sheet-import" hidden>
   <div class="grabber" aria-hidden="true"></div>
-  <h2>Importar datos</h2>
+  <h2>Importar pesos</h2>
   <p class="fine">Una línea por registro, con la fecha y el peso: <code>21-02-2026 88,8</code></p>
   <textarea id="import-text" rows="7" placeholder="21-02-2026 88,8&#10;24-02-2026 88,7&#10;…" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
   <div id="import-preview" class="import-preview" hidden></div>
@@ -198,6 +264,9 @@
     <button class="btn btn-danger-ghost btn-block" id="import-replace">Reemplazar todo</button>
   </div>
 </div>
+
+<!-- Panel genérico (menús, selector de ejercicios, calculadora…) -->
+<div class="sheet" id="sheet-gen" hidden></div>
 
 <!-- Diálogo -->
 <div class="dialog-wrap" id="dialog" hidden>
@@ -217,11 +286,12 @@
   <button id="toast-action" hidden></button>
 </div>
 
-<!-- Gráfico a pantalla completa -->
+<!-- Gráfico de peso a pantalla completa -->
 <div class="fs" id="fs" hidden>
   <div class="fs-bar">
     <button class="btn btn-small btn-ghost" id="fs-all">Ver todo</button>
-    <span class="fs-hint">Pellizca para zoom · toca un punto</span>
+    <button class="btn btn-small btn-ghost fs-auto on" id="fs-auto" title="Escala vertical automática">Auto</button>
+    <span class="fs-hint">Arrastra para mover · pellizca para zoom · mantén pulsado para la cruz</span>
     <button class="icon-btn" id="fs-close" aria-label="Cerrar">
       <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
     </button>
@@ -229,8 +299,9 @@
   <div class="fs-chart"><canvas id="fs-canvas"></canvas></div>
 </div>
 
-<input type="file" id="file-input" accept=".txt,.csv,text/plain" hidden>
+<input type="file" id="file-input" accept=".txt,.csv,.json,text/plain,text/csv,application/json" hidden>
 
 <script src="app.js"></script>
+<script src="gym.js"></script>
 </body>
 </html>

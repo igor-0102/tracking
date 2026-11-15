@@ -1,7 +1,7 @@
 /* Tracking · registro de peso. Todo se guarda en este dispositivo (IndexedDB). */
 'use strict';
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '2.0.0';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -65,11 +65,14 @@ const DB = {
   db: null,
   open() {
     return new Promise((res, rej) => {
-      const r = indexedDB.open('tracking', 1);
+      const r = indexedDB.open('tracking', 2);
       r.onupgradeneeded = () => {
         const db = r.result;
         if (!db.objectStoreNames.contains('entries')) db.createObjectStore('entries', { keyPath: 'date' });
         if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings');
+        for (const st of ['exercises', 'routines', 'workouts']) {
+          if (!db.objectStoreNames.contains(st)) db.createObjectStore(st, { keyPath: 'id' });
+        }
       };
       r.onsuccess = () => { this.db = r.result; res(); };
       r.onerror = () => rej(r.error);
@@ -92,11 +95,18 @@ const DB = {
   replaceEntries(list) { return this.run('entries', 'readwrite', s => { s.clear(); list.forEach(e => s.put(e)); }); },
   getSettings() { return this.run('settings', 'readonly', s => s.get('app')); },
   putSettings(o) { return this.run('settings', 'readwrite', s => s.put(o, 'app')); },
+  getKey(key) { return this.run('settings', 'readonly', s => s.get(key)); },
+  putKey(key, v) { return this.run('settings', 'readwrite', s => (v == null ? s.delete(key) : s.put(v, key))); },
+  all(store) { return this.run(store, 'readonly', s => s.getAll()); },
+  put(store, v) { return this.run(store, 'readwrite', s => s.put(v)); },
+  putMany(store, list) { return this.run(store, 'readwrite', s => { list.forEach(v => s.put(v)); }); },
+  del(store, key) { return this.run(store, 'readwrite', s => s.delete(key)); },
+  clear(store) { return this.run(store, 'readwrite', s => s.clear()); },
 };
 
 /* ================= Estado ================= */
 let entries = [];                       // [{date:'AAAA-MM-DD', kg}] ordenado
-const DEFAULTS = { goal: null, height: null, theme: 'dark', lastBackup: null, snoozeUntil: null, firstUse: null, range: '3m', avg: 'week' };
+const DEFAULTS = { goal: null, height: null, theme: 'dark', lastBackup: null, snoozeUntil: null, firstUse: null, range: '3m', avg: 'week', rest: 90, sound: true, bar: 20, pesoView: 'resumen', gymView: 'rutinas', gymStat: 'count' };
 let S = { ...DEFAULTS };
 let D = { idx: [], trend: [] };          // datos derivados
 
@@ -163,12 +173,13 @@ function bmi(kg) {
 
 /* ================= Gráfico ================= */
 function niceStep(range, maxTicks) {
-  const c = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50];
+  const c = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000];
   return c.find(s => range / s <= maxTicks) || 100;
 }
 
 class WeightChart {
-  constructor(canvas, { interactive = false, onTap = null } = {}) {
+  constructor(canvas, { interactive = false, onTap = null, trend = true, minMarker = true, tapSelect = false, fmtY = null, tip3 = null, small = false } = {}) {
+    this.opt = { trend, minMarker, fmtY: fmtY || (v => `${fmtKg(v)} kg`), tip3 };
     this.c = canvas;
     this.ctx = canvas.getContext('2d');
     this.interactive = interactive;
@@ -178,10 +189,13 @@ class WeightChart {
     this.view = [0, 30];
     this.sel = -1;
     this.w = 0; this.h = 0;
-    this.pad = interactive ? { l: 46, r: 16, t: 18, b: 28 } : { l: 40, r: 10, t: 12, b: 24 };
+    this.pad = interactive ? { l: 12, r: 56, t: 16, b: 30 } : { l: 40, r: 10, t: 12, b: 24 };
+    this.yView = null;          // null = escala vertical automática
     new ResizeObserver(() => this.resize()).observe(canvas);
     if (interactive) this.bindGestures();
     else if (onTap) canvas.parentElement.addEventListener('click', onTap);
+    else if (tapSelect) canvas.addEventListener('click', e => this.pick(e.clientX - canvas.getBoundingClientRect().left));
+    if (small) this.pad = { l: 46, r: 10, t: 12, b: 24 };
   }
   setData(pts, goal) {
     this.pts = pts;
@@ -210,10 +224,29 @@ class WeightChart {
   setView(a, b) {
     const [f0, f1] = this.fullView();
     const full = f1 - f0;
-    let s = clamp(b - a, Math.min(6, full), full);
-    const a2 = clamp(a, f0, f1 - s);
-    this.view = [a2, a2 + s];
+    if (this.interactive) {
+      // Movimiento libre: se puede ir más allá de los datos y alejar hasta 3 veces el rango.
+      const s = clamp(b - a, 3, Math.max(full * 3, 30));
+      const a2 = clamp(a, f0 - s * 0.6, f1 - s * 0.4);
+      this.view = [a2, a2 + s];
+    } else {
+      const s = clamp(b - a, Math.min(6, full), full);
+      const a2 = clamp(a, f0, f1 - s);
+      this.view = [a2, a2 + s];
+    }
     this.request();
+  }
+  setYAuto(on) {
+    if (on) this.yView = null;
+    else if (!this.yView) this.yView = [this.lo, this.hi];
+    if (this.onYMode) this.onYMode(!this.yView);
+    this.request();
+  }
+  resetAll() {
+    const [a, b] = this.fullView();
+    this.view = [a, b];
+    this.sel = -1;
+    this.setYAuto(true);
   }
   resize() {
     const r = this.c.getBoundingClientRect();
@@ -242,12 +275,16 @@ class WeightChart {
     const P = this.pad, L = P.l, R = w - P.r, T = P.t, B = h - P.b, W = R - L, H = B - T;
     const pts = this.pts;
 
-    // Rango vertical según lo visible
+    // Rango vertical: manual (si el usuario lo ha movido) o según lo visible
     let lo = Infinity, hi = -Infinity;
+    let goalOff = null;
+    if (this.yView) {
+      [lo, hi] = this.yView;
+      if (this.goal != null) goalOff = this.goal < lo ? 'below' : this.goal > hi ? 'above' : null;
+    } else {
     for (const p of pts) if (p.x >= x0 - 0.5 && p.x <= x1 + 0.5) { lo = Math.min(lo, p.y, p.t); hi = Math.max(hi, p.y, p.t); }
     if (lo === Infinity) for (const p of pts) { lo = Math.min(lo, p.y); hi = Math.max(hi, p.y); }
     if (lo === Infinity) { lo = 70; hi = 80; }
-    let goalOff = null;
     if (this.goal != null) {
       if (this.goal >= lo - 4 && this.goal <= hi + 4) { lo = Math.min(lo, this.goal); hi = Math.max(hi, this.goal); }
       else goalOff = this.goal < lo ? 'below' : 'above';
@@ -255,21 +292,24 @@ class WeightChart {
     if (hi - lo < 1) { const m = (hi + lo) / 2; lo = m - 0.5; hi = m + 0.5; }
     const m = (hi - lo) * 0.1;
     lo -= m; hi += m;
+    }
     const X = x => L + (x - x0) / (x1 - x0) * W;
     const Y = y => B - (y - lo) / (hi - lo) * H;
-    Object.assign(this, { X, L, W });
+    Object.assign(this, { X, Y, L, R, T, B, W, H, lo, hi });
+    const axisR = this.interactive;
 
     // Rejilla horizontal + etiquetas de peso
-    const ys = niceStep(hi - lo, Math.max(2, Math.floor(H / 34)));
+    const ys = niceStep(hi - lo, Math.max(2, Math.floor(H / (axisR ? 40 : 34))));
+    if (axisR) { ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(R + 0.5, T - 8); ctx.lineTo(R + 0.5, B); ctx.lineTo(L, B + 0.5); ctx.stroke(); }
     ctx.font = font(11.5);
-    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.textAlign = axisR ? 'left' : 'right'; ctx.textBaseline = 'middle';
     ctx.lineWidth = 1;
     for (let v = Math.ceil(lo / ys) * ys; v <= hi + 1e-9; v += ys) {
       const y = Math.round(Y(v)) + 0.5;
       ctx.strokeStyle = C.line; ctx.globalAlpha = 0.8;
       ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(R, y); ctx.stroke();
       ctx.globalAlpha = 1; ctx.fillStyle = C.muted;
-      ctx.fillText((ys < 1 ? v.toFixed(1) : v.toFixed(0)).replace('.', ','), L - 7, y);
+      ctx.fillText((ys < 1 ? v.toFixed(1) : v.toFixed(0)).replace('.', ','), axisR ? R + 8 : L - 7, y);
     }
 
     // Etiquetas de fechas
@@ -345,10 +385,14 @@ class WeightChart {
       ctx.globalAlpha = 1;
 
       // Media de 7 días
-      ctx.strokeStyle = C.accent; ctx.lineWidth = this.interactive ? 3 : 2.6; ctx.lineCap = 'round';
+      ctx.strokeStyle = C.accent; ctx.lineWidth = this.opt.trend ? (this.interactive ? 3 : 2.6) : 2.2; ctx.lineCap = 'round';
       ctx.beginPath();
       for (let i = i0; i <= i1; i++) { const px = X(pts[i].x), py = Y(pts[i].t); i === i0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); }
       ctx.stroke();
+      if (!this.opt.trend) {
+        ctx.fillStyle = C.accent;
+        for (let i = i0; i <= i1; i++) { ctx.beginPath(); ctx.arc(X(pts[i].x), Y(pts[i].y), 3.4, 0, 7); ctx.fill(); }
+      }
 
       // Último punto
       const lp = pts[pts.length - 1];
@@ -359,7 +403,7 @@ class WeightChart {
       }
 
       // Mínimo histórico
-      const mp = pts[this.minI];
+      const mp = this.opt.minMarker ? pts[this.minI] : null;
       if (mp && mp.x >= x0 && mp.x <= x1) {
         const mx = X(mp.x), my = Y(mp.y);
         ctx.strokeStyle = C.good; ctx.lineWidth = 2;
@@ -373,26 +417,58 @@ class WeightChart {
     }
     ctx.restore();
 
+    // Etiqueta del último valor en el eje (como el precio actual en TradingView)
+    const tag = (y, text, bg, fg) => {
+      if (y < T - 6 || y > B + 6) return;
+      ctx.font = font(11.5, 800);
+      const tw = ctx.measureText(text).width + 12;
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(R + 2, y - 10, Math.max(tw, P.r - 4), 20, 5) : ctx.rect(R + 2, y - 10, tw, 20); ctx.fill();
+      ctx.fillStyle = fg; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(text, R + 8, y);
+    };
+    const lastP = pts[pts.length - 1];
+    if (axisR && lastP) {
+      const ly = Y(lastP.t);
+      ctx.strokeStyle = C.accent; ctx.globalAlpha = 0.5; ctx.setLineDash([2, 4]); ctx.lineWidth = 1;
+      if (ly >= T && ly <= B) { ctx.beginPath(); ctx.moveTo(L, ly); ctx.lineTo(R, ly); ctx.stroke(); }
+      ctx.setLineDash([]); ctx.globalAlpha = 1;
+      tag(ly, fmt1(lastP.t), C.accent, C.bg);
+    }
+
     // Punto seleccionado
     const sp = pts[this.sel];
     if (sp && sp.x >= x0 && sp.x <= x1) {
       const sx = X(sp.x), sy = Y(sp.y);
       ctx.strokeStyle = C.muted; ctx.globalAlpha = 0.6; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
       ctx.beginPath(); ctx.moveTo(sx, T); ctx.lineTo(sx, B); ctx.stroke();
+      if (axisR) { ctx.beginPath(); ctx.moveTo(L, sy); ctx.lineTo(R, sy); ctx.stroke(); }
       ctx.setLineDash([]); ctx.globalAlpha = 1;
+      if (axisR) {
+        tag(sy, fmtKg(sp.y), C.fg, C.bg);
+        const dl = fmtD(F.dayMonYear, sp.date);
+        ctx.font = font(11.5, 800);
+        const dw = ctx.measureText(dl).width + 14;
+        const dx = clamp(sx - dw / 2, L, R - dw);
+        ctx.fillStyle = C.fg;
+        ctx.beginPath(); ctx.roundRect ? ctx.roundRect(dx, B + 4, dw, 20, 5) : ctx.rect(dx, B + 4, dw, 20); ctx.fill();
+        ctx.fillStyle = C.bg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(dl, dx + dw / 2, B + 14);
+      }
       ctx.fillStyle = C.fg;
       ctx.beginPath(); ctx.arc(sx, sy, 6.5, 0, 7); ctx.fill();
       ctx.strokeStyle = C.bg; ctx.lineWidth = 2.5; ctx.stroke();
 
       const l1 = cap(fmtD(F.tip, sp.date));
-      const l2 = `${fmtKg(sp.y)} kg`;
-      const l3 = `Media 7 días: ${fmt1(sp.t)}`;
+      const l2 = this.opt.fmtY(sp.y);
+      const l3 = this.opt.tip3 ? this.opt.tip3(sp) : `Media 7 días: ${fmt1(sp.t)}`;
       ctx.font = font(13, 600); const w1 = ctx.measureText(l1).width;
       ctx.font = font(22, 800); const w2 = ctx.measureText(l2).width;
       ctx.font = font(12.5, 500); const w3 = ctx.measureText(l3).width;
       const bw = Math.max(w1, w2, w3) + 26, bh = 82;
       let bx = sx + 14; if (bx + bw > R) bx = sx - 14 - bw; bx = clamp(bx, L, R - bw);
       let by = sy - bh - 14; if (by < T) by = Math.min(sy + 14, B - bh);
+      by = clamp(by, T, B - bh);
       ctx.fillStyle = C.surface2; ctx.strokeStyle = C.line; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, 12) : ctx.rect(bx, by, bw, bh); ctx.fill(); ctx.stroke();
       ctx.textAlign = 'left'; ctx.textBaseline = 'top';
@@ -407,80 +483,180 @@ class WeightChart {
     }
   }
 
-  /* --- Gestos: arrastrar, pellizcar, tocar --- */
+  /* --- Gestos estilo TradingView ---
+     · 1 dedo en el gráfico: mover libremente (horizontal y vertical), con inercia.
+     · 2 dedos: zoom (horizontal y, si separas en vertical, también vertical).
+     · Arrastrar sobre el eje de precios (derecha): estirar/encoger en vertical.
+     · Arrastrar sobre el eje de fechas (abajo): estirar/encoger en horizontal.
+     · Tocar: ver un punto. Mantener pulsado y deslizar: cruz que sigue el dedo.
+     · Doble toque: volver a la escala automática. */
   bindGestures() {
     const c = this.c;
     this.ptrs = new Map();
+    const rel = e => { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
     const startG = () => {
-      const r = c.getBoundingClientRect();
-      this.g = { view: [...this.view], left: r.left, pts: [...this.ptrs.values()].map(p => p.x - r.left) };
+      this.g = { view: [...this.view], y: this.yView ? [...this.yView] : [this.lo, this.hi], manualY: !!this.yView, pts: [...this.ptrs.values()], zone: this.zone || 'plot', ydy: 0 };
     };
     c.addEventListener('pointerdown', e => {
       e.preventDefault();
+      cancelAnimationFrame(this.inertia); this.inertia = 0;
       try { c.setPointerCapture(e.pointerId); } catch (_) {}
-      this.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      this.tap = this.ptrs.size === 1 ? { x: e.clientX, y: e.clientY, t: performance.now(), ok: true } : null;
+      const p = rel(e);
+      this.ptrs.set(e.pointerId, p);
+      clearTimeout(this.lpTimer);
+      this.cross = false;
+      if (this.ptrs.size === 1) {
+        this.zone = p.x > this.R ? 'y' : p.y > this.B ? 'x' : 'plot';
+        this.tap = { ...p, t: performance.now(), ok: true };
+        this.vel = [{ ...p, t: performance.now() }];
+        if (this.zone === 'plot') this.lpTimer = setTimeout(() => {
+          if (this.tap && this.tap.ok && this.ptrs.size === 1) {
+            this.cross = true;
+            this.pick(this.tap.x, true);
+            if (navigator.vibrate) try { navigator.vibrate(8); } catch (_) {}
+          }
+        }, 380);
+      } else { this.tap = null; this.zone = 'plot'; }
       startG();
     });
     c.addEventListener('pointermove', e => {
       if (!this.ptrs.has(e.pointerId)) return;
-      this.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (this.tap && Math.hypot(e.clientX - this.tap.x, e.clientY - this.tap.y) > 8) this.tap.ok = false;
+      const p = rel(e);
+      this.ptrs.set(e.pointerId, p);
+      if (this.cross) { this.pick(p.x, true); return; }
+      if (this.tap && Math.hypot(p.x - this.tap.x, p.y - this.tap.y) > 8) { this.tap.ok = false; clearTimeout(this.lpTimer); }
       if (this.tap && this.tap.ok) return;
+      if (this.ptrs.size === 1) { this.vel.push({ ...p, t: performance.now() }); if (this.vel.length > 6) this.vel.shift(); }
       this.move();
     });
     const end = e => {
       if (!this.ptrs.has(e.pointerId)) return;
+      const p = rel(e);
       this.ptrs.delete(e.pointerId);
-      if (e.type === 'pointerup' && this.tap && this.tap.ok && this.ptrs.size === 0 && performance.now() - this.tap.t < 600) {
-        this.pick(e.clientX - c.getBoundingClientRect().left);
+      clearTimeout(this.lpTimer);
+      const now = performance.now();
+      if (e.type === 'pointerup' && this.ptrs.size === 0) {
+        if (this.tap && this.tap.ok && !this.cross && now - this.tap.t < 500) {
+          if (this.lastTap && now - this.lastTap.t < 330 && Math.abs(p.x - this.lastTap.x) < 30) { this.lastTap = null; this.sel = -1; this.setYAuto(true); }
+          else { this.pick(p.x); this.lastTap = { t: now, x: p.x }; }
+        } else if (!this.cross && this.zone === 'plot' && this.g && this.g.pts.length === 1) this.fling();
       }
+      this.cross = false;
       if (this.ptrs.size) this.tap = null;
+      this.zone = 'plot';
       startG();
     };
     c.addEventListener('pointerup', end);
     c.addEventListener('pointercancel', end);
     c.addEventListener('wheel', e => {
       e.preventDefault();
-      const px = e.clientX - c.getBoundingClientRect().left;
+      const p = rel({ clientX: e.clientX, clientY: e.clientY });
+      if (e.shiftKey || p.x > this.R) {
+        const f = Math.exp(e.deltaY * 0.0015);
+        const [lo, hi] = this.yView || [this.lo, this.hi];
+        const mid = (lo + hi) / 2, hs = (hi - lo) * f / 2;
+        this.setYManual([mid - hs, mid + hs]);
+        return;
+      }
       const [a, b] = this.view, s = b - a;
-      const d = a + (px - this.L) / this.W * s;
+      const d = a + (p.x - this.L) / this.W * s;
       const ns = s * Math.exp(e.deltaY * 0.0015);
-      const na = d - (px - this.L) / this.W * ns;
+      const na = d - (p.x - this.L) / this.W * ns;
       this.setView(na, na + ns);
     }, { passive: false });
-    c.addEventListener('dblclick', () => { const [a, b] = this.fullView(); this.view = [a, b]; this.request(); });
+  }
+  setYManual(r) {
+    let [lo, hi] = r;
+    const sp = clamp(hi - lo, 0.2, 5000);
+    const mid = (lo + hi) / 2;
+    this.yView = [mid - sp / 2, mid + sp / 2];
+    if (this.onYMode) this.onYMode(false);
+    this.request();
   }
   move() {
     const g = this.g;
     if (!g || !this.W) return;
-    const cur = [...this.ptrs.values()].map(p => p.x - g.left);
+    const cur = [...this.ptrs.values()];
     const [v0, v1] = g.view, s = v1 - v0;
-    const toD = px => v0 + (px - this.L) / this.W * s;
     if (cur.length === 1 && g.pts.length === 1) {
-      const dx = cur[0] - g.pts[0];
+      const dx = cur[0].x - g.pts[0].x, dy = cur[0].y - g.pts[0].y;
+      const [y0, y1] = g.y, ys = y1 - y0;
+      if (g.zone === 'y') {
+        const f = Math.exp(dy * 0.006);
+        const mid = (y0 + y1) / 2;
+        this.setYManual([mid - ys * f / 2, mid + ys * f / 2]);
+        return;
+      }
+      if (g.zone === 'x') {
+        const ns = s * Math.exp(-dx * 0.006);
+        this.setView(v1 - ns, v1);
+        return;
+      }
       this.setView(v0 - dx / this.W * s, v1 - dx / this.W * s);
+      if (!g.manualY && Math.abs(dy) > 14) { g.manualY = true; g.y = [this.lo, this.hi]; g.ydy = dy; }
+      if (g.manualY) {
+        const [a0, a1] = g.y;
+        const sh = (dy - g.ydy) / this.H * (a1 - a0);
+        this.setYManual([a0 + sh, a1 + sh]);
+      }
     } else if (cur.length >= 2 && g.pts.length >= 2) {
-      const p1 = g.pts[0], p2 = g.pts[1], q1 = cur[0], q2 = cur[1];
-      if (Math.abs(p2 - p1) < 24 || Math.abs(q2 - q1) < 24 || Math.sign(p2 - p1) !== Math.sign(q2 - q1)) return;
-      const d1 = toD(p1), d2 = toD(p2);
-      const ns = (d2 - d1) * this.W / (q2 - q1);
-      if (!(ns > 0)) return;
-      const [f0, f1] = this.fullView();
-      const cs = clamp(ns, Math.min(6, f1 - f0), f1 - f0);
-      const mid = (q1 + q2) / 2, dm = (d1 + d2) / 2;
-      const na = dm - (mid - this.L) / this.W * cs;
-      this.setView(na, na + cs);
+      const [p1, p2] = g.pts, [q1, q2] = cur;
+      // Horizontal: zoom con la separación de los dedos, o solo mover si están casi alineados en vertical
+      if (Math.abs(p2.x - p1.x) >= 30 && Math.abs(q2.x - q1.x) >= 20 && Math.sign(p2.x - p1.x) === Math.sign(q2.x - q1.x)) {
+        const toD = px => v0 + (px - this.L) / this.W * s;
+        const d1 = toD(p1.x), d2 = toD(p2.x);
+        const ns = (d2 - d1) * this.W / (q2.x - q1.x);
+        if (ns > 0) {
+          const mid = (q1.x + q2.x) / 2, dm = (d1 + d2) / 2;
+          const na = dm - (mid - this.L) / this.W * ns;
+          this.setView(na, na + ns);
+        }
+      } else {
+        const dx = ((q1.x + q2.x) - (p1.x + p2.x)) / 2;
+        this.setView(v0 - dx / this.W * s, v1 - dx / this.W * s);
+      }
+      // Vertical: si separas los dedos en vertical, también hace zoom en el peso
+      const pdy = Math.abs(p2.y - p1.y), qdy = Math.abs(q2.y - q1.y);
+      const yZoom = pdy > 60 && qdy > 30 && Math.abs(qdy - pdy) > 10;
+      if (yZoom || g.manualY) {
+        const [y0, y1] = g.y, ys = y1 - y0;
+        const nys = yZoom ? ys * pdy / qdy : ys;
+        const toY = py => y0 + (this.B - py) / this.H * ys;
+        const dm = toY((p1.y + p2.y) / 2);
+        const nlo = dm - (this.B - (q1.y + q2.y) / 2) / this.H * nys;
+        g.manualY = true;
+        this.setYManual([nlo, nlo + nys]);
+      }
     }
   }
-  pick(px) {
-    let best = -1, bd = 30;
+  fling() {
+    const v = this.vel || [];
+    if (v.length < 2) return;
+    const a = v[0], b = v[v.length - 1];
+    const dt = b.t - a.t;
+    if (dt <= 0 || performance.now() - b.t > 90) return;
+    let vx = (b.x - a.x) / dt;            // px por ms
+    if (Math.abs(vx) < 0.25) return;
+    let last = performance.now();
+    const step = () => {
+      const now = performance.now(), d = now - last;
+      last = now;
+      const [x0, x1] = this.view, s = x1 - x0;
+      const dx = vx * d;
+      this.setView(x0 - dx / this.W * s, x1 - dx / this.W * s);
+      vx *= Math.pow(0.995, d);
+      this.inertia = Math.abs(vx) > 0.03 ? requestAnimationFrame(step) : 0;
+    };
+    this.inertia = requestAnimationFrame(step);
+  }
+  pick(px, keep = false) {
+    let best = -1, bd = keep ? Infinity : 30;
     this.pts.forEach((p, i) => {
       if (p.x < this.view[0] || p.x > this.view[1]) return;
       const d = Math.abs(this.X(p.x) - px);
       if (d < bd) { bd = d; best = i; }
     });
-    this.sel = best === this.sel ? -1 : best;
+    this.sel = keep ? best : (best === this.sel ? -1 : best);
     this.request();
   }
 }
@@ -497,17 +673,21 @@ window.addEventListener('popstate', () => {
 
 const backdrop = $('#backdrop');
 let openSheetEl = null;
-function openSheet(el) {
+let lockCount = 0;
+const lockBody = () => { lockCount++; document.body.classList.add('locked'); };
+const unlockBody = () => { lockCount = Math.max(0, lockCount - 1); if (!lockCount) document.body.classList.remove('locked'); };
+function openSheet(el, onClose) {
   openSheetEl = el;
   el.hidden = false; backdrop.hidden = false;
-  document.body.classList.add('locked');
+  lockBody();
   requestAnimationFrame(() => { el.classList.add('open'); backdrop.classList.add('open'); });
   pushLayer(() => {
     el.classList.remove('open'); backdrop.classList.remove('open');
     document.activeElement && document.activeElement.blur && document.activeElement.blur();
     openSheetEl = null;
-    document.body.classList.remove('locked');
+    unlockBody();
     setTimeout(() => { if (!el.classList.contains('open')) el.hidden = true; if (!openSheetEl) backdrop.hidden = true; }, 260);
+    if (onClose) onClose();
   });
 }
 const closeSheet = () => popLayer();
@@ -561,8 +741,15 @@ function showTab(name) {
   $$('.tab').forEach(s => { s.hidden = s.id !== 'tab-' + name; });
   $$('#tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   $('#page-title').textContent = $('#tab-' + name).dataset.title;
+  $('#fab').hidden = name !== 'peso';
   window.scrollTo(0, 0);
 }
+function showPesoView(v) {
+  S.pesoView = v;
+  $$('#peso-seg button').forEach(b => b.classList.toggle('on', b.dataset.view === v));
+  ['resumen', 'medias', 'historial'].forEach(k => { $('#peso-' + k).hidden = k !== v; });
+}
+$$('#peso-seg button').forEach(b => b.addEventListener('click', () => { showPesoView(b.dataset.view); saveSettings(); }));
 $$('#tabbar button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
 /* ================= Render ================= */
@@ -578,6 +765,7 @@ function renderAll() {
   renderAverages();
   renderHistory();
   renderSettings();
+  if (typeof gymRenderAll === 'function') gymRenderAll();
 }
 
 function renderHome() {
@@ -923,12 +1111,18 @@ async function copyAll() {
 }
 
 async function exportFile() {
-  if (!entries.length) return toast('No hay registros que exportar');
-  const name = `tracking-${todayISO()}.txt`;
-  const text = backupText() + '\n';
-  const blob = new Blob([text], { type: 'text/plain' });
+  const gym = typeof gymBackupData === 'function' ? gymBackupData() : {};
+  if (!entries.length && !(gym.workouts && gym.workouts.length) && !(gym.routines && gym.routines.length)) return toast('No hay datos que exportar');
+  const name = `tracking-${todayISO()}.json`;
+  const data = {
+    app: 'tracking', version: 2, exported: new Date().toISOString(),
+    entries, settings: { goal: S.goal, height: S.height, rest: S.rest, bar: S.bar },
+    ...gym,
+  };
+  const text = JSON.stringify(data);
+  const blob = new Blob([text], { type: 'application/json' });
   try {
-    const file = new File([blob], name, { type: 'text/plain' });
+    const file = new File([blob], name, { type: 'application/json' });
     if (navigator.canShare && navigator.canShare({ files: [file] }) && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
       await navigator.share({ files: [file], title: 'Copia de Tracking' });
       toast('Copia exportada');
@@ -1032,7 +1226,7 @@ $('#import-merge').addEventListener('click', async () => {
   sortEntries();
   closeSheet();
   renderAll();
-  showTab('inicio');
+  showTab('peso'); showPesoView('resumen');
   toast(`Importados ${items.length} registros`);
 });
 $('#import-replace').addEventListener('click', async () => {
@@ -1049,7 +1243,7 @@ $('#import-replace').addEventListener('click', async () => {
   sortEntries();
   closeSheet();
   renderAll();
-  showTab('inicio');
+  showTab('peso'); showPesoView('resumen');
   toast(`Datos reemplazados · ${items.length} registros`);
 });
 
@@ -1060,17 +1254,49 @@ fileInput.addEventListener('change', async () => {
   if (!f) return;
   try {
     const text = await f.text();
-    openImport(text);
+    const head = text.trimStart();
+    if (head.startsWith('{')) await importJSON(text);
+    else if (/exercise_title/i.test(head.split(/\r?\n/, 1)[0])) gymHevyImport(text);
+    else openImport(text);
   } catch (_) { toast('No se pudo leer el archivo'); }
 });
 
+async function importJSON(text) {
+  let d;
+  try { d = JSON.parse(text); } catch (_) { return toast('El archivo no es una copia válida'); }
+  if (!d || d.app !== 'tracking') return toast('El archivo no es una copia de Tracking');
+  const ents = (d.entries || []).filter(e => e && /^\d{4}-\d{2}-\d{2}$/.test(e.date) && typeof e.kg === 'number');
+  const n = k => (Array.isArray(d[k]) ? d[k].length : 0);
+  const ok = await ask({
+    title: 'Importar copia',
+    message: `Copia del ${d.exported ? fmtD(F.dayMonYear, d.exported.slice(0, 10)) : '¿?'}: ${ents.length} pesos, ${n('workouts')} entrenos, ${n('routines')} rutinas y ${n('exercises')} ejercicios. Se combinará con lo que ya tienes (si algo coincide, gana la copia).`,
+    ok: 'Importar', cancel: 'Cancelar',
+  });
+  if (!ok) return;
+  await DB.putEntries(ents);
+  const map = new Map(entries.map(e => [e.date, e]));
+  ents.forEach(e => map.set(e.date, e));
+  entries = [...map.values()];
+  sortEntries();
+  const st = d.settings || {};
+  if (S.goal == null && st.goal != null) S.goal = st.goal;
+  if (S.height == null && st.height != null) S.height = st.height;
+  if (st.rest) S.rest = st.rest;
+  if (st.bar) S.bar = st.bar;
+  await saveSettings();
+  if (typeof gymImportBackup === 'function') await gymImportBackup(d);
+  renderAll();
+  toast('Copia importada');
+}
+
 async function wipeAll() {
-  const ok1 = await ask({ title: '¿Borrar todos los datos?', message: `Se borrarán tus ${entries.length} registros, el objetivo y los ajustes de este móvil.`, ok: 'Continuar', cancel: 'Cancelar', danger: true });
+  const ok1 = await ask({ title: '¿Borrar todos los datos?', message: `Se borrarán tus pesos, entrenos, rutinas, ejercicios y ajustes de este móvil.`, ok: 'Continuar', cancel: 'Cancelar', danger: true });
   if (!ok1) return;
   const ok2 = await ask({ title: '¿Seguro del todo?', message: 'Esto no se puede deshacer. Si no tienes copia, perderás tu historial.', ok: 'Borrar todo', cancel: 'No, volver', danger: true });
   if (!ok2) return;
   await DB.replaceEntries([]);
   entries = [];
+  if (typeof gymWipe === 'function') await gymWipe();
   S = { ...DEFAULTS, theme: S.theme, firstUse: todayISO() };
   await saveSettings();
   renderAll();
@@ -1084,6 +1310,8 @@ document.addEventListener('click', e => {
   if (a) {
     const act = a.dataset.action;
     if (act === 'copy') copyAll();
+    else if (act === 'add-weight') openAdd();
+    else if (act === 'start-workout') gymStartMenu();
     else if (act === 'export') exportFile();
     else if (act === 'import-file') fileInput.click();
     else if (act === 'import-text') openImport();
@@ -1161,17 +1389,20 @@ function openFullscreen() {
   if (!entries.length) return;
   const fs = $('#fs');
   fs.hidden = false;
-  document.body.classList.add('locked');
+  lockBody();
   fsChart.setData(chartPoints(), S.goal);
   fsChart.view = [...chart.view];
+  fsChart.yView = null;
+  fsChart.onYMode && fsChart.onYMode(true);
   fsChart.resize();
   pushLayer(() => {
     fs.hidden = true;
-    document.body.classList.remove('locked');
+    unlockBody();
   });
 }
 $('#fs-close').addEventListener('click', () => popLayer());
-$('#fs-all').addEventListener('click', () => { const [a, b] = fsChart.fullView(); fsChart.view = [a, b]; fsChart.sel = -1; fsChart.request(); });
+$('#fs-all').addEventListener('click', () => fsChart.resetAll());
+$('#fs-auto').addEventListener('click', () => fsChart.setYAuto(!!fsChart.yView));
 
 /* ================= Teclado en iOS (paneles sobre el teclado) ================= */
 if (window.visualViewport) {
@@ -1214,6 +1445,7 @@ function setupSW() {
 async function init() {
   chart = new WeightChart($('#chart'), { onTap: openFullscreen });
   fsChart = new WeightChart($('#fs-canvas'), { interactive: true });
+  fsChart.onYMode = auto => $('#fs-auto').classList.toggle('on', auto);
   try {
     await DB.open();
     const [list, st] = await Promise.all([DB.allEntries(), DB.getSettings()]);
@@ -1221,10 +1453,13 @@ async function init() {
     sortEntries();
     S = { ...DEFAULTS, ...(st || {}) };
     if (!S.firstUse) { S.firstUse = todayISO(); await saveSettings(); }
+    await gymLoad();
   } catch (err) {
+    console.error(err);
     toast('No se puede guardar en este navegador (¿modo privado?)', { ms: 8000 });
   }
   applyTheme();
+  showPesoView(S.pesoView || 'resumen');
   renderAll();
   // Pide al navegador que no borre los datos para liberar espacio.
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
