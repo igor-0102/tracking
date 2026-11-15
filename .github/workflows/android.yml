@@ -1,0 +1,87 @@
+name: Compilar APK de Android
+
+# Se ejecuta al cambiar la parte nativa, o a mano desde la pestaña Actions ("Run workflow").
+# Los cambios normales de la app (index.html, app.js, gym.js, styles.css) NO necesitan
+# recompilar: la app instalada los descarga sola de GitHub Pages.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - 'native/**'
+      - 'tools/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/android.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Preparar la web y sincronizar con Android
+        run: npm run sync
+
+      - name: Preparar la clave de firma
+        id: clave
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::warning::Faltan los secretos KEYSTORE_BASE64 y KEYSTORE_PASSWORD (Settings > Secrets and variables > Actions). No se compila el APK."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+          printf '%s' "$KEYSTORE_BASE64" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/tracking.keystore"
+          echo "KEYSTORE_FILE=$RUNNER_TEMP/tracking.keystore" >> "$GITHUB_ENV"
+
+      - name: Compilar el APK firmado
+        if: steps.clave.outputs.ok == 'true'
+        working-directory: android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          export KEYSTORE_PASSWORD="$(printf '%s' "$KEYSTORE_PASSWORD" | tr -d ' \r\n')"
+          export VERSION_NAME="$(node -p "require('../package.json').version")"
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk ../Tracking.apk
+
+      - uses: actions/upload-artifact@v4
+        if: steps.clave.outputs.ok == 'true'
+        with:
+          name: Tracking-apk
+          path: Tracking.apk
+
+      - name: Publicar en Releases
+        if: steps.clave.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="apk-v${VERSION}-${{ github.run_number }}"
+          gh release create "$TAG" Tracking.apk \
+            --title "Tracking para Android ${VERSION} (compilación ${{ github.run_number }})" \
+            --notes "Descarga **Tracking.apk** en el móvil y ábrelo para instalar o actualizar."

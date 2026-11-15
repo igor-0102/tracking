@@ -1,10 +1,18 @@
 apply plugin: 'com.android.application'
 
 // Firma: la misma clave en todas las versiones para que Android acepte las actualizaciones
-// sin borrar los datos. Se lee de app/signing.properties.
+// sin borrar los datos. La clave NO esta en el repositorio:
+//  - En GitHub Actions llega por secretos (variables KEYSTORE_FILE, KEYSTORE_PASSWORD).
+//  - En local, crea app/signing.properties (ignorado por git) con storeFile, storePassword,
+//    keyAlias y keyPassword.
 def signingProps = new Properties()
 def signingFile = file('signing.properties')
 if (signingFile.exists()) signingFile.withInputStream { signingProps.load(it) }
+def ksFile = System.getenv('KEYSTORE_FILE') ?: signingProps['storeFile']
+def ksPass = System.getenv('KEYSTORE_PASSWORD') ?: signingProps['storePassword']
+def ksAlias = System.getenv('KEY_ALIAS') ?: (signingProps['keyAlias'] ?: 'tracking')
+def ksKeyPass = System.getenv('KEY_PASSWORD') ?: (signingProps['keyPassword'] ?: ksPass)
+def hasSigning = ksFile && ksPass
 
 android {
     namespace = "io.github.igor0102.tracking"
@@ -25,17 +33,17 @@ android {
     }
     signingConfigs {
         release {
-            if (signingFile.exists()) {
-                storeFile file(signingProps['storeFile'])
-                storePassword signingProps['storePassword']
-                keyAlias signingProps['keyAlias']
-                keyPassword signingProps['keyPassword']
+            if (hasSigning) {
+                storeFile file(ksFile)
+                storePassword ksPass
+                keyAlias ksAlias
+                keyPassword ksKeyPass
             }
         }
     }
     buildTypes {
         release {
-            if (signingFile.exists()) signingConfig signingConfigs.release
+            if (hasSigning) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
