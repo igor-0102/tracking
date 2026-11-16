@@ -1,7 +1,7 @@
 /* Tracking · registro de peso. Todo se guarda en este dispositivo (IndexedDB). */
 'use strict';
 
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.2.0';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -65,12 +65,12 @@ const DB = {
   db: null,
   open() {
     return new Promise((res, rej) => {
-      const r = indexedDB.open('tracking', 2);
+      const r = indexedDB.open('tracking', 3);
       r.onupgradeneeded = () => {
         const db = r.result;
         if (!db.objectStoreNames.contains('entries')) db.createObjectStore('entries', { keyPath: 'date' });
         if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings');
-        for (const st of ['exercises', 'routines', 'workouts']) {
+        for (const st of ['exercises', 'routines', 'workouts', 'diets', 'foods', 'templates']) {
           if (!db.objectStoreNames.contains(st)) db.createObjectStore(st, { keyPath: 'id' });
         }
       };
@@ -109,7 +109,11 @@ const DB = {
 
 /* ================= Estado ================= */
 let entries = [];                       // [{date:'AAAA-MM-DD', kg}] ordenado
-const DEFAULTS = { goal: null, height: null, theme: 'dark', lastBackup: null, snoozeUntil: null, firstUse: null, range: '3m', avg: 'week', rest: 90, sound: true, bar: 20, pesoView: 'resumen', gymView: 'rutinas', gymStat: 'count' };
+const DEFAULTS = { goal: null, height: null, theme: 'dark', lastBackup: null, snoozeUntil: null, firstUse: null, range: '3m', avg: 'week', rest: 90, sound: true, bar: 20, pesoView: 'resumen', gymView: 'rutinas', gymStat: 'count',
+  // Perfil y dieta
+  sex: null, birth: '', age: null, activity: null, weightMode: 'auto', weightManual: null,
+  goalType: 'mant', dietGoal: { train: { pct: 0, prot: 2, fat: 1 }, rest: { pct: 0, prot: 2, fat: 1 } },
+  dietId: null, dayType: 'auto', favFoods: [], recentFoods: [], usdaSearch: false };
 let S = { ...DEFAULTS };
 let D = { idx: [], trend: [] };          // datos derivados
 
@@ -769,6 +773,7 @@ function renderAll() {
   renderHistory();
   renderSettings();
   if (typeof gymRenderAll === 'function') gymRenderAll();
+  if (typeof dietRenderAll === 'function') dietRenderAll();
 }
 
 function renderHome() {
@@ -945,9 +950,9 @@ function renderHistory() {
 }
 
 function renderSettings() {
-  const gi = $('#goal-input'), hi = $('#height-input');
+  const gi = $('#goal-input');
   if (document.activeElement !== gi) gi.value = S.goal != null ? fmtKg(S.goal) : '';
-  if (document.activeElement !== hi) hi.value = S.height != null ? String(S.height) : '';
+
   $$('#theme-seg button').forEach(b => b.classList.toggle('on', b.dataset.themeOpt === S.theme));
   $('#last-backup').textContent = S.lastBackup ? `Última copia: ${fmtD(F.dayMonYear, S.lastBackup)}` : 'Aún no has hecho ninguna copia.';
   $('#version').innerHTML = isNative()
@@ -1124,13 +1129,15 @@ let dbReady = false;
 
 function backupData() {
   const gym = typeof gymBackupData === 'function' ? gymBackupData() : {};
+  const diet = typeof dietBackupData === 'function' ? dietBackupData() : {};
   return {
-    app: 'tracking', version: 2, exported: new Date().toISOString(),
-    entries, settings: { goal: S.goal, height: S.height, rest: S.rest, bar: S.bar },
-    ...gym,
+    app: 'tracking', version: 3, exported: new Date().toISOString(),
+    entries,
+    settings: { goal: S.goal, height: S.height, rest: S.rest, bar: S.bar, sex: S.sex, birth: S.birth, age: S.age, activity: S.activity, goalType: S.goalType, dietGoal: S.dietGoal },
+    ...gym, ...diet,
   };
 }
-const hasData = d => !!(d.entries.length || (d.workouts && d.workouts.length) || (d.routines && d.routines.length));
+const hasData = d => !!(d.entries.length || (d.workouts && d.workouts.length) || (d.routines && d.routines.length) || (d.diets && d.diets.length) || (d.customFoods && d.customFoods.length));
 
 // Copia automática: en la app nativa se guarda un archivo con todo en la carpeta privada de la app.
 // Android incluye esa carpeta en la copia de seguridad de la cuenta de Google del móvil.
@@ -1322,7 +1329,7 @@ async function importJSON(text, intro = '') {
   const n = k => (Array.isArray(d[k]) ? d[k].length : 0);
   const ok = await ask({
     title: 'Importar copia',
-    message: `${intro}Copia del ${d.exported ? fmtD(F.dayMonYear, d.exported.slice(0, 10)) : '¿?'}: ${ents.length} pesos, ${n('workouts')} entrenos, ${n('routines')} rutinas y ${n('exercises')} ejercicios. Se combinará con lo que ya tienes (si algo coincide, gana la copia).`,
+    message: `${intro}Copia del ${d.exported ? fmtD(F.dayMonYear, d.exported.slice(0, 10)) : '¿?'}: ${ents.length} pesos, ${n('workouts')} entrenos, ${n('routines')} rutinas y ${n('diets')} dietas. Se combinará con lo que ya tienes (si algo coincide, gana la copia).`,
     ok: 'Importar', cancel: 'Cancelar',
   });
   if (!ok) return;
@@ -1338,6 +1345,8 @@ async function importJSON(text, intro = '') {
   if (st.bar) S.bar = st.bar;
   await saveSettings();
   if (typeof gymImportBackup === 'function') await gymImportBackup(d);
+  if (typeof dietImportBackup === 'function') await dietImportBackup(d);
+  await saveSettings();
   renderAll();
   toast('Copia importada');
 }
@@ -1350,8 +1359,10 @@ async function wipeAll() {
   await DB.replaceEntries([]);
   entries = [];
   if (typeof gymWipe === 'function') await gymWipe();
+  if (typeof dietWipe === 'function') await dietWipe();
   if (isNative()) { clearTimeout(autoTimer); autoTimer = 0; try { await nativeCall('Filesystem', 'deleteFile', { path: AUTO_FILE, directory: 'DATA' }); } catch (_) {} }
   S = { ...DEFAULTS, theme: S.theme, firstUse: todayISO() };
+  S.dietGoal = JSON.parse(JSON.stringify(DEFAULTS.dietGoal));
   await saveSettings();
   renderAll();
   showTab('inicio');
@@ -1395,17 +1406,18 @@ $('#goal-input').addEventListener('change', async e => {
   renderAll();
   toast(`Objetivo: ${fmtKg(kg)} kg`);
 });
-$('#height-input').addEventListener('change', async e => {
+// La altura se pinta dentro del Perfil (diet.js), así que se escucha por delegación.
+document.addEventListener('change', async e => {
+  if (e.target.id !== 'height-input') return;
   const v = e.target.value.trim();
   if (!v) { S.height = null; await saveSettings(); renderAll(); return; }
   const cm = Math.round(parseFloat(v.replace(',', '.')));
-  if (isNaN(cm) || cm < 100 || cm > 250) { toast('Estatura no válida (en cm)'); renderSettings(); return; }
+  if (isNaN(cm) || cm < 100 || cm > 250) { toast('La altura debe estar entre 100 y 250 cm'); renderAll(); return; }
   S.height = cm;
   await saveSettings();
   renderAll();
-  toast(`Estatura: ${cm} cm`);
 });
-[$('#goal-input'), $('#height-input')].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') i.blur(); }));
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches && e.target.matches('#tab-ajustes input[type="text"]')) e.target.blur(); });
 
 const mqLight = matchMedia('(prefers-color-scheme: light)');
 function applyTheme() {
@@ -1473,8 +1485,10 @@ if (window.visualViewport) {
 function setupSW() {
   if (!('serviceWorker' in navigator)) return;
   let refreshing = false;
+  // Solo se recarga al actualizar; en la primera instalación no había versión anterior que sustituir.
+  const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (refreshing) return;
+    if (refreshing || !hadController) return;
     refreshing = true;
     location.reload();
   });
@@ -1506,8 +1520,11 @@ async function init() {
     entries = (list || []).filter(e => e && e.date && typeof e.kg === 'number');
     sortEntries();
     S = { ...DEFAULTS, ...(st || {}) };
+    if (!S.dietGoal || !S.dietGoal.train || !S.dietGoal.rest) S.dietGoal = DEFAULTS.dietGoal;
+    S.dietGoal = JSON.parse(JSON.stringify(S.dietGoal));       // copia propia: no tocar los valores por defecto
     if (!S.firstUse) { S.firstUse = todayISO(); await saveSettings(); }
     await gymLoad();
+    await dietLoad();
     dbReady = true;
   } catch (err) {
     console.error(err);
@@ -1528,4 +1545,5 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && todayISO() !== lastDay) { lastDay = todayISO(); renderAll(); }
 });
 
-init();
+// Arranca cuando todos los scripts (gym.js, diet.js…) ya están cargados.
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

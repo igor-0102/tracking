@@ -1,0 +1,267 @@
+# Lista básica de alimentos en español.
+# Formato:  Nombre en español | Categoría | palabras que debe contener la descripción del USDA (separadas por ;) | porciones opcionales (nombre=gramos; …)
+# Una palabra que empieza por ! no debe aparecer. Se elige la descripción más corta que cumpla todo.
+# El número de 5 cifras al principio de la tercera columna fija un alimento concreto (código NDB).
+
+# ---- Carnes
+Pechuga de pollo, cruda | Carnes | 05062
+Pechuga de pollo, asada | Carnes | chicken; breast; meat only; cooked; roasted; broilers
+Muslo de pollo sin piel, crudo | Carnes | chicken; thigh; meat only; raw; broilers
+Muslo de pollo con piel, crudo | Carnes | chicken; thigh; meat and skin; raw; broilers
+Alitas de pollo, crudas | Carnes | chicken; wing; meat and skin; raw; broilers
+Pollo asado con piel | Carnes | chicken, broilers or fryers, meat and skin, cooked, roasted
+Pechuga de pavo, cruda | Carnes | turkey; breast; meat only; raw
+Pavo picado, crudo | Carnes | turkey; ground; raw; !fat free; !93%; !85%
+Fiambre de pechuga de pavo | Carnes | turkey breast; sliced; prepackaged | loncha=20
+Carne picada de ternera (5 % grasa), cruda | Carnes | beef, ground, 95% lean meat / 5% fat, raw
+Carne picada de ternera (10 % grasa), cruda | Carnes | beef, ground, 90% lean meat / 10% fat, raw
+Carne picada de ternera (15 % grasa), cruda | Carnes | beef, ground, 85% lean meat / 15% fat, raw
+Carne picada de ternera (20 % grasa), cruda | Carnes | beef, ground, 80% lean meat / 20% fat, raw
+Solomillo de ternera, crudo | Carnes | beef; tenderloin; lean only; raw; all grades; trimmed to 1/8
+Entrecot de ternera, crudo | Carnes | beef; rib eye steak; boneless; lip off; lean and fat; raw; all grades
+Filete de ternera (cadera), crudo | Carnes | beef; top sirloin; lean only; raw; all grades; trimmed to 1/8
+Hígado de ternera, crudo | Carnes | beef; liver; raw
+Lomo de cerdo, crudo | Carnes | pork, fresh, loin, whole, separable lean only, raw
+Solomillo de cerdo, crudo | Carnes | pork, fresh, loin, tenderloin, separable lean only, raw
+Chuleta de cerdo, cruda | Carnes | pork; fresh; loin; center loin; bone-in; lean and fat; raw
+Carne picada de cerdo, cruda | Carnes | pork, fresh, ground, raw
+Costillas de cerdo, crudas | Carnes | pork; fresh; spareribs; lean and fat; raw
+Bacon, crudo | Carnes | 10123 | loncha=25
+Bacon, a la plancha | Carnes | 10862 | loncha=8
+Jamón cocido (york) | Carnes | ham, sliced; regular; 11% fat | loncha=25
+Jamón curado (tipo serrano) | Carnes | 10141 | loncha=15
+Chorizo | Carnes | chorizo; pork and beef
+Salchichón o salami | Carnes | salami; dry or hard; pork; !beef
+Salchicha tipo frankfurt | Carnes | 07950 | unidad=45
+Mortadela | Carnes | mortadella
+Pierna de cordero, cruda | Carnes | lamb; domestic; leg; whole; lean only; raw; 1/4
+Conejo, crudo | Carnes | rabbit; domesticated; composite; raw
+
+# ---- Pescados y mariscos
+Salmón, crudo | Pescados y mariscos | fish, salmon, atlantic, farmed, raw
+Salmón ahumado | Pescados y mariscos | fish, salmon, chinook, smoked; !lox
+Atún fresco, crudo | Pescados y mariscos | fish, tuna; bluefin; raw
+Atún en lata al natural, escurrido | Pescados y mariscos | fish, tuna, light, canned in water, drained solids; !without salt | lata=56
+Atún en lata en aceite, escurrido | Pescados y mariscos | fish, tuna, light, canned in oil, drained solids; !without salt | lata=52
+Merluza o pescadilla, cruda | Pescados y mariscos | fish, whiting; raw
+Bacalao fresco, crudo | Pescados y mariscos | fish, cod, atlantic, raw
+Lubina, cruda | Pescados y mariscos | fish, sea bass; raw
+Caballa, cruda | Pescados y mariscos | fish, mackerel, atlantic, raw
+Trucha, cruda | Pescados y mariscos | fish, trout, rainbow, farmed, raw
+Lenguado, crudo | Pescados y mariscos | fish, flatfish; raw
+Pez espada, crudo | Pescados y mariscos | fish, swordfish, raw
+Tilapia, cruda | Pescados y mariscos | fish, tilapia, raw
+Sardinas en lata en aceite, escurridas | Pescados y mariscos | fish, sardine, atlantic, canned in oil
+Anchoas en aceite, escurridas | Pescados y mariscos | fish, anchovy; canned in oil
+Surimi (palitos de cangrejo) | Pescados y mariscos | fish, surimi
+Gambas o langostinos, crudos | Pescados y mariscos | crustaceans, shrimp; raw; !farm
+Mejillones, crudos | Pescados y mariscos | mollusks, mussel, blue, raw
+Calamar, crudo | Pescados y mariscos | mollusks, squid; raw
+Pulpo, crudo | Pescados y mariscos | mollusks, octopus; raw
+Almejas, crudas | Pescados y mariscos | mollusks, clam, mixed species, raw
+
+# ---- Huevos y lácteos
+Huevo entero | Huevos y lácteos | egg, whole, raw, fresh | unidad=55
+Clara de huevo | Huevos y lácteos | egg, white, raw, fresh | clara=33
+Yema de huevo | Huevos y lácteos | egg, yolk, raw, fresh | yema=17
+Huevo cocido | Huevos y lácteos | egg, whole, cooked, hard-boiled | unidad=50
+Leche entera | Huevos y lácteos | milk, whole, 3.25% milkfat; with added vitamin d | vaso=250
+Leche semidesnatada | Huevos y lácteos | milk, reduced fat, fluid, 2% milkfat; with added vitamin a and vitamin d; !nonfat milk solids; !protein fortified | vaso=250
+Leche desnatada | Huevos y lácteos | milk, nonfat, fluid, with added vitamin a and vitamin d | vaso=250
+Yogur natural entero | Huevos y lácteos | yogurt, plain, whole milk; !greek | unidad=125
+Yogur natural desnatado | Huevos y lácteos | yogurt, plain, skim milk | unidad=125
+Yogur griego natural | Huevos y lácteos | yogurt, greek, plain, whole milk | unidad=125
+Yogur griego desnatado | Huevos y lácteos | yogurt, greek, plain, nonfat | unidad=125
+Queso cottage | Huevos y lácteos | cheese, cottage, lowfat, 2% milkfat
+Requesón (ricotta) | Huevos y lácteos | cheese, ricotta, part skim milk
+Mozzarella | Huevos y lácteos | cheese, mozzarella, whole milk; !low moisture
+Queso cheddar | Huevos y lácteos | 01009
+Queso curado (tipo parmesano) | Huevos y lácteos | cheese, parmesan, hard
+Queso emmental | Huevos y lácteos | 01040
+Queso gouda | Huevos y lácteos | cheese, gouda
+Queso brie | Huevos y lácteos | cheese, brie
+Queso de cabra (rulo) | Huevos y lácteos | cheese, goat, soft type
+Queso feta | Huevos y lácteos | 01019
+Queso crema (para untar) | Huevos y lácteos | 01017
+Mantequilla | Huevos y lácteos | 01001 | cucharada=14
+Nata para cocinar (18 % grasa) | Huevos y lácteos | cream, fluid, light (coffee cream or table cream)
+Nata para montar (35 % grasa) | Huevos y lácteos | cream, fluid, heavy whipping
+Helado de vainilla | Huevos y lácteos | ice creams, vanilla; !light; !rich; !fat free; !no sugar | bola=65
+Proteína whey en polvo | Huevos y lácteos | 14066 | cacito=30
+Bebida de soja | Huevos y lácteos | soymilk, original and vanilla, unfortified | vaso=250
+Bebida de almendra sin azúcar | Huevos y lácteos | almond milk, unsweetened | vaso=250
+
+# ---- Cereales, pan y patata
+Arroz blanco, crudo | Cereales, pan y patata | rice, white, long-grain, regular, raw, enriched
+Arroz blanco, cocido | Cereales, pan y patata | rice, white, long-grain, regular, enriched, cooked; !salt
+Arroz integral, crudo | Cereales, pan y patata | rice, brown, long-grain, raw
+Arroz integral, cocido | Cereales, pan y patata | rice, brown, long-grain, cooked
+Pasta, cruda | Cereales, pan y patata | pasta, dry, enriched
+Pasta, cocida | Cereales, pan y patata | pasta, cooked, enriched, without added salt
+Pasta integral, cruda | Cereales, pan y patata | pasta, whole-wheat, dry
+Pasta integral, cocida | Cereales, pan y patata | pasta, whole-wheat, cooked
+Copos de avena | Cereales, pan y patata | cereals, oats, regular and quick, not fortified, dry
+Pan blanco de molde | Cereales, pan y patata | bread, white, commercially prepared (includes soft bread crumbs) | rebanada=30
+Pan integral | Cereales, pan y patata | bread, whole-wheat, commercially prepared; !toasted | rebanada=30
+Pan de barra | Cereales, pan y patata | 18029
+Pan de centeno | Cereales, pan y patata | bread, rye; !toasted; !reduced | rebanada=30
+Pan tostado | Cereales, pan y patata | bread, white, commercially prepared, toasted | rebanada=22
+Tortilla de trigo (wrap) | Cereales, pan y patata | tortillas, ready-to-bake or -fry, flour; !shelf; !without | unidad=40
+Tortilla de maíz | Cereales, pan y patata | tortillas, ready-to-bake or -fry, corn; !without | unidad=25
+Harina de trigo | Cereales, pan y patata | wheat flour, white, all-purpose, enriched, bleached
+Harina de trigo integral | Cereales, pan y patata | wheat flour, whole-grain; !soft
+Maicena | Cereales, pan y patata | cornstarch
+Quinoa, cruda | Cereales, pan y patata | quinoa, uncooked
+Quinoa, cocida | Cereales, pan y patata | quinoa, cooked
+Cuscús, crudo | Cereales, pan y patata | couscous, dry
+Cuscús, cocido | Cereales, pan y patata | couscous, cooked
+Copos de maíz (corn flakes) | Cereales, pan y patata | kellogg's corn flakes
+Granola | Cereales, pan y patata | cereals ready-to-eat, granola, homemade
+Tortitas de arroz | Cereales, pan y patata | 19816 | unidad=9
+Crackers salados | Cereales, pan y patata | crackers, saltines; !low salt; !fat-free; !unsalted
+Maíz dulce en lata, escurrido | Cereales, pan y patata | corn, sweet, yellow, canned, whole kernel, drained solids
+Patata, cruda | Cereales, pan y patata | potatoes, flesh and skin, raw
+Patata, cocida | Cereales, pan y patata | potatoes, boiled, cooked without skin, flesh, without salt
+Boniato, crudo | Cereales, pan y patata | sweet potato, raw, unprepared
+Patatas fritas de bolsa | Cereales, pan y patata | snacks, potato chips, plain, salted
+Patatas fritas (freidora) | Cereales, pan y patata | fast foods, potato, french fried in vegetable oil
+Palomitas sin aceite | Cereales, pan y patata | snacks, popcorn, air-popped; !white
+
+# ---- Legumbres
+Lentejas, crudas | Legumbres | lentils, raw
+Lentejas, cocidas | Legumbres | lentils, mature seeds, cooked, boiled, without salt
+Garbanzos, crudos | Legumbres | chickpeas; mature seeds, raw
+Garbanzos, cocidos | Legumbres | chickpeas; mature seeds, cooked, boiled, without salt
+Garbanzos en bote, escurridos | Legumbres | chickpeas; canned, drained solids
+Alubias blancas, crudas | Legumbres | beans, white, mature seeds, raw
+Alubias blancas, cocidas | Legumbres | beans, white, mature seeds, cooked, boiled, without salt
+Alubias rojas, crudas | Legumbres | beans, kidney, red, mature seeds, raw
+Alubias rojas, cocidas | Legumbres | beans, kidney, red, mature seeds, cooked, boiled, without salt
+Alubias negras, cocidas | Legumbres | beans, black, mature seeds, cooked, boiled, without salt
+Habas secas, crudas | Legumbres | broadbeans (fava beans), mature seeds, raw
+Guisantes, crudos | Legumbres | peas, green, raw
+Guisantes congelados | Legumbres | peas, green, frozen, unprepared
+Edamame | Legumbres | edamame, frozen, prepared
+Tofu firme | Legumbres | tofu, raw, firm, prepared with calcium sulfate
+Hummus | Legumbres | hummus, commercial
+Proteína de soja aislada | Legumbres | soy protein isolate; !potassium
+
+# ---- Verduras
+Tomate | Verduras | tomatoes, red, ripe, raw, year round average | unidad=120
+Tomate triturado en lata | Verduras | tomatoes, crushed, canned
+Salsa de tomate | Verduras | tomato products, canned, sauce; !with
+Lechuga iceberg | Verduras | lettuce, iceberg
+Lechuga romana | Verduras | lettuce, cos or romaine, raw
+Espinacas, crudas | Verduras | spinach, raw
+Rúcula | Verduras | arugula, raw
+Kale | Verduras | kale, raw
+Acelgas, crudas | Verduras | chard, swiss, raw
+Brócoli, crudo | Verduras | broccoli, raw; !leaves; !stalks; !flower; !chinese
+Coliflor, cruda | Verduras | cauliflower, raw; !green
+Coles de Bruselas, crudas | Verduras | brussels sprouts, raw
+Repollo, crudo | Verduras | cabbage, raw; !red; !savoy; !chinese; !japanese; !napa; !mustard; !swamp; !skunk; !kimchi
+Zanahoria, cruda | Verduras | carrots, raw; !baby | unidad=70
+Cebolla, cruda | Verduras | onions, raw; !spring; !sweet; !welsh; !young | unidad=110
+Ajo | Verduras | garlic, raw | diente=3
+Puerro, crudo | Verduras | leeks; raw
+Pimiento rojo, crudo | Verduras | peppers, sweet, red, raw
+Pimiento verde, crudo | Verduras | peppers, sweet, green, raw
+Pepino | Verduras | cucumber, with peel, raw
+Calabacín, crudo | Verduras | squash, summer, zucchini, includes skin, raw
+Berenjena, cruda | Verduras | eggplant, raw
+Calabaza, cruda | Verduras | pumpkin, raw
+Champiñones, crudos | Verduras | mushrooms, white, raw
+Judías verdes, crudas | Verduras | beans, snap, green, raw
+Espárragos, crudos | Verduras | asparagus, raw
+Alcachofa, cruda | Verduras | artichokes, (globe or french), raw
+Remolacha, cruda | Verduras | beets, raw
+Apio | Verduras | celery, raw
+Aceitunas | Verduras | olives, ripe, canned (small-extra large)
+
+# ---- Frutas
+Manzana | Frutas | apples, raw, with skin | unidad=180
+Plátano | Frutas | bananas, raw | unidad=120
+Naranja | Frutas | oranges, raw, all commercial varieties | unidad=150
+Mandarina | Frutas | tangerines, (mandarin oranges), raw | unidad=80
+Pera | Frutas | pears, raw; !asian; !bartlett; !bosc; !anjou; !prickly; !red | unidad=170
+Melocotón | Frutas | peaches; raw; !dried | unidad=150
+Albaricoque | Frutas | apricots, raw | unidad=35
+Ciruela | Frutas | plums, raw | unidad=65
+Kiwi | Frutas | kiwifruit, green, raw | unidad=75
+Fresas | Frutas | strawberries, raw
+Arándanos | Frutas | blueberries, raw
+Frambuesas | Frutas | raspberries, raw
+Cerezas | Frutas | cherries, sweet, raw
+Uvas | Frutas | grapes, red or green; raw
+Piña | Frutas | pineapple, raw, all varieties
+Mango | Frutas | mangos, raw
+Papaya | Frutas | papayas, raw
+Sandía | Frutas | watermelon, raw
+Melón | Frutas | melons, cantaloupe, raw
+Limón | Frutas | lemons, raw, without peel
+Pomelo | Frutas | grapefruit, raw, pink and red, all areas
+Granada | Frutas | pomegranates, raw
+Higos frescos | Frutas | figs, raw
+Aguacate | Frutas | avocados, raw, all commercial varieties | unidad=150
+Dátiles | Frutas | dates, medjool | unidad=24
+Pasas | Frutas | raisins, seedless; !golden
+Coco rallado | Frutas | coconut meat, dried (desiccated), not sweetened
+Zumo de naranja natural | Frutas | orange juice, raw | vaso=250
+Zumo de manzana | Frutas | apple juice, canned or bottled, unsweetened, without added ascorbic acid | vaso=250
+
+# ---- Frutos secos y semillas
+Almendras | Frutos secos y semillas | 12061
+Nueces | Frutos secos y semillas | nuts, walnuts, english
+Avellanas | Frutos secos y semillas | nuts, hazelnuts or filberts; !blanched; !roasted
+Anacardos | Frutos secos y semillas | nuts, cashew nuts, raw
+Pistachos | Frutos secos y semillas | nuts, pistachio nuts, raw
+Piñones | Frutos secos y semillas | nuts, pine nuts, dried; !pinyon
+Nueces de macadamia | Frutos secos y semillas | nuts, macadamia nuts, raw
+Nueces pecanas | Frutos secos y semillas | 12142
+Cacahuetes | Frutos secos y semillas | peanuts, all types, raw
+Crema de cacahuete | Frutos secos y semillas | peanut butter, smooth style, without salt | cucharada=16
+Crema de almendra | Frutos secos y semillas | almond butter, plain, without salt added | cucharada=16
+Tahini | Frutos secos y semillas | sesame butter, tahini, from roasted and toasted kernels
+Pipas de girasol peladas | Frutos secos y semillas | seeds, sunflower seed kernels, dried
+Pipas de calabaza peladas | Frutos secos y semillas | seeds, pumpkin and squash seed kernels, dried
+Semillas de chía | Frutos secos y semillas | seeds, chia seeds, dried | cucharada=12
+Semillas de lino | Frutos secos y semillas | seeds, flaxseed | cucharada=10
+Semillas de sésamo | Frutos secos y semillas | seeds, sesame seeds, whole, dried
+
+# ---- Aceites y grasas
+Aceite de oliva | Aceites y grasas | oil, olive, salad or cooking | cucharada=13.5; cucharadita=4.5
+Aceite de girasol | Aceites y grasas | oil, sunflower, linoleic, (approx. 65%) | cucharada=13.5
+Aceite de coco | Aceites y grasas | oil, coconut | cucharada=13.5
+Margarina | Aceites y grasas | margarine, regular, 80% fat, composite, stick, with salt; !added vitamin d | cucharada=14
+Mayonesa | Aceites y grasas | salad dressing, mayonnaise, regular | cucharada=14
+
+# ---- Dulces y snacks
+Azúcar | Dulces y snacks | sugars, granulated | cucharadita=4
+Miel | Dulces y snacks | 19296 | cucharada=21
+Sirope de arce | Dulces y snacks | syrups, maple | cucharada=20
+Mermelada | Dulces y snacks | jams and preserves; !apricot; !dietetic; !no sugar | cucharada=20
+Chocolate negro (70-85 % cacao) | Dulces y snacks | chocolate, dark, 70-85% cacao solids | onza=10
+Chocolate con leche | Dulces y snacks | candies, milk chocolate; !almonds; !rice; !coated | onza=10
+Cacao en polvo sin azúcar | Dulces y snacks | cocoa, dry powder, unsweetened; !alkali; !hershey
+Crema de cacao y avellanas | Dulces y snacks | chocolate-flavored hazelnut spread | cucharada=15
+Galletas con pepitas de chocolate | Dulces y snacks | cookies, chocolate chip, commercially prepared, regular, higher fat, enriched
+Croissant | Dulces y snacks | croissants, butter | unidad=60
+Donut | Dulces y snacks | doughnuts, cake-type, plain (includes unsugared, old-fashioned) | unidad=50
+Magdalena | Dulces y snacks | muffins, plain, prepared from recipe | unidad=40
+Barrita de cereales | Dulces y snacks | snacks, granola bars, hard, plain | unidad=25
+
+# ---- Bebidas
+Café solo | Bebidas | beverages, coffee, brewed, prepared with tap water; !decaf | taza=120
+Té | Bebidas | beverages, tea, black, brewed, prepared with tap water; !decaf | taza=200
+Refresco de cola | Bebidas | carbonated; cola; !without caffeine; !low calorie; !reduced; !zero; !higher caffeine; !fast-food | lata=330
+Cerveza | Bebidas | alcoholic beverage, beer, regular, all | caña=200; lata=330
+Vino tinto | Bebidas | alcoholic beverage, wine, table, red; !merlot; !cabernet; !pinot; !syrah; !zinfandel; !burgundy; !claret; !gamay; !lemberger; !mouvedre; !petite; !sangiovese; !barbera; !carignane; !franc | copa=150
+Vino blanco | Bebidas | alcoholic beverage, wine, table, white; !riesling; !chardonnay; !sauvignon; !gris; !chenin; !fume; !muller; !gewurz; !late; !blanc; !semillon; !muscat | copa=150
+
+# ---- Salsas y condimentos
+Kétchup | Salsas y condimentos | catsup; !low sodium | cucharada=17
+Mostaza | Salsas y condimentos | mustard, prepared, yellow | cucharadita=5
+Salsa de soja | Salsas y condimentos | soy sauce made from soy and wheat (shoyu); !low sodium; !reduced | cucharada=16
+Vinagre | Salsas y condimentos | vinegar, cider | cucharada=15
+Sal | Salsas y condimentos | salt, table | pizca=1
+Pizza de queso | Salsas y condimentos | pizza, cheese topping, regular crust, frozen, cooked

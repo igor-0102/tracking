@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tracking</title>
-<meta name="description" content="Registro de peso y entrenamientos. Tus datos se guardan solo en tu móvil.">
+<meta name="description" content="Registro de peso, entrenamientos y dieta. Tus datos se guardan solo en tu móvil.">
 <meta name="theme-color" content="#0e1015">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -54,6 +54,7 @@
       </button>
     </div>
     <div id="home-quick"></div>
+    <div id="home-diet"></div>
   </section>
 
   <!-- PESO -->
@@ -133,17 +134,24 @@
     </div>
   </section>
 
+  <!-- DIETA -->
+  <section class="tab" id="tab-dieta" data-title="Dieta" hidden>
+    <div id="diet-root"></div>
+  </section>
+
   <!-- AJUSTES -->
   <section class="tab" id="tab-ajustes" data-title="Ajustes" hidden>
+    <h3 class="section-title">Perfil</h3>
+    <div class="card form-card" id="profile-box"></div>
+
+    <h3 class="section-title">Objetivo de la dieta</h3>
+    <div class="card form-card goal-card" id="goal-box"></div>
+
     <h3 class="section-title">Peso</h3>
     <div class="card form-card">
       <label class="field">
         <span>Peso objetivo</span>
         <span class="input-unit"><input id="goal-input" type="text" inputmode="decimal" placeholder="Sin objetivo" autocomplete="off"><em>kg</em></span>
-      </label>
-      <label class="field">
-        <span>Estatura (para el IMC)</span>
-        <span class="input-unit"><input id="height-input" type="text" inputmode="numeric" placeholder="—" autocomplete="off"><em>cm</em></span>
       </label>
     </div>
 
@@ -173,7 +181,7 @@
     <h3 class="section-title">Copias de seguridad</h3>
     <div class="card list-card">
       <p class="fine" id="last-backup"></p>
-      <button class="row-btn" data-action="export"><span>Exportar copia completa</span><small>Pesos, entrenos y rutinas en un archivo</small></button>
+      <button class="row-btn" data-action="export"><span>Exportar copia completa</span><small>Pesos, entrenos, rutinas y dietas en un archivo</small></button>
       <button class="row-btn" data-action="import-file"><span>Importar archivo</span><small>Copia de Tracking (.json), pesos (.txt) o CSV de Hevy</small></button>
       <button class="row-btn" data-action="copy"><span>Copiar pesos</span><small>Al portapapeles, en texto</small></button>
       <button class="row-btn" data-action="import-text"><span>Importar pesos pegando texto</span><small>Una línea por registro: 21-02-2026 88,8</small></button>
@@ -223,6 +231,10 @@
   <button data-tab="entreno">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     <span>Entreno</span>
+  </button>
+  <button data-tab="dieta">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7.5c-1.6-1.6-4.4-1.9-6 .2-1.7 2.2-1.2 6.300.4 8.800 1.300 2 2.900 3 4.300 2.500.8-.3 1.800-.3 2.600 0 1.400.5 3-.5 4.300-2.500 1.600-2.500 2.100-6.600.4-8.800-1.600-2.100-4.400-1.800-6-.2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 7.5c0-1.700.8-3.200 2.500-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <span>Dieta</span>
   </button>
   <button data-tab="ajustes">
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
@@ -301,7 +313,11 @@
 
 <input type="file" id="file-input" accept=".txt,.csv,.json,text/plain,text/csv,application/json" hidden>
 
+<script src="nutri.js"></script>
+<script src="foods-db.js"></script>
 <script src="app.js"></script>
 <script src="gym.js"></script>
+<script src="foods.js"></script>
+<script src="diet.js"></script>
 </body>
 </html>
