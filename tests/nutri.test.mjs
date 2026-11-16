@@ -134,3 +134,59 @@ test('formato en pantalla: kcal sin decimales, macros con un decimal', () => {
   assert.equal(N.fmtGrams(560), '560 g');
   assert.equal(N.fmtGrams(2450), '2,45 kg');
 });
+
+test('peso teórico semanal: (dieta − gasto) × 7 ÷ 7700', () => {
+  near(N.weeklyChangeKg(2200, 2750), -0.5);
+  near(N.weeklyChangeKg(3025, 2750), 0.25);
+  near(N.weeklyChangeKg(2750, 2750), 0);
+  assert.equal(N.weeklyChangeKg(0, 2750), null);
+  assert.equal(N.weeklyChangeKg(2200, null), null);
+});
+test('días hasta el peso objetivo al ritmo teórico', () => {
+  near(N.daysToGoal(84, 80, -0.5), 56);              // 4 kg a 0,5 kg/semana = 8 semanas
+  near(N.daysToGoal(70, 72, 0.25), 56);
+  assert.equal(N.daysToGoal(80, 80, -0.5), 0);
+  assert.equal(N.daysToGoal(84, 80, 0.3), null);     // sube y quiere bajar
+  assert.equal(N.daysToGoal(84, 80, 0), null);
+  assert.equal(N.daysToGoal(84, null, -0.5), null);
+});
+test('pendiente de una recta', () => {
+  near(N.slope([{ x: 0, y: 80 }, { x: 7, y: 79.5 }, { x: 14, y: 79 }]), -0.5 / 7);
+  assert.equal(N.slope([{ x: 1, y: 80 }]), null);
+  assert.equal(N.slope([{ x: 1, y: 80 }, { x: 1, y: 81 }]), null);
+});
+test('cumplimiento de la dieta', () => {
+  assert.deepEqual(N.adherence([{ ok: true }, { ok: true }, { ok: false }, { ok: true }]), { marked: 4, ok: 3, failed: 1, pct: 75 });
+  assert.equal(N.adherence([]).pct, 0);
+});
+test('gasto real: kcal de los días cumplidos − cambio de peso × 7700', () => {
+  // 20 días seguidos cumplidos a 2200 kcal perdiendo 0,5 kg/semana → gasto real 2750
+  const logs = Array.from({ length: 20 }, (_, i) => ({ x: 100 + i, ok: true, kcal: 2200 }));
+  const weights = Array.from({ length: 20 }, (_, i) => ({ x: 100 + i, kg: 84 - 0.5 / 7 * i }));
+  const r = N.estimateRealTdee({ logs, weights });
+  assert.equal(r.ok, true);
+  near(r.tdee, 2750, 1e-6);
+  near(r.kgPerWeek, -0.5, 1e-9);
+  near(r.avgKcal, 2200);
+  assert.equal(r.strict, 20);
+});
+test('gasto real: los días no cumplidos no entran en la media de kcal', () => {
+  const logs = Array.from({ length: 20 }, (_, i) => ({ x: 100 + i, ok: i % 5 !== 0, kcal: 2200, extra: i % 5 === 0 ? 900 : 0 }));
+  const weights = Array.from({ length: 20 }, (_, i) => ({ x: 100 + i, kg: 84 }));
+  const r = N.estimateRealTdee({ logs, weights });
+  assert.equal(r.ok, true);
+  assert.equal(r.strict, 16);
+  near(r.avgKcal, 2200);
+  near(r.tdee, 2200, 1e-6);
+});
+test('gasto real: no se calcula sin suficientes días a rajatabla', () => {
+  const day = (i, ok = true) => ({ x: 100 + i, ok, kcal: 2200 });
+  const w = Array.from({ length: 30 }, (_, i) => ({ x: 100 + i, kg: 84 }));
+  assert.equal(N.estimateRealTdee({ logs: [0, 1, 2].map(i => day(i)), weights: w }).reason, 'few_strict');
+  assert.equal(N.estimateRealTdee({ logs: Array.from({ length: 10 }, (_, i) => day(i)), weights: w }).reason, 'short');
+  // 10 cumplidos repartidos en 28 días: demasiados días sin cumplir de por medio
+  const sparse = Array.from({ length: 28 }, (_, i) => day(i, i % 3 === 0));
+  assert.equal(N.estimateRealTdee({ logs: sparse, weights: w }).reason, 'low_ratio');
+  const ok20 = Array.from({ length: 20 }, (_, i) => day(i));
+  assert.equal(N.estimateRealTdee({ logs: ok20, weights: w.slice(0, 3) }).reason, 'few_weights');
+});

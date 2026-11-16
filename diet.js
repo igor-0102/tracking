@@ -2,14 +2,15 @@
    Los cálculos están en nutri.js; aquí solo hay interfaz y guardado. */
 'use strict';
 
-const Dt = { diets: [], foods: [], templates: [] };
+const Dt = { diets: [], foods: [], templates: [], log: {} };      // log: { 'AAAA-MM-DD': { ok, extra, kcal } }
 const DEFAULT_MEALS = ['Desayuno', 'Almuerzo', 'Comida', 'Merienda', 'Cena'];
 const fK = Nutri.fmtKcal, fM = Nutri.fmtMacro;
 const starIcon = '<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.8z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 
 /* ================= Carga y guardado ================= */
 async function dietLoad() {
-  const [d, f, t] = await Promise.all([DB.all('diets'), DB.all('foods'), DB.all('templates')]);
+  const [d, f, t, lg] = await Promise.all([DB.all('diets'), DB.all('foods'), DB.all('templates'), DB.getKey('dietlog')]);
+  Dt.log = lg || {};
   Dt.diets = d || [];
   Dt.foods = f || [];
   Dt.templates = t || [];
@@ -24,7 +25,8 @@ function dietDerive() {
 const saveDiet = d => DB.put('diets', d).catch(() => toast('No se pudo guardar la dieta'));
 const curDiet = () => Dt.diets.find(d => d.id === S.dietId) || Dt.diets[0] || null;
 
-function dietBackupData() { return { diets: Dt.diets, customFoods: Dt.foods, templates: Dt.templates }; }
+const saveLog = () => DB.putKey('dietlog', Dt.log).catch(() => toast('No se pudo guardar'));
+function dietBackupData() { return { diets: Dt.diets, customFoods: Dt.foods, templates: Dt.templates, dietLog: Dt.log }; }
 async function dietImportBackup(d) {
   const ok = (arr, test) => (Array.isArray(arr) ? arr.filter(test) : []);
   const diets = ok(d.diets, x => x && x.id && Array.isArray(x.meals));
@@ -37,13 +39,15 @@ async function dietImportBackup(d) {
   Dt.diets = up(Dt.diets, diets);
   Dt.foods = up(Dt.foods, foods);
   Dt.templates = up(Dt.templates, tpls);
+  if (d.dietLog && typeof d.dietLog === 'object') { Dt.log = { ...Dt.log, ...d.dietLog }; await saveLog(); }
   const p = d.settings || {};
   for (const k of ['sex', 'birth', 'age', 'activity', 'goalType', 'dietGoal']) if (p[k] != null && (S[k] == null || S[k] === '')) S[k] = p[k];
   dietDerive();
 }
 async function dietWipe() {
   await Promise.all(['diets', 'foods', 'templates'].map(s => DB.clear(s)));
-  Dt.diets = []; Dt.foods = []; Dt.templates = [];
+  Dt.diets = []; Dt.foods = []; Dt.templates = []; Dt.log = {};
+  await DB.putKey('dietlog', null);
   dietDerive();
 }
 
@@ -63,7 +67,9 @@ function profileCalc() {
   const w = profileWeight();
   const age = Nutri.profileAge({ birth: S.birth, age: S.age }, todayISO());
   const bmr = Nutri.bmr({ sex: S.sex, kg: w.kg, cm: S.height, age });
-  const get = Nutri.tdee(bmr, S.activity);
+  const getFormula = Nutri.tdee(bmr, S.activity);
+  const realGet = getFormula != null && S.getOverride > 0;      // gasto real estimado, si el usuario lo ha aceptado
+  const get = realGet ? S.getOverride : getFormula;
   const type = dayType();
   const cfg = (S.dietGoal && S.dietGoal[type]) || { pct: 0, prot: 2, fat: 1 };
   const target = Nutri.goalTargets({ tdee: get, pct: cfg.pct, kg: w.kg, protGkg: cfg.prot, fatGkg: cfg.fat });
@@ -73,7 +79,7 @@ function profileCalc() {
   if (!S.height) missing.push('altura');
   if (!w.kg) missing.push('peso');
   if (!S.activity) missing.push('nivel de actividad');
-  return { kg: w.kg, autoKg: w.auto, age, bmr, get, type, cfg, target, missing };
+  return { kg: w.kg, autoKg: w.auto, age, bmr, get, getFormula, realGet, type, cfg, target, missing };
 }
 
 function renderProfileSettings() {
@@ -104,7 +110,7 @@ function renderProfileSettings() {
     </div>
     ${act ? `<p class="fine pf-note">${act.desc}.</p>` : ''}
     <div class="pf-result">${pc.bmr != null
-      ? `<div><span class="label">Metabolismo basal (TMB)</span><b>${fK(pc.bmr)} kcal</b></div><div><span class="label">Gasto total (GET)</span><b>${pc.get != null ? fK(pc.get) + ' kcal' : '—'}</b></div>`
+      ? `<div><span class="label">Metabolismo basal (TMB)</span><b>${fK(pc.bmr)} kcal</b></div><div><span class="label">Gasto total (GET)${pc.realGet ? ' · real' : ''}</span><b>${pc.get != null ? fK(pc.get) + ' kcal' : '—'}</b></div>${pc.realGet ? `<p class="fine">Usando tu gasto real estimado. Con la fórmula serían ${fK(pc.getFormula)} kcal. <button class="link" style="padding:0" data-dt-global="formula">Volver a la fórmula</button></p>` : ''}`
       : `<p class="fine">Para calcular tu metabolismo falta: ${pc.missing.join(', ')}.</p>`}</div>`;
   if (active && $('#' + active)) $('#' + active).focus();
 
@@ -219,7 +225,7 @@ function renderDietTab() {
     html += `<div class="card diet-head">
       <div class="stats stats-flat">
         <div class="stat"><div class="label">TMB</div><div class="val">${fK(pc.bmr)}</div></div>
-        <div class="stat"><div class="label">GET</div><div class="val">${fK(pc.get)}</div></div>
+        <div class="stat"><div class="label">GET${pc.realGet ? ' real' : ''}</div><div class="val">${fK(pc.get)}</div></div>
         <div class="stat"><div class="label">Objetivo</div><div class="val accent-t">${pc.target ? fK(pc.target.kcal) : '—'}</div></div>
       </div>
       <div class="seg seg-small seg-block" id="day-seg">
@@ -240,6 +246,7 @@ function renderDietTab() {
     return;
   }
 
+  html += doneCardHTML(d);
   html += `<div class="diet-bar"><button class="diet-pick" data-dt="pick-diet"><span>${esc(d.name)}</span>${downIcon}</button><button class="icon-btn" data-dt="diet-menu" aria-label="Opciones de la dieta">${dotsIcon}</button></div>`;
 
   // Total del día
@@ -255,6 +262,8 @@ function renderDietTab() {
     </div>
     ${tot.fiber || tot.sugar || tot.salt ? `<p class="fine" style="margin:10px 0 0">Fibra ${fM(tot.fiber)} g · Azúcar ${fM(tot.sugar)} g · Sal ${fM(tot.salt)} g</p>` : ''}
   </div>`;
+
+  html += theoryCardHTML(tot.kcal, pc) + adjustCardHTML(pc);
 
   // Comidas
   d.meals.forEach(m => {
@@ -273,6 +282,103 @@ function renderDietTab() {
     <p class="fine center">Datos nutricionales: USDA SR28 (dominio público) y tus alimentos.</p>`;
   box.innerHTML = html;
 }
+/* ----- Dieta cumplida, peso teórico y gasto real ----- */
+let logDate = todayISO();
+const dietKcalNow = () => { const d = curDiet(); return d ? Nutri.dayMacros(selectedOptions(d)).kcal : 0; };
+const recentLogs = (days = 28) => {
+  const t = isoToIdx(todayISO());
+  return Object.entries(Dt.log).map(([date, l]) => ({ ...l, date, x: isoToIdx(date) })).filter(l => l.x > t - days && l.x <= t);
+};
+function doneCardHTML() {
+  const today = todayISO();
+  if (logDate > today) logDate = today;
+  const cur = Dt.log[logDate];
+  const t = isoToIdx(today);
+  const strip = Array.from({ length: 7 }, (_, i) => {
+    const iso = idxToISO(t - 6 + i), l = Dt.log[iso];
+    return `<button class="wday${iso === logDate ? ' sel' : ''}${l ? (l.ok ? ' ok' : ' no') : ''}" data-logday="${iso}"><small>${fmtD(F.wd, iso).slice(0, 2)}</small><b>${l ? (l.ok ? '✓' : '✗') : '·'}</b></button>`;
+  }).join('');
+  const a = Nutri.adherence(recentLogs());
+  return `<div class="card done-card">
+    <div class="done-head">
+      <div><h2>Dieta cumplida</h2><span class="sub">${logDate === today ? 'Hoy' : cap(fmtD(F.wdDayMon, logDate))}</span></div>
+      <div class="done-btns">
+        <button class="sq sq-ok${cur && cur.ok ? ' on' : ''}" data-dt="done-ok" aria-label="Sí, cumplida">✓</button>
+        <button class="sq sq-no${cur && !cur.ok ? ' on' : ''}" data-dt="done-no" aria-label="No cumplida">✗</button>
+      </div>
+    </div>
+    ${cur && !cur.ok ? `<p class="done-extra">${cur.extra ? `${cur.extra > 0 ? '+' : '−'}${fK(Math.abs(cur.extra))} kcal extra estimadas` : 'Sin calorías extra apuntadas'} · <button class="link" style="padding:0" data-dt="done-extra">cambiar</button></p>` : ''}
+    <div class="wstrip">${strip}</div>
+    <p class="fine" style="margin:8px 0 0">${a.marked ? `Últimas 4 semanas: cumplida <b>${a.ok}</b> de ${a.marked} días marcados (${fK(a.pct)} %).` : 'Marca cada día si has seguido la dieta. Toca un día de la semana para marcar uno anterior.'}</p>
+  </div>`;
+}
+function theoryCardHTML(dietKcal, pc) {
+  const wk = Nutri.weeklyChangeKg(dietKcal, pc.get);
+  if (wk == null) return '';
+  const diff = dietKcal - pc.get;
+  const flat = Math.abs(wk) < 0.02;
+  return `<div class="card theory-card"><div class="label">Con esta dieta, a rajatabla</div>
+    <div class="theory-val ${flat ? '' : tone(wk)}">${flat ? 'Peso estable' : `${fmtSigned(wk, 2)} kg/semana`}</div>
+    <div class="sub">${flat ? 'Comes lo mismo que gastas.' : `${diff < 0 ? 'Déficit' : 'Superávit'} de ${fK(Math.abs(diff))} kcal al día respecto a tu gasto (${fK(pc.get)} kcal).`}</div></div>`;
+}
+function realTdeeEstimate() {
+  const logs = recentLogs();
+  const weights = entries.map((e, i) => ({ x: D.idx[i], kg: e.kg }));
+  return Nutri.estimateRealTdee({ logs, weights });
+}
+function adjustCardHTML(pc) {
+  if (pc.getFormula == null) return '';
+  const r = realTdeeEstimate();
+  let body;
+  if (r.ok) {
+    const real = Math.round(r.tdee / 10) * 10;
+    const d = real - pc.getFormula;
+    body = `<div class="theory-val">${fK(real)} kcal</div>
+      <div class="sub">Con ${r.strict} días cumplidos a rajatabla (${fK(r.avgKcal)} kcal de media) tu peso ha cambiado ${fmtSigned(r.kgPerWeek, 2)} kg/semana. La fórmula daba ${fK(pc.getFormula)} kcal (${d >= 0 ? '+' : '−'}${fK(Math.abs(d))}).</div>
+      ${S.getOverride === real ? '<p class="fine" style="margin:8px 0 0">Ya estás usando este gasto real para tu objetivo.</p>'
+        : `<button class="btn btn-secondary btn-block btn-small" style="margin-top:10px" data-dt="use-real" data-real="${real}">Usar mi gasto real en el objetivo</button>`}`;
+  } else {
+    const why = {
+      few_strict: `Necesito al menos ${r.need} días cumplidos a rajatabla en las últimas 4 semanas (llevas ${r.strict}).`,
+      short: `Necesito al menos ${r.need} días entre el primer y el último día marcado (llevas ${r.span}).`,
+      low_ratio: `En el periodo marcado solo has cumplido ${fK((r.ratio || 0) * 100)} % de los días. Hace falta al menos un ${fK((r.need || 0) * 100)} %: los días no cumplidos también mueven el peso y falsearían el cálculo.`,
+      few_weights: `Necesito al menos ${r.need} pesajes en ese periodo (hay ${r.weighIns || 0}).`,
+    }[r.reason];
+    body = `<div class="sub" style="margin-top:4px">${why}</div>`;
+  }
+  return `<div class="card theory-card"><div class="label">Tu gasto real estimado</div>${body}
+    ${S.getOverride > 0 ? '<button class="link" style="padding:8px 0 0" data-dt="formula">Volver a la fórmula</button>' : ''}</div>`;
+}
+// Línea para la pestaña Peso: fecha teórica del objetivo siguiendo la dieta.
+function dietTheoryLine(currentKg, goalKg) {
+  if (goalKg == null || !currentKg) return '';
+  const pc = profileCalc();
+  const wk = Nutri.weeklyChangeKg(dietKcalNow(), pc.get);
+  if (wk == null) return '';
+  const days = Nutri.daysToGoal(currentKg, goalKg, wk);
+  let txt;
+  if (days === 0) return '';
+  if (days == null) txt = `tu dieta actual (${fmtSigned(wk, 2)} kg/semana) no te lleva hacia el objetivo.`;
+  else if (days > 3 * 365) txt = `tardarías más de 3 años (${fmtSigned(wk, 2)} kg/semana).`;
+  else txt = `lo alcanzarías hacia el <b>${fmtDi(F.dayMonYear, Math.round(isoToIdx(todayISO()) + days))}</b> (${fmtSigned(wk, 2)} kg/semana).`;
+  return `<p class="projection theory-line">Siguiendo la dieta a rajatabla, ${txt}</p>`;
+}
+async function setLog(date, val) {
+  if (val) Dt.log[date] = val; else delete Dt.log[date];
+  await saveLog();
+  renderAll();
+}
+async function askExtra(cur) {
+  const txt = await promptText('Calorías extra estimadas', cur ? String(cur) : '');
+  if (txt == null) return null;
+  const v = txt.trim() === '' ? 0 : parseInt(txt.replace(/[^\d-−]/g, '').replace('−', '-'), 10);
+  if (isNaN(v) || Math.abs(v) > 10000) { toast('Escribe un número de calorías, por ejemplo 400'); return null; }
+  return v;
+}
+document.addEventListener('click', async e => {
+  if (e.target.closest('[data-dt-global="formula"]')) { S.getOverride = null; await saveSettings(); renderAll(); toast('Vuelves a usar la fórmula'); }
+});
+
 const dayTypeAuto = () => { const keep = S.dayType; S.dayType = 'auto'; const t = dayType(); S.dayType = keep; return t; };
 
 function renderDietHome() {
@@ -311,6 +417,8 @@ function cloneDiet(d, name) {
 }
 
 $('#tab-dieta').addEventListener('click', async e => {
+  const ld = e.target.closest('[data-logday]');
+  if (ld) { logDate = ld.dataset.logday; renderDietTab(); return; }
   const day = e.target.closest('#day-seg [data-day]');
   if (day) { S.dayType = day.dataset.day; await saveSettings(); dietRenderAll(); return; }
   const b = e.target.closest('[data-dt]');
@@ -351,7 +459,20 @@ $('#tab-dieta').addEventListener('click', async e => {
       toast('Dieta borrada', { action: 'Deshacer', ms: 6000, onAction: async () => { Dt.diets.push(d); S.dietId = d.id; await saveDiet(d); await saveSettings(); dietDerive(); dietRenderAll(); } });
     }
   } else if (act === 'edit-meals') editMeals(d);
-  else if (act === 'shopping') openShopping(d);
+  else if (act === 'done-ok' || act === 'done-no' || act === 'done-extra') {
+    const cur = Dt.log[logDate];
+    const kcal = Math.round(dietKcalNow());
+    if (!kcal) return toast('Primero añade ingredientes a las opciones elegidas');
+    if (act === 'done-ok') return setLog(logDate, cur && cur.ok ? null : { ok: true, extra: 0, kcal });
+    if (act === 'done-no' && cur && !cur.ok) return setLog(logDate, null);
+    const extra = await askExtra(cur && !cur.ok ? cur.extra : 0);
+    if (extra == null) return;
+    setLog(logDate, { ok: false, extra, kcal: cur ? cur.kcal || kcal : kcal });
+  } else if (act === 'use-real') {
+    S.getOverride = +b.dataset.real; await saveSettings(); renderAll(); toast('Objetivo recalculado con tu gasto real');
+  } else if (act === 'formula') {
+    S.getOverride = null; await saveSettings(); renderAll(); toast('Vuelves a usar la fórmula');
+  } else if (act === 'shopping') openShopping(d);
   else if (!meal) return;
   else if (act === 'sel') {
     const id = b.dataset.opt;

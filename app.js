@@ -1,7 +1,7 @@
 /* Tracking · registro de peso. Todo se guarda en este dispositivo (IndexedDB). */
 'use strict';
 
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.3.0';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -28,6 +28,7 @@ const dtf = o => new Intl.DateTimeFormat('es-ES', { timeZone: 'UTC', ...o });
 const F = {
   wdDayMon: dtf({ weekday: 'short', day: 'numeric', month: 'short' }),
   wdDay: dtf({ weekday: 'short', day: 'numeric' }),
+  wd: dtf({ weekday: 'short' }),
   dayMonYear: dtf({ day: 'numeric', month: 'short', year: 'numeric' }),
   dayMon: dtf({ day: 'numeric', month: 'short' }),
   day: dtf({ day: 'numeric' }),
@@ -113,7 +114,7 @@ const DEFAULTS = { goal: null, height: null, theme: 'dark', lastBackup: null, sn
   // Perfil y dieta
   sex: null, birth: '', age: null, activity: null, weightMode: 'auto', weightManual: null,
   goalType: 'mant', dietGoal: { train: { pct: 0, prot: 2, fat: 1 }, rest: { pct: 0, prot: 2, fat: 1 } },
-  dietId: null, dayType: 'auto', favFoods: [], recentFoods: [], usdaSearch: false };
+  dietId: null, dayType: 'auto', favFoods: [], recentFoods: [], usdaSearch: false, getOverride: null };
 let S = { ...DEFAULTS };
 let D = { idx: [], trend: [] };          // datos derivados
 
@@ -861,6 +862,7 @@ function renderHome() {
       <div class="pace-row"><span class="label">Objetivo ${fmtKg(g)} kg</span><span class="sub">${Math.abs(left) < 0.1 ? '' : `faltan ${fmt1(Math.abs(left))} kg`}</span></div>
       <div class="progress"><div style="width:${(prog * 100).toFixed(1)}%"></div></div>
       <p class="projection">${proj}</p>
+      ${typeof dietTheoryLine === 'function' ? dietTheoryLine(lastT, g) : ''}
     </div>`;
   } else {
     html += `<div class="goal-box"><button class="link" style="padding:0" data-goto="ajustes">Define un peso objetivo</button><div class="sub">y te digo cuándo lo alcanzarías.</div></div>`;

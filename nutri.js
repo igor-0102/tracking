@@ -113,6 +113,56 @@
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, 'es'));
   }
 
+  /* ---------- Seguimiento: peso teórico y gasto real ---------- */
+  const KCAL_PER_KG = 7700;      // energía aproximada de 1 kg de peso corporal
+  // Cambio de peso teórico por semana siguiendo la dieta: (kcal de la dieta − gasto) × 7 ÷ 7700.
+  function weeklyChangeKg(dietKcal, get) {
+    if (!(dietKcal > 0) || !(get > 0)) return null;
+    return (dietKcal - get) * 7 / KCAL_PER_KG;
+  }
+  // Días hasta el peso objetivo a ese ritmo. 0 si ya está; null si el ritmo no lleva hacia el objetivo.
+  function daysToGoal(currentKg, goalKg, weeklyKg) {
+    if (!(currentKg > 0) || !(goalKg > 0) || weeklyKg == null) return null;
+    const diff = goalKg - currentKg;
+    if (Math.abs(diff) < 0.05) return 0;
+    if (Math.abs(weeklyKg) < 0.005 || Math.sign(diff) !== Math.sign(weeklyKg)) return null;
+    return diff / (weeklyKg / 7);
+  }
+  // Pendiente (por unidad de x) de una recta ajustada a los puntos [{x, y}].
+  function slope(points) {
+    const n = points.length;
+    if (n < 2) return null;
+    const mx = points.reduce((a, p) => a + p.x, 0) / n, my = points.reduce((a, p) => a + p.y, 0) / n;
+    let num = 0, den = 0;
+    for (const p of points) { num += (p.x - mx) * (p.y - my); den += (p.x - mx) ** 2; }
+    return den === 0 ? null : num / den;
+  }
+  // Resumen de cumplimiento. logs: [{ ok }]
+  function adherence(logs) {
+    const marked = logs.length, ok = logs.filter(l => l.ok).length;
+    return { marked, ok, failed: marked - ok, pct: marked ? ok / marked * 100 : 0 };
+  }
+  // Gasto real estimado a partir de los días cumplidos A RAJATABLA y de cómo ha cambiado el peso:
+  //   gasto = kcal medias de los días cumplidos − (kg por día × 7700)
+  // Solo vale si casi todo el periodo se cumplió: los días no cumplidos también mueven el peso.
+  //   logs: [{ x: día, ok, kcal }]   weights: [{ x: día, kg }]
+  function estimateRealTdee({ logs, weights, minStrict = 10, minRatio = 0.7, minSpan = 14, minWeighIns = 6 }) {
+    const strict = logs.filter(l => l.ok && l.kcal > 0);
+    const base = { ok: false, strict: strict.length, marked: logs.length };
+    if (strict.length < minStrict) return { ...base, reason: 'few_strict', need: minStrict };
+    const from = Math.min(...logs.map(l => l.x)), to = Math.max(...logs.map(l => l.x));
+    const span = to - from + 1;
+    if (span < minSpan) return { ...base, reason: 'short', span, need: minSpan };
+    const ratio = strict.length / span;
+    if (ratio < minRatio) return { ...base, reason: 'low_ratio', span, ratio, need: minRatio };
+    const ws = weights.filter(w => w.x >= from && w.x <= to);
+    if (ws.length < minWeighIns) return { ...base, reason: 'few_weights', weighIns: ws.length, need: minWeighIns };
+    const kgPerDay = slope(ws.map(w => ({ x: w.x, y: w.kg })));
+    if (kgPerDay == null) return { ...base, reason: 'few_weights', weighIns: ws.length, need: minWeighIns };
+    const avgKcal = strict.reduce((a, l) => a + l.kcal, 0) / strict.length;
+    return { ok: true, tdee: avgKcal - kgPerDay * KCAL_PER_KG, avgKcal, kgPerWeek: kgPerDay * 7, strict: strict.length, marked: logs.length, span, ratio };
+  }
+
   /* ---------- Formato (solo para mostrar) ---------- */
   const fmtKcal = v => String(Math.round(v || 0));
   const fmtMacro = v => (Math.round((v || 0) * 10) / 10).toFixed(1).replace('.', ',');
@@ -125,6 +175,7 @@
     ACTIVITY, LIMITS, GOAL_TYPES, FIELDS,
     ageFromBirth, profileAge, bmr, activityFactor, tdee, validateProfile, goalTargets,
     zero, saltFromSodium, itemGrams, itemMacros, sumMacros, optionMacros, dayMacros, shoppingList,
+    KCAL_PER_KG, weeklyChangeKg, daysToGoal, slope, adherence, estimateRealTdee,
     fmtKcal, fmtMacro, fmtGrams,
   };
 });
