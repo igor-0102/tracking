@@ -39,6 +39,6 @@ Los datos viven solo en el móvil (IndexedDB). Sin servidor ni backend.
 ## Equipo de agentes
 - Agentes en `.claude/agents/`: arquitecto (Opus), programador (Sonnet), revisor (Opus),
   explorador (Haiku), arreglador (Sonnet), documentador (Sonnet), seguridad (Opus).
-- Comandos: `/equipo`, `/plan`, `/revisar`, `/cerrar`, `/punto`, `/seguridad`, `/portfolio`.
+- Comandos: `/manager`, `/equipo`, `/plan`, `/revisar`, `/cerrar`, `/punto`, `/seguridad`, `/portfolio`.
 - Memoria: estado en `docs/ESTADO.md` (lo carga el hook de inicio), plan activo en `docs/plan/PLAN.md`.
-- Cambios diminutos o pequeños: directo, sin `/equipo`.
+- `/manager`: activa el modo manager para todo el chat (elige y lanza agentes sin pedir permiso). Sin él, trabaja normal.

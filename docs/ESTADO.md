@@ -9,7 +9,7 @@ Versión actual: **2.3.0** (`sw.js` y `app.js`). Tests: `npm test` → 24/24 en 
 - APK compilado y firmado en GitHub Actions (`.github/workflows/android.yml`), publicado en Releases.
 - 2.2 Pestaña Dieta con base de alimentos local (USDA SR28: lista en español + base completa).
 - 2.3 Seguimiento de la dieta.
-- Equipo de agentes de Claude Code instalado en `.claude/` (7 agentes, 7 comandos, 2 hooks).
+- Equipo de agentes de Claude Code instalado en `.claude/` (7 agentes, 8 comandos con `/manager`, 2 hooks).
 
 ## Pendiente / siguientes pasos
 - (Por definir: añade aquí la siguiente funcionalidad antes de lanzar `/equipo`.)
