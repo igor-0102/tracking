@@ -1,7 +1,7 @@
 /* Tracking · registro de peso. Todo se guarda en este dispositivo (IndexedDB). */
 'use strict';
 
-const APP_VERSION = '2.3.0';
+const APP_VERSION = '2.4.0';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -66,12 +66,12 @@ const DB = {
   db: null,
   open() {
     return new Promise((res, rej) => {
-      const r = indexedDB.open('tracking', 3);
+      const r = indexedDB.open('tracking', 4);
       r.onupgradeneeded = () => {
         const db = r.result;
         if (!db.objectStoreNames.contains('entries')) db.createObjectStore('entries', { keyPath: 'date' });
         if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings');
-        for (const st of ['exercises', 'routines', 'workouts', 'diets', 'foods', 'templates']) {
+        for (const st of ['exercises', 'routines', 'workouts', 'diets', 'foods', 'templates', 'measures']) {
           if (!db.objectStoreNames.contains(st)) db.createObjectStore(st, { keyPath: 'id' });
         }
       };
@@ -114,7 +114,7 @@ const DEFAULTS = { goal: null, height: null, theme: 'dark', lastBackup: null, sn
   // Perfil y dieta
   sex: null, birth: '', age: null, activity: null, weightMode: 'auto', weightManual: null,
   goalType: 'mant', dietGoal: { train: { pct: 0, prot: 2, fat: 1 }, rest: { pct: 0, prot: 2, fat: 1 } },
-  dietId: null, dayType: 'auto', favFoods: [], recentFoods: [], usdaSearch: false, getOverride: null };
+  dietId: null, dayType: 'auto', favFoods: [], recentFoods: [], usdaSearch: false, getOverride: null, restMode: 'timer' };
 let S = { ...DEFAULTS };
 let D = { idx: [], trend: [] };          // datos derivados
 
@@ -186,8 +186,8 @@ function niceStep(range, maxTicks) {
 }
 
 class WeightChart {
-  constructor(canvas, { interactive = false, onTap = null, trend = true, minMarker = true, tapSelect = false, fmtY = null, tip3 = null, small = false } = {}) {
-    this.opt = { trend, minMarker, fmtY: fmtY || (v => `${fmtKg(v)} kg`), tip3 };
+  constructor(canvas, { interactive = false, onTap = null, trend = true, minMarker = true, tapSelect = false, fmtY = null, tip3 = null, small = false, fmtTag = null } = {}) {
+    this.opt = { trend, minMarker, fmtY: fmtY || (v => `${fmtKg(v)} kg`), tip3, fmtTag };
     this.c = canvas;
     this.ctx = canvas.getContext('2d');
     this.interactive = interactive;
@@ -224,7 +224,7 @@ class WeightChart {
   setRange(key) {
     const [f0, f1] = this.fullView();
     if (key === 'all') { this.view = [f0, f1]; this.request(); return; }
-    const days = { '1m': 30, '3m': 91, '6m': 182 }[key];
+    const days = { '1m': 30, '3m': 91, '6m': 182, '1y': 365 }[key];
     const end = f1;
     this.view = [Math.max(f0, end - days - 1), end];
     this.request();
@@ -441,7 +441,7 @@ class WeightChart {
       ctx.strokeStyle = C.accent; ctx.globalAlpha = 0.5; ctx.setLineDash([2, 4]); ctx.lineWidth = 1;
       if (ly >= T && ly <= B) { ctx.beginPath(); ctx.moveTo(L, ly); ctx.lineTo(R, ly); ctx.stroke(); }
       ctx.setLineDash([]); ctx.globalAlpha = 1;
-      tag(ly, fmt1(lastP.t), C.accent, C.bg);
+      tag(ly, this.opt.fmtTag ? this.opt.fmtTag(lastP.t) : fmt1(lastP.t), C.accent, C.bg);
     }
 
     // Punto seleccionado
@@ -453,7 +453,7 @@ class WeightChart {
       if (axisR) { ctx.beginPath(); ctx.moveTo(L, sy); ctx.lineTo(R, sy); ctx.stroke(); }
       ctx.setLineDash([]); ctx.globalAlpha = 1;
       if (axisR) {
-        tag(sy, fmtKg(sp.y), C.fg, C.bg);
+        tag(sy, this.opt.fmtTag ? this.opt.fmtTag(sp.y) : fmtKg(sp.y), C.fg, C.bg);
         const dl = fmtD(F.dayMonYear, sp.date);
         ctx.font = font(11.5, 800);
         const dw = ctx.measureText(dl).width + 14;
@@ -755,7 +755,7 @@ function showTab(name) {
 function showPesoView(v) {
   S.pesoView = v;
   $$('#peso-seg button').forEach(b => b.classList.toggle('on', b.dataset.view === v));
-  ['resumen', 'medias', 'historial'].forEach(k => { $('#peso-' + k).hidden = k !== v; });
+  ['resumen', 'medias', 'historial', 'medidas'].forEach(k => { $('#peso-' + k).hidden = k !== v; });
 }
 $$('#peso-seg button').forEach(b => b.addEventListener('click', () => { showPesoView(b.dataset.view); saveSettings(); }));
 $$('#tabbar button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
@@ -775,6 +775,7 @@ function renderAll() {
   renderSettings();
   if (typeof gymRenderAll === 'function') gymRenderAll();
   if (typeof dietRenderAll === 'function') dietRenderAll();
+  if (typeof renderMeasures === 'function') renderMeasures();
 }
 
 function renderHome() {
@@ -1136,10 +1137,10 @@ function backupData() {
     app: 'tracking', version: 3, exported: new Date().toISOString(),
     entries,
     settings: { goal: S.goal, height: S.height, rest: S.rest, bar: S.bar, sex: S.sex, birth: S.birth, age: S.age, activity: S.activity, goalType: S.goalType, dietGoal: S.dietGoal },
-    ...gym, ...diet,
+    ...gym, ...diet, ...(typeof bodyBackupData === 'function' ? bodyBackupData() : {}),
   };
 }
-const hasData = d => !!(d.entries.length || (d.workouts && d.workouts.length) || (d.routines && d.routines.length) || (d.diets && d.diets.length) || (d.customFoods && d.customFoods.length));
+const hasData = d => !!(d.entries.length || (d.workouts && d.workouts.length) || (d.routines && d.routines.length) || (d.diets && d.diets.length) || (d.customFoods && d.customFoods.length) || (d.measures && d.measures.length));
 
 // Copia automática: en la app nativa se guarda un archivo con todo en la carpeta privada de la app.
 // Android incluye esa carpeta en la copia de seguridad de la cuenta de Google del móvil.
@@ -1348,6 +1349,7 @@ async function importJSON(text, intro = '') {
   await saveSettings();
   if (typeof gymImportBackup === 'function') await gymImportBackup(d);
   if (typeof dietImportBackup === 'function') await dietImportBackup(d);
+  if (typeof bodyImportBackup === 'function') await bodyImportBackup(d);
   await saveSettings();
   renderAll();
   toast('Copia importada');
@@ -1362,6 +1364,7 @@ async function wipeAll() {
   entries = [];
   if (typeof gymWipe === 'function') await gymWipe();
   if (typeof dietWipe === 'function') await dietWipe();
+  if (typeof bodyWipe === 'function') await bodyWipe();
   if (isNative()) { clearTimeout(autoTimer); autoTimer = 0; try { await nativeCall('Filesystem', 'deleteFile', { path: AUTO_FILE, directory: 'DATA' }); } catch (_) {} }
   S = { ...DEFAULTS, theme: S.theme, firstUse: todayISO() };
   S.dietGoal = JSON.parse(JSON.stringify(DEFAULTS.dietGoal));
@@ -1527,6 +1530,7 @@ async function init() {
     if (!S.firstUse) { S.firstUse = todayISO(); await saveSettings(); }
     await gymLoad();
     await dietLoad();
+    await bodyLoad();
     dbReady = true;
   } catch (err) {
     console.error(err);

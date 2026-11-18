@@ -260,7 +260,7 @@ function renderDietTab() {
       ${barHTML('Carbohidratos', tot.c, tg ? tg.c : 0, 'g', 'mbar-c')}
       ${barHTML('Grasa', tot.f, tg ? tg.f : 0, 'g', 'mbar-f')}
     </div>
-    ${tot.fiber || tot.sugar || tot.salt ? `<p class="fine" style="margin:10px 0 0">Fibra ${fM(tot.fiber)} g · Azúcar ${fM(tot.sugar)} g · Sal ${fM(tot.salt)} g</p>` : ''}
+    ${gkgLine(tot, tg, pc.kg)}${tot.fiber || tot.sugar || tot.salt ? `<p class="fine" style="margin:10px 0 0">Fibra ${fM(tot.fiber)} g · Azúcar ${fM(tot.sugar)} g · Sal ${fM(tot.salt)} g</p>` : ''}
   </div>`;
 
   html += theoryCardHTML(tot.kcal, pc) + adjustCardHTML(pc);

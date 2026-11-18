@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Versión actual: **2.3.0** (`sw.js` y `app.js`). Tests: `npm test` → 24/24 en verde.
+Versión actual: **2.4.0** (`sw.js`, `app.js` y `package.json`). Tests: `npm test` → 36/36 en verde.
 
 ## Hecho
 - 1.0 Registro de peso (PWA instalable, sin conexión, datos en IndexedDB).
@@ -9,11 +9,12 @@ Versión actual: **2.3.0** (`sw.js` y `app.js`). Tests: `npm test` → 24/24 en 
 - APK compilado y firmado en GitHub Actions (`.github/workflows/android.yml`), publicado en Releases.
 - 2.2 Pestaña Dieta con base de alimentos local (USDA SR28: lista en español + base completa).
 - 2.3 Seguimiento de la dieta.
+- 2.4 Entreno: descanso con temporizador o cronómetro (Ajustes), salto a la siguiente serie al marcar (Intro del teclado marca), superseries (también al importar de Hevy), sugerencia de progresión, gráfico de ejercicio como el de peso (pantalla completa), calendario con racha y series por grupo muscular. Peso: medidas corporales. Dieta: macros por kg de peso. Lógica pura en `gymcalc.js` con tests; interfaz nueva en `gym-plus.js` y `body.js`.
 - Equipo de agentes de Claude Code instalado en `.claude/` (7 agentes, 8 comandos con `/manager`, 2 hooks).
 
 ## Pendiente / siguientes pasos
-- (Por definir: añade aquí la siguiente funcionalidad antes de lanzar `/equipo`.)
-- `package.json` sigue en 2.2.0 aunque la app está en 2.3.0.
+- Bloque 2 (nativo, nuevo APK): notificación de entreno tipo Hevy (tiempo, serie que toca, pesos de la última sesión), recordatorio diario para pesarse con hora, widget.
+- Fase posterior: fotos de progreso con carpeta elegida + calendario de fotos, integración con Strava, mapa de carreras.
 - Solo `nutri.js` tiene tests; `app.js`, `gym.js` y `diet.js` no.
 
 ## Decisiones

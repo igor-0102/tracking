@@ -63,6 +63,7 @@
       <button data-view="resumen">Resumen</button>
       <button data-view="medias">Medias</button>
       <button data-view="historial">Historial</button>
+      <button data-view="medidas">Medidas</button>
     </div>
 
     <div class="view" id="peso-resumen">
@@ -108,6 +109,8 @@
       </div>
       <div id="avg-list"></div>
     </div>
+
+    <div class="view" id="peso-medidas" hidden><div id="measure-list"></div></div>
 
     <div class="view" id="peso-historial" hidden>
       <button class="btn btn-secondary btn-block btn-icon" data-action="copy">
@@ -157,6 +160,10 @@
 
     <h3 class="section-title">Entrenamiento</h3>
     <div class="card form-card">
+      <div class="field">
+        <span>Descanso</span>
+        <div class="seg seg-small" id="set-restmode"><button data-rm="timer">Temporizador</button><button data-rm="stopwatch">Cronómetro</button></div>
+      </div>
       <div class="field">
         <span>Descanso por defecto</span>
         <button class="pill-btn" id="set-rest"></button>
@@ -213,7 +220,7 @@
   <div class="rest-progress"><div id="rest-fill"></div></div>
   <div class="rest-row">
     <button class="rest-btn" data-rest="-15">−15</button>
-    <div class="rest-time"><small>Descanso</small><b id="rest-time">1:30</b></div>
+    <div class="rest-time"><small id="rest-label">Descanso</small><b id="rest-time">1:30</b></div>
     <button class="rest-btn" data-rest="15">+15</button>
     <button class="rest-btn rest-skip" data-rest="skip">Saltar</button>
   </div>
@@ -316,8 +323,11 @@
 <script src="nutri.js"></script>
 <script src="foods-db.js"></script>
 <script src="app.js"></script>
+<script src="gymcalc.js"></script>
 <script src="gym.js"></script>
+<script src="gym-plus.js"></script>
 <script src="foods.js"></script>
 <script src="diet.js"></script>
+<script src="body.js"></script>
 </body>
 </html>
