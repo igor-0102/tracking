@@ -734,3 +734,6 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
 .gkg { margin: 10px 0 0; font-size: 13.5px; color: var(--muted); font-weight: 600; }
 .gkg b { color: var(--fg); font-variant-numeric: tabular-nums; }
 #peso-seg button { font-size: 14px; }
+
+#fs-range button { min-width: 0; padding: 0 10px; }
+.quick .sub { display: block; }

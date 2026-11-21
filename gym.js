@@ -1031,7 +1031,7 @@ function renderInicio() {
     for (let i = n - 1; i >= 0; i--) if (D.idx[i] <= D.idx[n - 1] - 30) { k = i; break; }
     const d30 = k >= 0 ? lastT - D.trend[k] : null;
     html += `<button class="card quick" data-goto="peso">
-      <div><div class="label">Peso · media 7 días</div><div class="quick-val">${fmt1(lastT)} kg</div></div>
+      <div><div class="label">Peso · ${entries[n - 1].date === todayISO() ? 'hoy' : fmtD(F.dayMon, entries[n - 1].date)}</div><div class="quick-val">${fmtKg(entries[n - 1].kg)} kg</div><small class="sub">Media 7 días: ${fmt1(lastT)} kg</small></div>
       <div class="quick-side">${d30 != null ? `<b class="${tone(d30)}">${fmtSigned(d30)}</b><small>30 días</small>` : ''}</div>${chevIcon}
     </button>`;
   }

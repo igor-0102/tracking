@@ -90,7 +90,7 @@ function checkSet(ex, ei, si, row, fromKeyboard) {
   if (s.reps == null && s.ph && s.ph.reps != null) s.reps = s.ph.reps;
   if (s.reps == null && s.kg == null) {
     toast('Escribe los kg y las repeticiones');
-    row.querySelector('.set-in').focus();
+    if (row) row.querySelector('.set-in').focus();
     return;
   }
   if (s.reps == null) s.reps = 0;
@@ -98,6 +98,7 @@ function checkSet(ex, ei, si, row, fromKeyboard) {
   if (navigator.vibrate) navigator.vibrate(12);
   const next = GymCalc.nextSet(wkData.exercises, ei, si);
   if (wkMode === 'active') {
+    if (G.active) G.active.next = next;      // la notificación muestra esta serie
     livePR(ex, si, s);
     const rest = ex.rest ?? S.rest;
     if (GymCalc.restAfter(wkData.exercises, ei, next) && (isStopwatch() || rest > 0)) startRest(rest);

@@ -76,7 +76,7 @@ jobs:
           path: Tracking.apk
 
       - name: Publicar en Releases
-        if: steps.clave.outputs.ok == 'true'
+        if: steps.clave.outputs.ok == 'true' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

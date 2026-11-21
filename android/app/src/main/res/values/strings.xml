@@ -3,5 +3,6 @@
     <string name="app_name">Tracking</string>
     <string name="title_activity_main">Tracking</string>
     <string name="package_name">io.github.igor0102.tracking</string>
+    <string name="widget_description">Tu último peso y un botón para apuntarlo</string>
     <string name="custom_url_scheme">io.github.igor0102.tracking</string>
 </resources>

@@ -84,9 +84,9 @@
           <div class="card-head">
             <h2>Progreso</h2>
             <div class="seg seg-small" id="range-seg">
-              <button data-range="1m">1M</button>
+              <button data-range="1w">Semana</button>
+              <button data-range="1m">Mes</button>
               <button data-range="3m">3M</button>
-              <button data-range="6m">6M</button>
               <button data-range="all">Todo</button>
             </div>
           </div>
@@ -99,6 +99,7 @@
           <div class="legend" id="legend"></div>
         </div>
         <div id="pace"></div>
+        <div id="reminder-box"></div>
       </div>
     </div>
 
@@ -308,7 +309,7 @@
 <!-- Gráfico de peso a pantalla completa -->
 <div class="fs" id="fs" hidden>
   <div class="fs-bar">
-    <button class="btn btn-small btn-ghost" id="fs-all">Ver todo</button>
+    <div class="seg seg-small" id="fs-range"><button data-fr="1w">Semana</button><button data-fr="1m">Mes</button><button data-fr="all">Todo</button></div>
     <button class="btn btn-small btn-ghost fs-auto on" id="fs-auto" title="Escala vertical automática">Auto</button>
     <span class="fs-hint">Arrastra para mover · pellizca para zoom · mantén pulsado para la cruz</span>
     <button class="icon-btn" id="fs-close" aria-label="Cerrar">
@@ -329,5 +330,6 @@
 <script src="foods.js"></script>
 <script src="diet.js"></script>
 <script src="body.js"></script>
+<script src="native.js"></script>
 </body>
 </html>
