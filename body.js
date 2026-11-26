@@ -142,3 +142,23 @@ function applyBirth(input) {
 document.addEventListener('focusout', e => {
   if (e.target.id === 'pf-birth' && e.target.dataset.pending) applyBirth(e.target);
 });
+
+/* ---------- Dieta: explicación del gasto real (botón ⓘ de «Dieta cumplida») ---------- */
+function openGetInfo() {
+  genSheet.innerHTML = `<div class="grabber"></div><h2>¿Cuánto gastas de verdad?</h2>
+    <div class="info-text">
+      <p><b>El GET es una estimación.</b> Tu gasto energético total sale de una fórmula (Mifflin-St Jeor) con tu peso, altura, edad, sexo y nivel de actividad. Esa fórmula se hizo con la media de muchas personas.</p>
+      <p><b>Pero cada cuerpo es distinto.</b> La genética, la masa muscular, lo que te mueves fuera del gimnasio (andar, trabajar, estar de pie), el sueño o el estrés hacen que tu gasto real pueda ser bastante más alto o más bajo que el de la fórmula; a menudo un 10–15 %.</p>
+      <p><b>La forma más fiable de saberlo es medirlo.</b> Si comes una cantidad conocida durante varios días y te pesas a diario, cómo cambia tu peso dice cuánto gastas. Por ejemplo: si comes 2.200 kcal al día y bajas 0,5 kg por semana, tu gasto real ronda las 2.750 kcal (1 kg de grasa son unas 7.700 kcal).</p>
+      <p><b>Para eso sirve «Dieta cumplida».</b> Marca <b>✓</b> los días que sigas la dieta a rajatabla y <b>✗</b> los que no (con las calorías de más que calcules). Con al menos 10 días cumplidos y 6 pesajes en dos semanas, la app calcula tu gasto real usando solo los días ✓, y te deja usarlo para tu objetivo en lugar de la fórmula.</p>
+      <p><b>Consejo:</b> pésate cada mañana en las mismas condiciones (tras ir al baño y antes de desayunar). La media de 7 días evita que te engañen las subidas y bajadas de agua.</p>
+    </div>
+    <button class="btn btn-primary btn-block" id="info-ok">Entendido</button>`;
+  genSheet.onclick = e => { if (e.target.closest('#info-ok')) closeSheet(); };
+  openSheet(genSheet, () => { genSheet.onclick = null; });
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('[data-info="get"]')) return;
+  e.stopPropagation();
+  openGetInfo();
+}, true);

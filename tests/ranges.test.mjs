@@ -33,6 +33,13 @@ test('configuración inválida → vuelve a los de siempre, sin tocar el otro gr
   assert.deepEqual(r.small, mine.small);
   assert.deepEqual(r.full, R.DEFAULTS.full);
   assert.deepEqual(R.normalizePresets({ small: [{ n: 1, u: 'x' }] }).small, R.DEFAULTS.small);
+});
+test('se pueden tener de 0 a 10 botones por gráfico', () => {
+  const five = Array.from({ length: 5 }, (_, i) => ({ n: i + 1, u: 'w' }));
+  assert.equal(R.normalizePresets({ small: five }).small.length, 5);
+  assert.deepEqual(R.normalizePresets({ small: [] }).small, []);                 // solo «Todo»
+  const eleven = Array.from({ length: 11 }, () => ({ n: 1, u: 'd' }));
+  assert.deepEqual(R.normalizePresets({ small: eleven }).small, R.DEFAULTS.small);
   assert.equal(R.validPreset({ n: 1.5, u: 'm' }), false);
   assert.equal(R.validPreset({ n: 100, u: 'd' }), false);
 });
@@ -44,4 +51,7 @@ test('el botón elegido en versiones anteriores se conserva', () => {
   assert.equal(R.migrateRange('all'), 'all');
   assert.equal(R.migrateRange(1), 1);
   assert.equal(R.migrateRange(undefined), 2);
+  assert.equal(R.migrateRange(4, 3), 2);          // el botón elegido ya no existe → el último
+  assert.equal(R.migrateRange(1, 0), 'all');      // sin botones → «Todo»
+  assert.equal(R.migrateRange(4, 5), 4);
 });

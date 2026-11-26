@@ -14,6 +14,7 @@
     small: [{ n: 1, u: 'w' }, { n: 1, u: 'm' }, { n: 3, u: 'm' }],
     full: [{ n: 1, u: 'm' }, { n: 3, u: 'm' }, { n: 6, u: 'm' }],
   };
+  const MAX_PRESETS = 10;      // botones por gráfico, además de «Todo»
   const copy = list => list.map(p => ({ n: p.n, u: p.u }));
 
   const validPreset = p => !!p && Object.prototype.hasOwnProperty.call(UNIT_DAYS, p.u) && Number.isInteger(p.n) && p.n >= 1 && p.n <= 99;
@@ -23,21 +24,21 @@
     if (p.n === 1 && !short) return { d: 'Día', w: 'Semana', m: 'Mes', y: 'Año' }[p.u];
     return `${p.n}${{ d: 'D', w: 'S', m: 'M', y: 'A' }[p.u]}`;
   }
-  // Configuración guardada → siempre 3 periodos válidos por gráfico (si algo falla, los de siempre).
+  // Configuración guardada → de 0 a 10 periodos válidos por gráfico (si algo falla, los de siempre).
   function normalizePresets(cfg) {
     const pick = key => {
       const list = cfg && Array.isArray(cfg[key]) ? cfg[key] : null;
-      return list && list.length === 3 && list.every(validPreset) ? copy(list) : copy(DEFAULTS[key]);
+      return list && list.length <= MAX_PRESETS && list.every(validPreset) ? copy(list) : copy(DEFAULTS[key]);
     };
     return { small: pick('small'), full: pick('full') };
   }
-  // Botón elegido en versiones anteriores ('1w', '1m', '3m', '6m', 'all') → índice 0-2 o 'all'.
-  function migrateRange(r) {
+  // Botón elegido (o el de versiones anteriores: '1w', '1m', '3m', '6m', 'all') → índice válido o 'all'.
+  function migrateRange(r, count = 3) {
     if (r === 'all') return 'all';
-    if (Number.isInteger(r) && r >= 0 && r <= 2) return r;
-    const old = { '1w': 0, '1m': 1, '3m': 2 }[r];
-    return old === undefined ? 2 : old;
+    const i = Number.isInteger(r) ? r : { '1w': 0, '1m': 1, '3m': 2, '6m': 2 }[r];
+    if (Number.isInteger(i) && i >= 0 && i < count) return i;
+    return count > 0 ? Math.min(2, count - 1) : 'all';
   }
 
-  return { UNITS, DEFAULTS, validPreset, presetDays, presetLabel, normalizePresets, migrateRange };
+  return { UNITS, DEFAULTS, MAX_PRESETS, validPreset, presetDays, presetLabel, normalizePresets, migrateRange };
 });

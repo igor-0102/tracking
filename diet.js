@@ -297,7 +297,7 @@ function doneCardHTML() {
   const a = Nutri.adherence(recentLogs());
   return `<div class="card done-card">
     <div class="done-head">
-      <div><h2>Dieta cumplida</h2><span class="sub">${logDate === today ? 'Hoy' : cap(fmtD(F.wdDayMon, logDate))}</span></div>
+      <div><h2>Dieta cumplida <button class="info-btn" data-info="get" aria-label="Cómo se calcula tu gasto real">i</button></h2><span class="sub">${logDate === today ? 'Hoy' : cap(fmtD(F.wdDayMon, logDate))}</span></div>
       <div class="done-btns">
         <button class="sq sq-ok${cur && cur.ok ? ' on' : ''}" data-dt="done-ok" aria-label="Sí, cumplida">✓</button>
         <button class="sq sq-no${cur && !cur.ok ? ' on' : ''}" data-dt="done-no" aria-label="No cumplida">✗</button>
