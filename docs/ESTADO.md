@@ -19,7 +19,7 @@ Versión actual: **2.6.0** (`sw.js`, `app.js` y `package.json`). APK instalado e
 - 2.5.4–2.5.5 Botones del gráfico: recuadro deslizable con «Todo» y ✎ dentro; de 0 a 10 botones por gráfico. Botón ⓘ en «Dieta cumplida» que explica el gasto real.
 - Probado por el usuario: botón atrás de Android funciona. Pendiente de confirmar en móvil real: notificación de entreno, widget, recordatorio; calendario de fecha de nacimiento en iPhone.
 
-- 2.6.0 Primera entrega de Codex revisada e integrada con correcciones: celebración al acercarte al objetivo, comida trampa, 7 platos preparados, guía de ejercicios con silueta, exportar pesos a Excel. Detalle en `docs/TAREAS.md`.
+- 2.6.0 (en `main`) Primera entrega de Codex revisada e integrada con correcciones (PR #1): celebración al acercarte al objetivo, comida trampa, 7 platos preparados, guía de ejercicios con silueta, exportar pesos a Excel. Detalle en `docs/TAREAS.md`.
 
 La lista completa de tareas pendientes está en `docs/TAREAS.md`.
 

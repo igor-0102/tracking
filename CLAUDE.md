@@ -37,20 +37,65 @@ Los datos viven solo en el móvil (IndexedDB). Sin servidor ni backend.
 - Si el usuario pide una actualización o un cambio concreto, impleméntalo, haz commit y súbelo **sin pedir confirmación**.
 - Para cualquier otra modificación (lo que propongas tú, limpiezas, cambios no pedidos): explica qué quieres hacer y espera su confirmación antes del commit.
 
-## Entregas de Codex (becario)
-Claude es el responsable del proyecto; Codex hace tareas sueltas y las entrega en `CODEX_HANDOFF/` (formato en `AGENTS.md`).
-**Antes de cualquier tarea**, comprueba si hay una entrega nueva en `CODEX_HANDOFF/` (compara la huella `sha256` de
-`changes.patch` con la última anotada en `docs/TAREAS.md`). Si la hay:
+## Codex (becario): cómo trabaja
+Claude es el responsable del proyecto: decide, revisa, integra y publica. Codex hace **solo** las tareas de
+`docs/TAREAS.md` con responsable **Codex**, y entrega su trabajo para que Claude lo revise.
+
+### Antes de empezar
+1. Parte siempre del `main` más reciente (`git pull origin main`).
+2. Lee este archivo entero, `docs/ESTADO.md` y tu tarea en `docs/TAREAS.md`. No hagas tareas de otros responsables.
+3. **Una tarea por entrega.** Si la tarea es grande, entrega una parte que funcione sola y explica qué falta.
+4. Si algo de la tarea no está claro, no supongas: haz la versión más sencilla y apunta la duda en el informe.
+
+### Qué puede tocar y qué no
+- **Sí:** archivos web (`*.js`, `index.html`, `styles.css`), `tests/`, `tools/foods-es.txt` y archivos nuevos.
+- **No:** `main` (ni commits ni push), `android/`, `.github/`, `capacitor.config.json`, claves o secretos,
+  `foods-db.js` y `foods-usda.js` a mano (se generan con `npm run build:foods`), `CLAUDE.md`, `AGENTS.md` y `docs/`
+  (los mantiene Claude), ni `VERSION` / `APP_VERSION` (los sube Claude al publicar).
+- **Sin dependencias nuevas** (npm o CDN) ni llamadas a internet: la app funciona sin conexión y los datos no salen del móvil.
+
+### Cómo programar aquí
+- Sigue las **Reglas de código** y **Convenciones** de este archivo. Recordatorio de lo que más se olvida:
+  - `app.js`, `gym.js` y `diet.js` pasan de 800 líneas: **no les añadas código**. Pon lo nuevo en un archivo nuevo
+    y deja en ellos, como mucho, una línea que lo llame.
+  - Funciones de menos de 50 líneas; archivos nuevos de menos de 800.
+  - La lógica pura (cálculos, sin pantalla) va en su propio archivo con el patrón de `nutri.js`
+    (funciona en el navegador y en Node) y con tests en `tests/<nombre>.test.mjs`, añadidos al script `test` de `package.json`.
+  - Escapa con `esc()` todo texto del usuario o importado antes de meterlo en `innerHTML`.
+  - Archivo web nuevo → añádelo a `index.html` (en el orden correcto), a `ASSETS` de `sw.js` y a `files` de `tools/build-www.mjs`.
+  - Datos guardados: nunca borres ni cambies el formato sin migrar los de versiones anteriores.
+  - Textos de la app en español, sencillos. Estilo visual: reutiliza las clases que ya existen (`card`, `btn`, `seg`…).
+- Reutiliza lo que ya hay (`openSheet`, `actionSheet`, `openPage`, `toast`, `ask`, `fmtKg`, `fmtD`…) antes de crear nada parecido.
+
+### Antes de entregar (definición de «hecho»)
+- `npm test` pasa entero. Si no puedes ejecutarlo, dilo en el informe y explica por qué.
+- `node --check` sin errores en cada `.js` que hayas tocado.
+- Lo nuevo funciona sin conexión y no rompe lo que ya había (peso, entreno, dieta, copias de seguridad).
+- El parche solo contiene cambios de tu tarea.
+
+### Cómo entregar
+1. Crea una rama `handoff/<tarea-corta>` desde `main` y súbela a GitHub. Avisa al usuario del nombre de la rama.
+2. En esa rama, crea la carpeta `CODEX_HANDOFF/` con:
+   - `BASELINE.md`: commit de partida (`git rev-parse HEAD` antes de empezar), rama y `APP_VERSION` de `app.js`.
+   - `changes.patch`: `git add -N .` y `git diff <commit-de-partida> -- . ':!CODEX_HANDOFF' > CODEX_HANDOFF/changes.patch`.
+   - `REPORT.md`, en español, con estos apartados:
+     `## Tarea` (cuál de `docs/TAREAS.md`) · `## Cambios` (archivo por archivo y por qué) ·
+     `## Pruebas` (qué has probado y resultado de `npm test`) · `## Dudas y riesgos` (lo que no has podido comprobar).
+3. No hagas Pull Request: la prepara Claude tras revisar.
+
+## Claude: cómo revisa una entrega de Codex
+**Antes de cualquier tarea**, busca entregas nuevas: carpeta `CODEX_HANDOFF/` en `main` o ramas `handoff/*` en GitHub
+(`git ls-remote --heads origin`). Es nueva si la huella `sha256` de `changes.patch` no está anotada en `docs/TAREAS.md`. Si la hay:
 1. Lee `REPORT.md` y `BASELINE.md`.
 2. Inspecciona `changes.patch` entero; no te fíes solo del informe.
 3. Comprueba que el parche parte de la versión adecuada (commit y `APP_VERSION` de `BASELINE.md`).
 4. Verifica que se aplica sin conflictos (`git apply --check`).
-5. Revisa calidad del código y seguridad (reglas de este archivo).
+5. Revisa calidad del código y seguridad (reglas de este archivo y de la sección de Codex).
 6. Aplícalo en una rama aparte (`codex/<tarea>`), nunca en `main`.
 7. Ejecuta `npm test` y prueba la app.
 8. Corrige los errores y documenta cada corrección.
 9. Actualiza `docs/ESTADO.md`, `docs/TAREAS.md` (anota la entrega revisada) y esta memoria si hace falta.
-10. Prepara una Pull Request con el resultado.
+10. Prepara una Pull Request con el resultado. Integrarla en `main` necesita el OK del usuario.
 No integres nada que no hayas podido verificar. Si hay conflictos, errores o incompatibilidades, no fuerces el parche: informa.
 
 ## Equipo de agentes

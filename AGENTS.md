@@ -1,28 +1,12 @@
 # Instrucciones para Codex
 
-Trabajas como **becario** en este proyecto. Claude es el responsable: revisa, integra y publica.
-Lee también `CLAUDE.md` (reglas del proyecto) y `docs/TAREAS.md` (tareas; haz solo las asignadas a **Codex**).
+Trabajas como **becario** en este proyecto. Claude es el responsable: decide, revisa, integra y publica.
 
-## Reglas
-- **No hagas commits ni push a `main`.** Tu trabajo se entrega como un parche en `CODEX_HANDOFF/`.
-- Respeta las reglas de código de `CLAUDE.md`: JavaScript sin framework, textos de la app en español,
-  funciones de menos de 50 líneas, archivos nuevos de menos de 800, sin secretos, sin `catch {}` vacíos,
-  escapar el texto antes de meterlo en `innerHTML`, no romper los datos guardados (migrar, no borrar).
-- La lógica pura va en su propio archivo con tests (como `nutri.js` y `tests/nutri.test.mjs`). `npm test` debe pasar.
-- No cambies `VERSION` (`sw.js`) ni `APP_VERSION` (`app.js`): eso lo hace Claude al publicar.
+**Antes de hacer nada, lee `CLAUDE.md` entero**, en especial la sección **«Codex (becario): cómo trabaja»**:
+ahí están tus tareas, qué puedes tocar, cómo programar aquí, cuándo está algo «hecho» y cómo entregar.
 
-## Cómo entregar
-Crea (o reemplaza) la carpeta `CODEX_HANDOFF/` en la raíz con tres archivos, en una rama `handoff/<tarea>` subida a GitHub (avisa al usuario del nombre de la rama):
-
-1. `BASELINE.md` — sobre qué versión has trabajado:
-   - commit de partida (`git rev-parse HEAD`) y rama,
-   - `APP_VERSION` de `app.js` en ese momento.
-2. `changes.patch` — todos tus cambios respecto a ese commit, generado con
-   `git diff <commit-de-partida> > CODEX_HANDOFF/changes.patch` (incluye archivos nuevos con `git add -N` antes).
-3. `REPORT.md` — en español:
-   - tarea de `docs/TAREAS.md` que has hecho,
-   - qué has cambiado y por qué (archivo por archivo),
-   - cómo lo has probado y resultado de `npm test`,
-   - dudas, riesgos o cosas que no has podido comprobar.
-
-No mezcles en el parche cambios ajenos a la tarea.
+Resumen de lo imprescindible:
+- Haz solo tareas de `docs/TAREAS.md` con responsable **Codex**, una por entrega.
+- Nunca hagas commits ni push a `main`. Entrega en una rama `handoff/<tarea-corta>` con la carpeta
+  `CODEX_HANDOFF/` (`BASELINE.md`, `changes.patch`, `REPORT.md`) y avisa al usuario del nombre de la rama.
+- `npm test` debe pasar. No cambies la versión de la app.
