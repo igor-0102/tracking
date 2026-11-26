@@ -120,3 +120,25 @@ function gkgLine(tot, target, kg) {
   const goal = target ? ` <span class="sub">(objetivo ${f(target.p)} · ${f(target.c)} · ${f(target.f)})</span>` : '';
   return `<p class="gkg">Por kg de peso: <b>P ${f(tot.p)} · C ${f(tot.c)} · G ${f(tot.f)}</b> g/kg${goal}</p>`;
 }
+
+/* ---------- Fecha de nacimiento (Ajustes → Perfil) ----------
+   En iPhone el calendario avisa de cada cambio mientras giras la rueda. Si en ese momento se vuelve
+   a dibujar el perfil, el calendario se reabre sin parar. Por eso se guarda al cerrar el calendario. */
+function birthChanged(input) {
+  if (document.activeElement === input) { input.dataset.pending = '1'; return; }
+  applyBirth(input);
+}
+function applyBirth(input) {
+  delete input.dataset.pending;
+  const v = input.value || '';
+  if (v === (S.birth || '')) return;
+  if (v && v > todayISO()) { toast('La fecha no puede ser futura'); input.value = S.birth || ''; return; }
+  const age = Nutri.ageFromBirth(v, todayISO());
+  const err = v ? Nutri.validateProfile({ age }) : [];
+  if (err.length) { toast(err[0]); input.value = S.birth || ''; return; }
+  S.birth = v;
+  saveProfile();
+}
+document.addEventListener('focusout', e => {
+  if (e.target.id === 'pf-birth' && e.target.dataset.pending) applyBirth(e.target);
+});

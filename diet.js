@@ -112,7 +112,7 @@ function renderProfileSettings() {
     <div class="pf-result">${pc.bmr != null
       ? `<div><span class="label">Metabolismo basal (TMB)</span><b>${fK(pc.bmr)} kcal</b></div><div><span class="label">Gasto total (GET)${pc.realGet ? ' · real' : ''}</span><b>${pc.get != null ? fK(pc.get) + ' kcal' : '—'}</b></div>${pc.realGet ? `<p class="fine">Usando tu gasto real estimado. Con la fórmula serían ${fK(pc.getFormula)} kcal. <button class="link" style="padding:0" data-dt-global="formula">Volver a la fórmula</button></p>` : ''}`
       : `<p class="fine">Para calcular tu metabolismo falta: ${pc.missing.join(', ')}.</p>`}</div>`;
-  if (active && $('#' + active)) $('#' + active).focus();
+  if (active && active !== 'pf-birth' && $('#' + active)) $('#' + active).focus();
 
   const g = $('#goal-box');
   const day = goalEditDay;
@@ -174,11 +174,7 @@ document.addEventListener('click', async e => {
 document.addEventListener('change', e => {
   const t = e.target;
   if (t.id === 'pf-birth') {
-    if (t.value && t.value > todayISO()) return toast('La fecha no puede ser futura');
-    const age = Nutri.ageFromBirth(t.value, todayISO());
-    if (t.value && Nutri.validateProfile({ age }).length) { toast(Nutri.validateProfile({ age })[0]); renderProfileSettings(); return; }
-    S.birth = t.value || '';
-    saveProfile();
+    birthChanged(t);
   } else if (t.id === 'pf-age') {
     const v = t.value.trim();
     if (!v) { S.age = null; return saveProfile(); }
