@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Versión actual: **2.5.2** (`sw.js`, `app.js` y `package.json`). Tests: `npm test` → 41/41 en verde.
+Versión actual: **2.5.5** (`sw.js`, `app.js` y `package.json`). APK instalado en el móvil: 2.5.2 (trae todo lo nativo). Tests: `npm test` → 42/42 en verde.
 
 ## Hecho
 - 1.0 Registro de peso (PWA instalable, sin conexión, datos en IndexedDB).
@@ -13,9 +13,11 @@ Versión actual: **2.5.2** (`sw.js`, `app.js` y `package.json`). Tests: `npm tes
 - Equipo de agentes de Claude Code instalado en `.claude/` (7 agentes, 8 comandos con `/manager`, 2 hooks).
 
 ## Pendiente / siguientes pasos
-- Probar en móvil real: bloque 2 en Android (notificación, «Hecha», widget, recordatorio, botón atrás) y el arreglo del calendario en iPhone.
 - 2.5.1 Arreglo: la fecha de nacimiento ya no reabre el calendario en bucle en iPhone.
 - 2.5.2 Gráfico de peso: botones de periodo configurables (✎ junto a los botones; por defecto Semana/Mes/3M/Todo y en pantalla completa 1M/3M/6M/Todo + Auto). Botón «atrás» de Android cierra lo abierto (necesita el APK nuevo, plugin `@capacitor/app`).
+- 2.5.3 Arreglo: la app detectaba mal sus plugins nativos (usaba `isPluginAvailable`, que solo funciona con `@capacitor/core`); ahora usa `Capacitor.PluginHeaders`. Recordatorio también en Ajustes → Peso.
+- 2.5.4–2.5.5 Botones del gráfico: recuadro deslizable con «Todo» y ✎ dentro; de 0 a 10 botones por gráfico. Botón ⓘ en «Dieta cumplida» que explica el gasto real.
+- Probado por el usuario: botón atrás de Android funciona. Pendiente de confirmar en móvil real: notificación de entreno, widget, recordatorio; calendario de fecha de nacimiento en iPhone.
 
 ### Ideas para próximas versiones
 1. Celebración al marcar un nuevo peso más cercano al objetivo (animación + mensaje).
