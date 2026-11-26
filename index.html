@@ -83,12 +83,7 @@
         <div class="card chart-card">
           <div class="card-head">
             <h2>Progreso</h2>
-            <div class="seg seg-small" id="range-seg">
-              <button data-range="1w">Semana</button>
-              <button data-range="1m">Mes</button>
-              <button data-range="3m">3M</button>
-              <button data-range="all">Todo</button>
-            </div>
+            <div class="seg seg-small" id="range-seg"></div>
           </div>
           <div class="chart-wrap" id="chart-wrap" role="button" aria-label="Ampliar gráfico">
             <canvas id="chart"></canvas>
@@ -309,7 +304,7 @@
 <!-- Gráfico de peso a pantalla completa -->
 <div class="fs" id="fs" hidden>
   <div class="fs-bar">
-    <div class="seg seg-small" id="fs-range"><button data-fr="1w">Semana</button><button data-fr="1m">Mes</button><button data-fr="all">Todo</button></div>
+    <div class="seg seg-small" id="fs-range"></div>
     <button class="btn btn-small btn-ghost fs-auto on" id="fs-auto" title="Escala vertical automática">Auto</button>
     <span class="fs-hint">Arrastra para mover · pellizca para zoom · mantén pulsado para la cruz</span>
     <button class="icon-btn" id="fs-close" aria-label="Cerrar">
@@ -323,7 +318,9 @@
 
 <script src="nutri.js"></script>
 <script src="foods-db.js"></script>
+<script src="ranges.js"></script>
 <script src="app.js"></script>
+<script src="chart-ranges.js"></script>
 <script src="gymcalc.js"></script>
 <script src="gym.js"></script>
 <script src="gym-plus.js"></script>

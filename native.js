@@ -165,3 +165,13 @@ if (hasPlugin(LN)) {
     if (extra && extra.action === 'add-weight') whenReady(openAdd);
   });
 }
+
+/* ================= Botón «atrás» del móvil ================= */
+// Si hay algo abierto (gráfico ampliado, panel, pantalla) lo cierra; si no, sale de la app.
+if (hasPlugin('App')) {
+  window.Capacitor.addListener('App', 'backButton', () => {
+    if (typeof dialogDone === 'function' && dialogDone) { dialogDone(false); return; }
+    if (layers.length) history.back();
+    else callNative('App', 'exitApp');
+  });
+}

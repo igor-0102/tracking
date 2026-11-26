@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Versión actual: **2.5.0** (`sw.js`, `app.js` y `package.json`). Tests: `npm test` → 36/36 en verde.
+Versión actual: **2.5.2** (`sw.js`, `app.js` y `package.json`). Tests: `npm test` → 41/41 en verde.
 
 ## Hecho
 - 1.0 Registro de peso (PWA instalable, sin conexión, datos en IndexedDB).
@@ -13,9 +13,19 @@ Versión actual: **2.5.0** (`sw.js`, `app.js` y `package.json`). Tests: `npm tes
 - Equipo de agentes de Claude Code instalado en `.claude/` (7 agentes, 8 comandos con `/manager`, 2 hooks).
 
 ## Pendiente / siguientes pasos
-- 2.5 (nuevo APK): notificación de entreno tipo Hevy con botón «Hecha» (plugin propio `TrackingNativePlugin.java`), recordatorio diario para pesarse (`@capacitor/local-notifications`), widget de peso (`WeightWidget.java`). Lógica web en `native.js`. Gráfico de peso con Semana/Mes/Todo/Auto; Inicio muestra el peso del día. **Pendiente: probar en un móvil real.**
-- Fase posterior: fotos de progreso con carpeta elegida + calendario de fotos, integración con Strava, mapa de carreras.
-- Solo `nutri.js` tiene tests; `app.js`, `gym.js` y `diet.js` no.
+- Probar en móvil real: bloque 2 en Android (notificación, «Hecha», widget, recordatorio, botón atrás) y el arreglo del calendario en iPhone.
+- 2.5.1 Arreglo: la fecha de nacimiento ya no reabre el calendario en bucle en iPhone.
+- 2.5.2 Gráfico de peso: botones de periodo configurables (✎ junto a los botones; por defecto Semana/Mes/3M/Todo y en pantalla completa 1M/3M/6M/Todo + Auto). Botón «atrás» de Android cierra lo abierto (necesita el APK nuevo, plugin `@capacitor/app`).
+
+### Ideas para próximas versiones
+1. Celebración al marcar un nuevo peso más cercano al objetivo (animación + mensaje).
+2. Dieta: «comida trampa» (cheat meal) con calorías extra preseleccionadas al valor más común, editables.
+3. Base de alimentos más grande con platos típicos preparados; al tocarlos, desglose de ingredientes editable.
+4. Base de datos de ejercicios con la imagen del grupo muscular trabajado y una pestaña con la explicación breve de cómo se hace.
+5. Exportar los pesos a Excel con un gráfico (además de copiar al portapapeles).
+6. Fotos de progreso con carpeta elegida + calendario de fotos.
+7. Strava (necesita un servidor pequeño para la clave secreta) y mapa de carreras.
+8. Deuda técnica: tests de interfaz; partir funciones de más de 50 líneas; `app.js` (≈1550) y `diet.js` (≈885) por encima de 800 líneas.
 
 ## Decisiones
 - Sin servidor: los datos nunca salen del móvil (privacidad y funcionamiento sin conexión).

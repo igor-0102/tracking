@@ -1,7 +1,7 @@
 /* Tracking · registro de peso. Todo se guarda en este dispositivo (IndexedDB). */
 'use strict';
 
-const APP_VERSION = '2.5.1';
+const APP_VERSION = '2.5.2';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -224,7 +224,7 @@ class WeightChart {
   setRange(key) {
     const [f0, f1] = this.fullView();
     if (key === 'all') { this.view = [f0, f1]; this.request(); return; }
-    const days = { '1w': 7, '1m': 30, '3m': 91, '6m': 182, '1y': 365 }[key];
+    const days = typeof key === 'number' ? key : { '1w': 7, '1m': 30, '3m': 91, '6m': 182, '1y': 365 }[key];
     const end = f1;
     this.view = [Math.max(f0, end - days - 1), end];
     this.request();
@@ -823,9 +823,7 @@ function renderHome() {
   // Gráfico
   const pts = chartPoints();
   chart.setData(pts, S.goal);
-  if (!['1w', '1m', '3m', 'all'].includes(S.range)) S.range = '3m';      // 6M ya no está en los botones
-  chart.setRange(S.range);
-  $$('#range-seg button').forEach(bn => bn.classList.toggle('on', bn.dataset.range === S.range));
+  renderRanges();      // botones de periodo configurables (chart-ranges.js)
   $('#legend').innerHTML = `<span><i class="lg-dot"></i>Peso diario</span><span><i class="lg-line"></i>Media 7 días</span>${S.goal != null ? '<span><i class="lg-dash"></i>Objetivo</span>' : ''}<span><i class="lg-min"></i>Mínimo</span>`;
   if (!$('#fs').hidden) fsChart.setData(pts, S.goal);
 
@@ -1445,13 +1443,6 @@ $$('#theme-seg button').forEach(b => b.addEventListener('click', async () => {
 }));
 
 /* ================= Gráfico: filtros y pantalla completa ================= */
-$$('#range-seg button').forEach(b => b.addEventListener('click', async e => {
-  e.stopPropagation();
-  S.range = b.dataset.range;
-  chart.setRange(S.range);
-  $$('#range-seg button').forEach(x => x.classList.toggle('on', x === b));
-  await saveSettings();
-}));
 $$('#avg-seg button').forEach(b => b.addEventListener('click', async () => {
   S.avg = b.dataset.avg;
   renderAverages();
@@ -1465,7 +1456,7 @@ function openFullscreen() {
   lockBody();
   fsChart.setData(chartPoints(), S.goal);
   fsChart.view = [...chart.view];
-  $$('#fs-range button').forEach(x => x.classList.toggle('on', x.dataset.fr === S.range));
+  fsRangesSync();
   fsChart.yView = null;
   fsChart.onYMode && fsChart.onYMode(true);
   fsChart.resize();
@@ -1475,12 +1466,6 @@ function openFullscreen() {
   });
 }
 $('#fs-close').addEventListener('click', () => popLayer());
-$('#fs-range').addEventListener('click', e => {
-  const b = e.target.closest('[data-fr]');
-  if (!b) return;
-  if (b.dataset.fr === 'all') fsChart.resetAll(); else { fsChart.sel = -1; fsChart.setRange(b.dataset.fr); fsChart.setYAuto(true); }
-  $$('#fs-range button').forEach(x => x.classList.toggle('on', x === b));
-});
 $('#fs-auto').addEventListener('click', () => fsChart.setYAuto(!!fsChart.yView));
 
 /* ================= Teclado en iOS (paneles sobre el teclado) ================= */
