@@ -1,0 +1,466 @@
+diff --git a/app.js b/app.js
+index a97e7d4..fe3d3ab 100644
+--- a/app.js
++++ b/app.js
+@@ -144,6 +144,21 @@ async function removeEntry(date) {
+   entries = entries.filter(e => e.date !== date);
+ }
+ 
++function closerToGoal(kg, goal, history) {
++  if (!(goal > 0) || !history.length) return false;
++  const previous = Math.min(...history.map(e => Math.abs(e.kg - goal)));
++  return Math.abs(kg - goal) < previous - 0.005;
++}
++
++function celebrateGoalProgress() {
++  const hero = $('#summary .hero');
++  if (!hero) return;
++  hero.classList.remove('goal-celebrate');
++  void hero.offsetWidth;
++  hero.classList.add('goal-celebrate');
++  setTimeout(() => hero.classList.remove('goal-celebrate'), 1500);
++}
++
+ /* ================= Cálculos ================= */
+ // Dirección "buena": bajar, salvo que haya un objetivo por encima del peso actual.
+ function wantDown() {
+@@ -1054,12 +1069,16 @@ addForm.addEventListener('submit', async ev => {
+       if (!ok) return;
+     }
+     if (editing && editing !== date) await removeEntry(editing);
++    const goalProgress = !editing && closerToGoal(kg, S.goal, entries.filter(e => e.date !== date));
+     await upsert({ date, kg });
+     if (navigator.vibrate) try { navigator.vibrate(18); } catch (_) {}
+     const wasEdit = !!editing;
+     closeSheet();
+     renderAll();
+-    toast(wasEdit ? 'Registro actualizado' : `Guardado: ${fmtKg(kg)} kg`);
++    if (goalProgress) {
++      celebrateGoalProgress();
++      toast(`🎉 ¡Nuevo peso más cerca de tu objetivo de ${fmtKg(S.goal)} kg!`);
++    } else toast(wasEdit ? 'Registro actualizado' : `Guardado: ${fmtKg(kg)} kg`);
+   } catch (err) {
+     showError('No se pudo guardar. Inténtalo de nuevo.');
+   } finally {
+@@ -1206,6 +1225,27 @@ async function exportFile() {
+   markBackup();
+ }
+ 
++async function exportWeightExcel() {
++  if (!entries.length) return toast('No hay pesos que exportar');
++  const blob = createWeightWorkbook(entries);
++  const name = `tracking-pesos-${todayISO()}.xlsx`;
++  if (isNative()) {
++    try {
++      const bytes = new Uint8Array(await blob.arrayBuffer());
++      let binary = '';
++      for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
++      const file = await nativeCall('Filesystem', 'writeFile', { path: name, data: btoa(binary), directory: 'CACHE', encoding: 'base64' });
++      await nativeCall('Share', 'share', { title: 'Pesos de Tracking', dialogTitle: 'Guardar o enviar Excel', files: [file.uri] });
++      toast('Excel exportado');
++    } catch (e) { if (!/cancel/i.test(String(e && e.message || e))) toast('No se pudo exportar el Excel'); }
++    return;
++  }
++  const url = URL.createObjectURL(blob), a = document.createElement('a');
++  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
++  setTimeout(() => URL.revokeObjectURL(url), 2000);
++  toast('Excel descargado');
++}
++
+ function parseBackup(text) {
+   const map = new Map();
+   const errors = [];
+@@ -1383,6 +1423,7 @@ document.addEventListener('click', e => {
+     else if (act === 'add-weight') openAdd();
+     else if (act === 'start-workout') gymStartMenu();
+     else if (act === 'export') exportFile();
++    else if (act === 'export-excel') exportWeightExcel();
+     else if (act === 'import-file') fileInput.click();
+     else if (act === 'import-text') openImport();
+     else if (act === 'wipe') wipeAll();
+diff --git a/diet.js b/diet.js
+index 15e7f18..805c083 100644
+--- a/diet.js
++++ b/diet.js
+@@ -304,10 +304,17 @@ function doneCardHTML() {
+       </div>
+     </div>
+     ${cur && !cur.ok ? `<p class="done-extra">${cur.extra ? `${cur.extra > 0 ? '+' : '−'}${fK(Math.abs(cur.extra))} kcal extra estimadas` : 'Sin calorías extra apuntadas'} · <button class="link" style="padding:0" data-dt="done-extra">cambiar</button></p>` : ''}
++    <button class="btn btn-ghost btn-small cheat-meal" data-dt="cheat-meal">🍰 Comida trampa · ${fK(commonExtraCalories())} kcal</button>
+     <div class="wstrip">${strip}</div>
+     <p class="fine" style="margin:8px 0 0">${a.marked ? `Últimas 4 semanas: cumplida <b>${a.ok}</b> de ${a.marked} días marcados (${fK(a.pct)} %).` : 'Marca cada día si has seguido la dieta. Toca un día de la semana para marcar uno anterior.'}</p>
+   </div>`;
+ }
++function commonExtraCalories() {
++  const counts = new Map();
++  for (const log of Object.values(Dt.log)) if (!log.ok && Number.isFinite(log.extra) && log.extra > 0)
++    counts.set(log.extra, (counts.get(log.extra) || 0) + 1);
++  return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] || 500;
++}
+ function theoryCardHTML(dietKcal, pc) {
+   const wk = Nutri.weeklyChangeKg(dietKcal, pc.get);
+   if (wk == null) return '';
+@@ -455,14 +462,16 @@ $('#tab-dieta').addEventListener('click', async e => {
+       toast('Dieta borrada', { action: 'Deshacer', ms: 6000, onAction: async () => { Dt.diets.push(d); S.dietId = d.id; await saveDiet(d); await saveSettings(); dietDerive(); dietRenderAll(); } });
+     }
+   } else if (act === 'edit-meals') editMeals(d);
+-  else if (act === 'done-ok' || act === 'done-no' || act === 'done-extra') {
++  else if (act === 'done-ok' || act === 'done-no' || act === 'done-extra' || act === 'cheat-meal') {
+     const cur = Dt.log[logDate];
+     const kcal = Math.round(dietKcalNow());
+     if (!kcal) return toast('Primero añade ingredientes a las opciones elegidas');
+     if (act === 'done-ok') return setLog(logDate, cur && cur.ok ? null : { ok: true, extra: 0, kcal });
+     if (act === 'done-no' && cur && !cur.ok) return setLog(logDate, null);
+-    const extra = await askExtra(cur && !cur.ok ? cur.extra : 0);
++    const initialExtra = act === 'cheat-meal' ? commonExtraCalories() : cur && !cur.ok ? cur.extra : 0;
++    const extra = await askExtra(initialExtra);
+     if (extra == null) return;
++    if (act === 'cheat-meal' && extra <= 0) return toast('La comida trampa debe tener calorías extra positivas');
+     setLog(logDate, { ok: false, extra, kcal: cur ? cur.kcal || kcal : kcal });
+   } else if (act === 'use-real') {
+     S.getOverride = +b.dataset.real; await saveSettings(); renderAll(); toast('Objetivo recalculado con tu gasto real');
+@@ -566,6 +575,7 @@ function editOption(d, meal, opt) {
+         </div>`).join('')}
+         ${!opt.items.length ? '<p class="fine center" style="margin:26px 0 8px">Añade los ingredientes de esta opción.</p>' : ''}
+         <button class="btn btn-primary btn-block" data-o="add">＋ Añadir ingrediente</button>
++        <button class="btn btn-secondary btn-block" data-o="prepared">Añadir plato preparado</button>
+         ${Dt.templates.length ? '<button class="btn btn-ghost btn-block" data-o="tpl">Añadir desde plantilla</button>' : ''}
+         <div style="height:60px"></div>
+       </div>`;
+@@ -597,6 +607,19 @@ function editOption(d, meal, opt) {
+       if (!item) return;
+       opt.items.push(item);
+       rememberFood(food);
++    } else if (a === 'prepared') {
++      const recipes = window.PREPARED_MEALS || [];
++      const name = await actionSheet('Platos preparados', recipes.map(r => ({ label: r.name, sub: `${r.items.length} ingredientes`, value: r.name })));
++      const recipe = recipes.find(r => r.name === name);
++      if (!recipe) return;
++      const items = recipe.items.map(([query, qty]) => {
++        const food = Foods.search(query, { limit: 1 })[0];
++        return food ? { id: uid(), key: food.key, name: food.name, qty, unit: 'g', per100: food.per100, portions: food.portions || [] } : null;
++      });
++      const missing = recipe.items.filter((_, i) => !items[i]).map(([query]) => query);
++      if (missing.length) return toast(`No encuentro en la base: ${missing.join(', ')}`);
++      opt.items.push(...items);
++      toast('Plato añadido; puedes ajustar cada ingrediente');
+     } else if (a === 'edit') {
+       const it = opt.items[i];
+       const item = await askQuantity({ key: it.key, name: it.name, per100: it.per100, portions: it.portions || (it.portionG ? [{ name: it.portionName, g: it.portionG }] : []) }, it);
+diff --git a/gym.js b/gym.js
+index 47ceb06..c851c29 100644
+--- a/gym.js
++++ b/gym.js
+@@ -902,6 +902,7 @@ function openExercise(id) {
+         <button class="icon-btn" data-x="menu">${dotsIcon}</button>
+       </div>
+       <div class="page-body">
++        ${typeof exerciseGuideHTML === 'function' ? exerciseGuideHTML(ex) : ''}
+         ${ss.length ? `
+         <div class="stats stats-2">
+           <div class="card stat"><div class="label">Peso máximo</div><div class="val">${fmtN(b.kg)} kg</div></div>
+diff --git a/index.html b/index.html
+index 540c4d1..81ad9a4 100644
+--- a/index.html
++++ b/index.html
+@@ -186,6 +186,7 @@
+     <div class="card list-card">
+       <p class="fine" id="last-backup"></p>
+       <button class="row-btn" data-action="export"><span>Exportar copia completa</span><small>Pesos, entrenos, rutinas y dietas en un archivo</small></button>
++      <button class="row-btn" data-action="export-excel"><span>Exportar pesos a Excel</span><small>Hoja de datos con gráfico de líneas</small></button>
+       <button class="row-btn" data-action="import-file"><span>Importar archivo</span><small>Copia de Tracking (.json), pesos (.txt) o CSV de Hevy</small></button>
+       <button class="row-btn" data-action="copy"><span>Copiar pesos</span><small>Al portapapeles, en texto</small></button>
+       <button class="row-btn" data-action="import-text"><span>Importar pesos pegando texto</span><small>Una línea por registro: 21-02-2026 88,8</small></button>
+@@ -321,11 +322,14 @@
+ <script src="foods-db.js"></script>
+ <script src="ranges.js"></script>
+ <script src="app.js"></script>
++<script src="weight-xlsx.js"></script>
+ <script src="chart-ranges.js"></script>
+ <script src="gymcalc.js"></script>
+ <script src="gym.js"></script>
++<script src="exercise-guide.js"></script>
+ <script src="gym-plus.js"></script>
+ <script src="foods.js"></script>
++<script src="prepared-foods.js"></script>
+ <script src="diet.js"></script>
+ <script src="body.js"></script>
+ <script src="native.js"></script>
+diff --git a/package.json b/package.json
+index 76a8633..80cab11 100644
+--- a/package.json
++++ b/package.json
+@@ -8,7 +8,7 @@
+     "sync": "npm run build:www && npx cap sync android",
+     "open": "npx cap open android",
+     "apk": "npm run sync && cd android && gradlew assembleRelease",
+-    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs",
++    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs tests/exercise-guide.test.mjs tests/weight-xlsx.test.mjs",
+     "build:foods": "node tools/build-foods.mjs"
+   },
+   "dependencies": {
+diff --git a/styles.css b/styles.css
+index 8d3fe17..90c3ae8 100644
+--- a/styles.css
++++ b/styles.css
+@@ -350,6 +350,17 @@ textarea:focus { border-color: var(--accent); }
+ .toast.open { transform: translate(-50%, 0); opacity: 1; }
+ .toast button { border: 0; background: rgba(255,255,255,.12); color: #9fb8ff; font-weight: 800; border-radius: 10px; min-height: 38px; padding: 0 14px; }
+ 
++.goal-celebrate {
++  animation: goal-celebrate 1.35s ease both;
++  box-shadow: 0 0 0 2px var(--goal), 0 0 24px var(--goal), var(--shadow) !important;
++}
++@keyframes goal-celebrate {
++  0% { transform: scale(1); }
++  28% { transform: scale(1.035) rotate(-.5deg); }
++  55% { transform: scale(1.015) rotate(.35deg); }
++  100% { transform: scale(1); }
++}
++
+ /* ----- Pantalla completa ----- */
+ .fs {
+   position: fixed; inset: 0; z-index: 50; background: var(--bg);
+@@ -694,6 +705,14 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
+ .sq-ok.on { background: var(--good); border-color: var(--good); color: #062418; }
+ .sq-no.on { background: var(--bad); border-color: var(--bad); color: #fff; }
+ .done-extra { margin: 10px 0 0; font-size: 14px; color: var(--muted); font-weight: 600; }
++.cheat-meal { margin-top: 10px; }
++.exercise-guide { display: grid; grid-template-columns: 110px 1fr; gap: 14px; align-items: center; }
++.exercise-guide h3 { margin: 3px 0 6px; font-size: 16px; }
++.exercise-guide p { margin: 0 0 7px; font-size: 14px; line-height: 1.45; }
++.exercise-guide small { color: var(--muted); font-size: 11px; line-height: 1.35; }
++.muscle-map { width: 100%; max-height: 145px; fill: var(--surface-2); stroke: var(--muted); stroke-width: 2; stroke-linejoin: round; }
++.muscle-map .muscle { fill: var(--line); stroke: var(--surface); stroke-width: 1; }
++.muscle-map .muscle.active { fill: var(--goal); }
+ .wstrip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 12px; }
+ .wday { border: 2px solid transparent; border-radius: 12px; background: var(--surface-2); min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--muted); padding: 0; }
+ .wday small { font-size: 11px; font-weight: 700; text-transform: capitalize; }
+diff --git a/sw.js b/sw.js
+index df67001..6fe81c9 100644
+--- a/sw.js
++++ b/sw.js
+@@ -6,15 +6,18 @@ const ASSETS = [
+   './index.html',
+   './styles.css',
+   './app.js',
++  './weight-xlsx.js',
+   './ranges.js',
+   './chart-ranges.js',
+   './gym.js',
++  './exercise-guide.js',
+   './gymcalc.js',
+   './gym-plus.js',
+   './body.js',
+   './native.js',
+   './nutri.js',
+   './foods.js',
++  './prepared-foods.js',
+   './foods-db.js',
+   './foods-usda.js',
+   './diet.js',
+diff --git a/tools/build-www.mjs b/tools/build-www.mjs
+index f57c738..9baf428 100644
+--- a/tools/build-www.mjs
++++ b/tools/build-www.mjs
+@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
+ 
+ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+ const out = join(root, 'www');
+-const files = ['index.html', 'styles.css', 'app.js', 'ranges.js', 'chart-ranges.js', 'gym.js', 'gymcalc.js', 'gym-plus.js', 'body.js', 'native.js', 'nutri.js', 'foods.js', 'foods-db.js', 'foods-usda.js', 'diet.js', 'sw.js', 'manifest.webmanifest'];
++const files = ['index.html', 'styles.css', 'app.js', 'weight-xlsx.js', 'ranges.js', 'chart-ranges.js', 'gym.js', 'exercise-guide.js', 'gymcalc.js', 'gym-plus.js', 'body.js', 'native.js', 'nutri.js', 'foods.js', 'prepared-foods.js', 'foods-db.js', 'foods-usda.js', 'diet.js', 'sw.js', 'manifest.webmanifest'];
+ 
+ rmSync(out, { recursive: true, force: true });
+ mkdirSync(out, { recursive: true });
+diff --git a/exercise-guide.js b/exercise-guide.js
+new file mode 100644
+index 0000000..905db20
+--- /dev/null
++++ b/exercise-guide.js
+@@ -0,0 +1,38 @@
++/* Guía local de ejercicios: zonas musculares esquemáticas e instrucciones breves. */
++'use strict';
++
++(() => {
++  const guides = [
++    [/press banca|press de banca|banca|flexion|apertura|cruce|pec deck/, 'Pecho', 'Tumbado o con el torso estable, baja el peso con control hacia el pecho. Empuja sin rebotar y mantén las muñecas alineadas.'],
++    [/remo|jalon|pulldown|dominada|face pull/, 'Espalda', 'Inicia el tirón llevando los codos hacia atrás o abajo. Mantén el tronco firme y evita balancearte para mover el peso.'],
++    [/sentadilla|prensa|zancada|extension de cuadriceps|curl femoral/, 'Piernas', 'Apoya todo el pie y acompaña el movimiento con las rodillas en la dirección de los pies. Usa un recorrido cómodo y controlado.'],
++    [/peso muerto|rumano|buenos dias/, 'Espalda', 'Lleva la cadera atrás con la espalda neutra y el peso cerca del cuerpo. Termina erguido sin hiperextender la zona lumbar.'],
++    [/hip thrust|puente de gluteo|patada de gluteo/, 'Glúteos', 'Empuja desde los talones y extiende la cadera. Mantén las costillas recogidas y no arquees la espalda al final.'],
++    [/press militar|press hombro|arnold/, 'Hombros', 'Empuja sobre la cabeza con abdomen firme. Baja hasta un rango cómodo sin encoger los hombros.'],
++    [/elevacion lateral|elevacion frontal|pajaro|deltoide posterior/, 'Hombros', 'Eleva los brazos con ligera flexión de codos y sin impulso. Detén el recorrido antes de que los hombros se encojan.'],
++    [/curl|biceps/, 'Bíceps', 'Mantén los codos cerca del cuerpo. Flexiona y baja el brazo despacio, sin balancear el tronco.'],
++    [/triceps|extension de codo|fondos/, 'Tríceps', 'Fija los hombros y mueve el antebrazo. Extiende el codo con control, sin bloquearlo con fuerza.'],
++    [/plancha|crunch|abdominal|rueda/, 'Core', 'Mantén el tronco estable y respira. Evita que la zona lumbar se hunda o que el cuello cargue el esfuerzo.'],
++    [/correr|cinta|bici|eliptica/, 'Cardio', 'Empieza a un ritmo que puedas sostener y aumenta la intensidad de forma gradual. Ajusta la máquina antes de empezar.'],
++  ];
++  const targets = { Pecho: 'chest', Espalda: 'back', Hombros: 'shoulders', Bíceps: 'biceps', Tríceps: 'triceps', Piernas: 'legs', Glúteos: 'glutes', Core: 'core', Cardio: 'legs', Otro: 'core' };
++  const escape = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
++  const body = muscle => `<svg class="muscle-map" viewBox="0 0 160 180" role="img" aria-label="Esquema del grupo muscular: ${escape(muscle)}">
++    <circle cx="80" cy="20" r="12"/><path class="silhouette" d="M68 35 Q80 30 92 35 L100 73 95 107 98 166 83 166 80 118 77 166 62 166 65 107 60 73Z"/>
++    <path class="silhouette" d="M62 42 47 48 35 85 42 89 58 61M98 42 113 48 125 85 118 89 102 61"/>
++    <ellipse class="muscle chest" cx="80" cy="58" rx="19" ry="11"/><ellipse class="muscle back" cx="80" cy="57" rx="16" ry="14"/>
++    <circle class="muscle shoulders" cx="62" cy="43" r="8"/><circle class="muscle shoulders" cx="98" cy="43" r="8"/>
++    <path class="muscle biceps" d="M50 51 43 72 49 74 57 55M110 51 117 72 111 74 103 55"/>
++    <path class="muscle triceps" d="M40 58 35 80 41 82 47 61M120 58 125 80 119 82 113 61"/>
++    <ellipse class="muscle core" cx="80" cy="83" rx="13" ry="20"/><path class="muscle glutes" d="M65 99 Q80 91 95 99 L93 112 67 112Z"/>
++    <path class="muscle legs" d="M65 110 77 112 75 158 63 158ZM83 112 95 110 97 158 85 158Z"/>
++  </svg>`.replace(new RegExp(`class="muscle ${targets[muscle] || 'core'}(?=[ "\\)])`, 'g'), `class="muscle active ${targets[muscle] || 'core'}`);
++  function guideHTML(ex) {
++    const name = String(ex.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
++    const guide = guides.find(([pattern]) => pattern.test(name));
++    const muscle = guide ? guide[1] : (ex.muscle || 'Otro');
++    const instruction = guide ? guide[2] : 'Consulta el nombre y el grupo muscular como referencia. Empieza con poco peso, controla el recorrido y detente si aparece dolor.';
++    return `<section class="card exercise-guide"><div>${body(muscle)}</div><div><div class="label">${escape(muscle)}</div><h3>Cómo hacerlo</h3><p>${instruction}</p><small>Ilustración esquemática del grupo principal; otros músculos también pueden participar.</small></div></section>`;
++  }
++  window.exerciseGuideHTML = guideHTML;
++})();
+diff --git a/prepared-foods.js b/prepared-foods.js
+new file mode 100644
+index 0000000..6774a00
+--- /dev/null
++++ b/prepared-foods.js
+@@ -0,0 +1,12 @@
++/* Platos preparados sencillos; cada ingrediente usa la base nutricional local USDA. */
++'use strict';
++
++window.PREPARED_MEALS = [
++  { name: 'Pollo con arroz', items: [['Pechuga de pollo, asada', 150], ['Arroz blanco, cocido', 180], ['Aceite de oliva', 5]] },
++  { name: 'Lentejas con verduras', items: [['Lentejas, cocidas', 200], ['Zanahoria, cruda', 50], ['Cebolla, cruda', 35], ['Aceite de oliva', 5]] },
++  { name: 'Tortilla de patata', items: [['Huevo entero', 110], ['Patata, cocida', 180], ['Cebolla, cruda', 20], ['Aceite de oliva', 8]] },
++  { name: 'Ensalada de atún', items: [['Lechuga romana', 70], ['Tomate', 120], ['Atún en lata al natural, escurrido', 80], ['Aceite de oliva', 8]] },
++  { name: 'Pasta con tomate y pollo', items: [['Pasta, cocida', 180], ['Pechuga de pollo, asada', 100], ['Salsa de tomate', 80], ['Aceite de oliva', 5]] },
++  { name: 'Gazpacho', items: [['Tomate', 250], ['Pepino', 80], ['Pimiento verde, crudo', 35], ['Cebolla, cruda', 15], ['Aceite de oliva', 8]] },
++  { name: 'Merluza con patata', items: [['Merluza o pescadilla, cruda', 180], ['Patata, cocida', 180], ['Aceite de oliva', 8]] },
++];
+diff --git a/weight-xlsx.js b/weight-xlsx.js
+new file mode 100644
+index 0000000..1fb4192
+--- /dev/null
++++ b/weight-xlsx.js
+@@ -0,0 +1,63 @@
++/* Generador local de XLSX para el historial de peso. No requiere servidor ni dependencias. */
++'use strict';
++
++(() => {
++  const enc = new TextEncoder();
++  const xml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]));
++  const u16 = n => [n & 255, (n >>> 8) & 255];
++  const u32 = n => [n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255];
++  const join = parts => { const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0)); let at = 0; for (const p of parts) { out.set(p, at); at += p.length; } return out; };
++
++  function crc32(bytes) {
++    let crc = 0xffffffff;
++    for (const byte of bytes) {
++      crc ^= byte;
++      for (let i = 0; i < 8; i++) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
++    }
++    return (crc ^ 0xffffffff) >>> 0;
++  }
++
++  function zipStore(files) {
++    const local = [], central = [];
++    let offset = 0;
++    for (const [name, content] of Object.entries(files)) {
++      const path = enc.encode(name), data = enc.encode(content), crc = crc32(data);
++      const header = join([new Uint8Array([0x50, 0x4b, 3, 4]), new Uint8Array(u16(20)), new Uint8Array(u16(0x800)), new Uint8Array(u16(0)), new Uint8Array(u16(0)), new Uint8Array(u16(0x21)), new Uint8Array(u32(crc)), new Uint8Array(u32(data.length)), new Uint8Array(u32(data.length)), new Uint8Array(u16(path.length)), new Uint8Array(u16(0)), path, data]);
++      local.push(header);
++      central.push(join([new Uint8Array([0x50, 0x4b, 1, 2]), new Uint8Array(u16(20)), new Uint8Array(u16(20)), new Uint8Array(u16(0x800)), new Uint8Array(u16(0)), new Uint8Array(u16(0)), new Uint8Array(u16(0x21)), new Uint8Array(u32(crc)), new Uint8Array(u32(data.length)), new Uint8Array(u32(data.length)), new Uint8Array(u16(path.length)), new Uint8Array(u16(0)), new Uint8Array(u16(0)), new Uint8Array(u16(0)), new Uint8Array(u16(0)), new Uint8Array(u32(0)), new Uint8Array(u32(offset)), path]));
++      offset += header.length;
++    }
++    const directory = join(central);
++    const end = join([new Uint8Array([0x50, 0x4b, 5, 6]), new Uint8Array(u16(0)), new Uint8Array(u16(0)), new Uint8Array(u16(central.length)), new Uint8Array(u16(central.length)), new Uint8Array(u32(directory.length)), new Uint8Array(u32(offset)), new Uint8Array(u16(0))]);
++    return new Blob([...local, directory, end], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
++  }
++
++  function worksheet(entries) {
++    const rows = ['<row r="1"><c r="A1" t="inlineStr"><is><t>Fecha</t></is></c><c r="B1" t="inlineStr"><is><t>Peso (kg)</t></is></c></row>'];
++    entries.forEach((e, i) => { const r = i + 2; rows.push(`<row r="${r}"><c r="A${r}" t="inlineStr"><is><t>${xml(e.date)}</t></is></c><c r="B${r}"><v>${Number(e.kg)}</v></c></row>`); });
++    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="18"/><cols><col min="1" max="1" width="16" customWidth="1"/><col min="2" max="2" width="14" customWidth="1"/></cols><sheetData>${rows.join('')}</sheetData><autoFilter ref="A1:B${entries.length + 1}"/><drawing r:id="rId1"/></worksheet>`;
++  }
++
++  function chart(entries) {
++    const last = Math.max(2, entries.length + 1);
++    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><c:chart><c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr/><a:t>Progreso de peso</a:t></a:r></a:p></c:rich></c:tx></c:title><c:plotArea><c:layout/><c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/><c:ser><c:idx val="0"/><c:order val="0"/><c:tx><c:v>Peso (kg)</c:v></c:tx><c:cat><c:strRef><c:f>'Pesos'!$A$2:$A$${last}</c:f></c:strRef></c:cat><c:val><c:numRef><c:f>'Pesos'!$B$2:$B$${last}</c:f></c:numRef></c:val><c:marker><c:symbol val="circle"/><c:size val="5"/></c:marker><c:smooth val="0"/></c:ser><c:axId val="10"/><c:axId val="20"/></c:lineChart><c:catAx><c:axId val="10"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:tickLblPos val="nextTo"/><c:crossAx val="20"/><c:crosses val="autoZero"/></c:catAx><c:valAx><c:axId val="20"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:majorGridlines/><c:numFmt formatCode="0.0" sourceLinked="0"/><c:crossAx val="10"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx></c:plotArea><c:legend><c:legendPos val="b"/></c:legend><c:plotVisOnly val="1"/></c:chart></c:chartSpace>`;
++  }
++
++  function packageFiles(entries) {
++    const contentTypes = `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/><Override PartName="/xl/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>`;
++    return {
++      '[Content_Types].xml': contentTypes,
++      '_rels/.rels': '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',
++      'xl/workbook.xml': '<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Pesos" sheetId="1" r:id="rId1"/></sheets></workbook>',
++      'xl/_rels/workbook.xml.rels': '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>',
++      'xl/styles.xml': '<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>',
++      'xl/worksheets/sheet1.xml': worksheet(entries),
++      'xl/worksheets/_rels/sheet1.xml.rels': '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>',
++      'xl/drawings/drawing1.xml': '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><xdr:twoCellAnchor><xdr:from><xdr:col>3</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>1</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>11</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>18</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="2" name="Gráfico de peso"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr><xdr:xfrm/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1"/></a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor></xdr:wsDr>',
++      'xl/drawings/_rels/drawing1.xml.rels': '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart1.xml"/></Relationships>',
++      'xl/charts/chart1.xml': chart(entries),
++    };
++  }
++
++  window.createWeightWorkbook = entries => zipStore(packageFiles(entries));
++})();
+diff --git a/tests/exercise-guide.test.mjs b/tests/exercise-guide.test.mjs
+new file mode 100644
+index 0000000..9bfb1ac
+--- /dev/null
++++ b/tests/exercise-guide.test.mjs
+@@ -0,0 +1,24 @@
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../exercise-guide.js', import.meta.url), 'utf8');
++function render(exercise) {
++  const window = {};
++  vm.runInNewContext(source, { window });
++  return window.exerciseGuideHTML(exercise);
++}
++
++test('la guía resalta el grupo de un ejercicio conocido', () => {
++  const html = render({ name: 'Press banca', muscle: 'Pecho' });
++  assert.match(html, /muscle active chest/);
++  assert.match(html, /Cómo hacerlo/);
++  assert.match(html, /sin rebotar/);
++});
++
++test('la guía escapa el grupo muscular importado', () => {
++  const html = render({ name: 'Ejercicio importado', muscle: '<img src=x onerror=alert(1)>' });
++  assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;/);
++  assert.doesNotMatch(html, /<img/);
++});
+diff --git a/tests/weight-xlsx.test.mjs b/tests/weight-xlsx.test.mjs
+new file mode 100644
+index 0000000..b50f15a
+--- /dev/null
++++ b/tests/weight-xlsx.test.mjs
+@@ -0,0 +1,25 @@
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../weight-xlsx.js', import.meta.url), 'utf8');
++async function workbook(entries) {
++  const window = {};
++  vm.runInNewContext(source, { window, Blob, TextEncoder });
++  return new Uint8Array(await window.createWeightWorkbook(entries).arrayBuffer());
++}
++
++test('genera un XLSX con hoja de pesos y gráfico', async () => {
++  const bytes = await workbook([{ date: '2026-01-01', kg: 80.5 }, { date: '2026-01-02', kg: 80 }]);
++  const zipText = new TextDecoder().decode(bytes);
++  assert.deepEqual([...bytes.slice(0, 4)], [0x50, 0x4b, 0x03, 0x04]);
++  assert.match(zipText, /xl\/charts\/chart1\.xml/);
++  assert.match(zipText, /80\.5/);
++  assert.match(zipText, /Progreso de peso/);
++});
++
++test('escapa valores de fecha al crear la hoja', async () => {
++  const bytes = await workbook([{ date: '<test&"', kg: 70 }]);
++  assert.match(new TextDecoder().decode(bytes), /&lt;test&amp;&quot;/);
++});
