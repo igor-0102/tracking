@@ -19,17 +19,10 @@ Versión actual: **2.5.5** (`sw.js`, `app.js` y `package.json`). APK instalado e
 - 2.5.4–2.5.5 Botones del gráfico: recuadro deslizable con «Todo» y ✎ dentro; de 0 a 10 botones por gráfico. Botón ⓘ en «Dieta cumplida» que explica el gasto real.
 - Probado por el usuario: botón atrás de Android funciona. Pendiente de confirmar en móvil real: notificación de entreno, widget, recordatorio; calendario de fecha de nacimiento en iPhone.
 
-### Ideas para próximas versiones
-1. Celebración al marcar un nuevo peso más cercano al objetivo (animación + mensaje).
-2. Dieta: «comida trampa» (cheat meal) con calorías extra preseleccionadas al valor más común, editables.
-3. Base de alimentos más grande con platos típicos preparados; al tocarlos, desglose de ingredientes editable.
-4. Base de datos de ejercicios con la imagen del grupo muscular trabajado y una pestaña con la explicación breve de cómo se hace.
-5. Exportar los pesos a Excel con un gráfico (además de copiar al portapapeles).
-6. Fotos de progreso con carpeta elegida + calendario de fotos.
-7. Strava (necesita un servidor pequeño para la clave secreta) y mapa de carreras.
-8. Deuda técnica: tests de interfaz; partir funciones de más de 50 líneas; `app.js` (≈1550) y `diet.js` (≈885) por encima de 800 líneas.
+La lista completa de tareas pendientes está en `docs/TAREAS.md`.
 
 ## Decisiones
+- Claude dirige el proyecto; Codex hace tareas asignadas y entrega en `CODEX_HANDOFF/` (ver `AGENTS.md`). Nada de Codex entra sin revisión y PR.
 - Sin servidor: los datos nunca salen del móvil (privacidad y funcionamiento sin conexión).
 - El APK carga la web desde GitHub Pages: los cambios web llegan sin reinstalar.
 - Alimentos del USDA (dominio público) generados con `npm run build:foods`.
