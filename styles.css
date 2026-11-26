@@ -748,3 +748,10 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
 #range-seg button { padding: 0 7px; min-width: 34px; }
 #range-seg .rng-edit-btn { min-width: 30px; padding: 0 4px; font-size: 14px; }
 .rem-off { opacity: .75; }
+
+/* Botones de periodo: mismo ancho y texto centrado; ✎ fuera del grupo */
+.rng-wrap { display: flex; align-items: center; gap: 6px; }
+#range-seg button, #fs-range button { flex: 1 1 0; min-width: 40px; padding: 0 4px; text-align: center; }
+#range-edit { width: 34px; height: 34px; font-size: 15px; color: var(--accent); }
+#range-seg button, #fs-range button { min-width: 48px; }
+@media (max-width: 520px) { .fs-hint { display: none; } .fs-bar { justify-content: space-between; } }

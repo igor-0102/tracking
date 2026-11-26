@@ -83,7 +83,10 @@
         <div class="card chart-card">
           <div class="card-head">
             <h2>Progreso</h2>
-            <div class="seg seg-small" id="range-seg"></div>
+            <div class="rng-wrap">
+              <div class="seg seg-small" id="range-seg"></div>
+              <button class="icon-btn icon-btn-sm" id="range-edit" aria-label="Configurar los botones del gráfico">✎</button>
+            </div>
           </div>
           <div class="chart-wrap" id="chart-wrap" role="button" aria-label="Ampliar gráfico">
             <canvas id="chart"></canvas>

@@ -15,19 +15,19 @@ function rangeButtons(list, attr, cur, short = false) {
 /* ---------- Gráfico pequeño (pestaña Peso) ---------- */
 function renderRanges() {
   S.range = Ranges.migrateRange(S.range);
-  $('#range-seg').innerHTML = rangeButtons(chartPresets().small, 'range', S.range, true)
-    + '<button data-range="edit" class="rng-edit-btn" aria-label="Configurar los botones">✎</button>';
+  $('#range-seg').innerHTML = rangeButtons(chartPresets().small, 'range', S.range, true);
   chart.setRange(smallRangeDays(S.range));
 }
 $('#range-seg').addEventListener('click', async e => {
   const b = e.target.closest('[data-range]');
   if (!b) return;
   e.stopPropagation();
-  if (b.dataset.range === 'edit') { openRangeEditor(); return; }
   S.range = b.dataset.range === 'all' ? 'all' : Number(b.dataset.range);
   renderRanges();
   await saveSettings();
 });
+
+$('#range-edit').addEventListener('click', e => { e.stopPropagation(); openRangeEditor(); });
 
 /* ---------- Pantalla completa ---------- */
 // Al abrir se conserva la vista del gráfico pequeño; solo se marca «Todo» si era la elegida.

@@ -1,6 +1,6 @@
 {
   "name": "tracking",
-  "version": "2.5.3",
+  "version": "2.5.4",
   "private": true,
   "description": "Tracking: registro de peso, entrenamientos y dieta (app Android con Capacitor)",
   "scripts": {
