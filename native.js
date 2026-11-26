@@ -5,7 +5,9 @@
 const TN = 'TrackingNative';
 const LN = 'LocalNotifications';
 const REMINDER_ID = 1001;
-const hasPlugin = name => isNative() && typeof window.Capacitor.isPluginAvailable === 'function' && window.Capacitor.isPluginAvailable(name);
+// La lista de plugins nativos la da Android en Capacitor.PluginHeaders. (isPluginAvailable solo ve los
+// registrados con la librería JS @capacitor/core, que esta app no usa: por eso fallaba antes.)
+const hasPlugin = name => isNative() && (window.Capacitor.PluginHeaders || []).some(h => h && h.name === name);
 function callNative(plugin, method, opts) {
   return nativeCall(plugin, method, opts).catch(e => { console.warn(`${plugin}.${method}:`, e); return null; });
 }
@@ -104,14 +106,20 @@ function nativeAfterRender() {
 
 /* ================= Recordatorio diario para pesarse ================= */
 const reminder = () => S.reminder || { on: false, time: '08:00' };
-function renderReminder() {
-  const box = $('#reminder-box');
-  if (!box) return;
-  if (!hasPlugin(LN)) { box.innerHTML = ''; return; }
+function reminderHTML() {
+  if (!hasPlugin(LN)) {
+    const why = isNative() ? 'Instala la versión nueva de la app (.apk) para usarlo.' : 'Solo en la app de Android: el navegador no puede avisarte a una hora.';
+    return `<div class="card quick rem-off"><div><div class="label">🔔 Recordatorio para pesarte</div><small class="sub">${why}</small></div></div>`;
+  }
   const r = reminder();
-  box.innerHTML = `<button class="card quick" data-rem="open">
-    <div><div class="label">🔔 Recordatorio para pesarte</div><div class="quick-val">${r.on ? `Cada día a las ${esc(r.time)}` : 'Desactivado'}</div></div>${chevIcon}
+  return `<button class="card quick" data-rem="open">
+    <div><div class="label">🔔 Recordatorio para pesarte</div><div class="quick-val">${r.on ? `Cada día a las ${esc(r.time)}` : 'Desactivado'}</div><small class="sub">Toca para activarlo o cambiar la hora</small></div>${chevIcon}
   </button>`;
+}
+// Está en Peso → Resumen y en Ajustes → Peso.
+function renderReminder() {
+  const html = reminderHTML();
+  ['#reminder-box', '#reminder-settings'].forEach(id => { const box = $(id); if (box) box.innerHTML = html; });
 }
 async function scheduleReminder(r) {
   await callNative(LN, 'cancel', { notifications: [{ id: REMINDER_ID }] });
@@ -151,27 +159,31 @@ function openReminderSheet() {
 document.addEventListener('click', e => { if (e.target.closest('[data-rem="open"]')) openReminderSheet(); });
 
 /* ================= Arranque ================= */
-if (hasPlugin(TN)) {
-  window.Capacitor.addListener(TN, 'workoutCheck', () => whenReady(applyPendingChecks));
-  window.Capacitor.addListener(TN, 'launchAction', () => whenReady(applyLaunchAction));
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') whenReady(() => { applyPendingChecks(); applyLaunchAction(); });
-  });
-  whenReady(() => { applyPendingChecks(); applyLaunchAction(); nativeAfterRender(); });
+// Los avisos de Android se registran cuando la app ya ha cargado (el puente nativo ya está listo).
+function nativeStart() {
+  if (hasPlugin(TN)) {
+    window.Capacitor.addListener(TN, 'workoutCheck', () => whenReady(applyPendingChecks));
+    window.Capacitor.addListener(TN, 'launchAction', () => whenReady(applyLaunchAction));
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') whenReady(() => { applyPendingChecks(); applyLaunchAction(); });
+    });
+    applyPendingChecks();
+    applyLaunchAction();
+  }
+  if (hasPlugin(LN)) {
+    window.Capacitor.addListener(LN, 'localNotificationActionPerformed', ev => {
+      const extra = ev && ev.notification && ev.notification.extra;
+      if (extra && extra.action === 'add-weight') whenReady(openAdd);
+    });
+  }
+  // Botón «atrás» del móvil: si hay algo abierto (gráfico ampliado, panel, pantalla) lo cierra; si no, sale.
+  if (hasPlugin('App')) {
+    window.Capacitor.addListener('App', 'backButton', () => {
+      if (dialogDone) { dialogDone(false); return; }
+      if (layers.length) history.back();
+      else callNative('App', 'exitApp');
+    });
+  }
+  nativeAfterRender();
 }
-if (hasPlugin(LN)) {
-  window.Capacitor.addListener(LN, 'localNotificationActionPerformed', ev => {
-    const extra = ev && ev.notification && ev.notification.extra;
-    if (extra && extra.action === 'add-weight') whenReady(openAdd);
-  });
-}
-
-/* ================= Botón «atrás» del móvil ================= */
-// Si hay algo abierto (gráfico ampliado, panel, pantalla) lo cierra; si no, sale de la app.
-if (hasPlugin('App')) {
-  window.Capacitor.addListener('App', 'backButton', () => {
-    if (typeof dialogDone === 'function' && dialogDone) { dialogDone(false); return; }
-    if (layers.length) history.back();
-    else callNative('App', 'exitApp');
-  });
-}
+whenReady(nativeStart);

@@ -1,6 +1,6 @@
 /* Tracking · service worker: guarda la app para usarla sin conexión.
    Al publicar cambios, sube VERSION para que los móviles se actualicen. */
-const VERSION = 'tracking-2.5.2';
+const VERSION = 'tracking-2.5.3';
 const ASSETS = [
   './',
   './index.html',

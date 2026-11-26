@@ -744,3 +744,7 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
 .rng-edit { display: flex; gap: 6px; }
 .rng-edit input { width: 56px; height: 44px; border: 0; border-radius: 12px; background: var(--surface-2); text-align: center; font-size: 17px; font-weight: 700; }
 .rng-edit select { height: 44px; border: 0; border-radius: 12px; background: var(--surface-2); color: var(--fg); padding: 0 10px; font-size: 16px; font-weight: 600; }
+
+#range-seg button { padding: 0 7px; min-width: 34px; }
+#range-seg .rng-edit-btn { min-width: 30px; padding: 0 4px; font-size: 14px; }
+.rem-off { opacity: .75; }

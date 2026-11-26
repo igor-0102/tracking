@@ -15,7 +15,7 @@ function rangeButtons(list, attr, cur, short = false) {
 /* ---------- Gráfico pequeño (pestaña Peso) ---------- */
 function renderRanges() {
   S.range = Ranges.migrateRange(S.range);
-  $('#range-seg').innerHTML = rangeButtons(chartPresets().small, 'range', S.range)
+  $('#range-seg').innerHTML = rangeButtons(chartPresets().small, 'range', S.range, true)
     + '<button data-range="edit" class="rng-edit-btn" aria-label="Configurar los botones">✎</button>';
   chart.setRange(smallRangeDays(S.range));
 }
