@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Versión actual: **2.5.5** (`sw.js`, `app.js` y `package.json`). APK instalado en el móvil: 2.5.2 (trae todo lo nativo). Tests: `npm test` → 42/42 en verde.
+Versión actual: **2.6.0** (`sw.js`, `app.js` y `package.json`). APK instalado en el móvil: 2.5.2 (trae todo lo nativo). Tests: `npm test` → 48/48 en verde.
 
 ## Hecho
 - 1.0 Registro de peso (PWA instalable, sin conexión, datos en IndexedDB).
@@ -18,6 +18,8 @@ Versión actual: **2.5.5** (`sw.js`, `app.js` y `package.json`). APK instalado e
 - 2.5.3 Arreglo: la app detectaba mal sus plugins nativos (usaba `isPluginAvailable`, que solo funciona con `@capacitor/core`); ahora usa `Capacitor.PluginHeaders`. Recordatorio también en Ajustes → Peso.
 - 2.5.4–2.5.5 Botones del gráfico: recuadro deslizable con «Todo» y ✎ dentro; de 0 a 10 botones por gráfico. Botón ⓘ en «Dieta cumplida» que explica el gasto real.
 - Probado por el usuario: botón atrás de Android funciona. Pendiente de confirmar en móvil real: notificación de entreno, widget, recordatorio; calendario de fecha de nacimiento en iPhone.
+
+- 2.6.0 Primera entrega de Codex revisada e integrada con correcciones: celebración al acercarte al objetivo, comida trampa, 7 platos preparados, guía de ejercicios con silueta, exportar pesos a Excel. Detalle en `docs/TAREAS.md`.
 
 La lista completa de tareas pendientes está en `docs/TAREAS.md`.
 

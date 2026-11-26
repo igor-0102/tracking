@@ -1,6 +1,6 @@
 {
   "name": "tracking",
-  "version": "2.5.5",
+  "version": "2.6.0",
   "private": true,
   "description": "Tracking: registro de peso, entrenamientos y dieta (app Android con Capacitor)",
   "scripts": {
@@ -8,7 +8,7 @@
     "sync": "npm run build:www && npx cap sync android",
     "open": "npx cap open android",
     "apk": "npm run sync && cd android && gradlew assembleRelease",
-    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs",
+    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs tests/exercise-guide.test.mjs tests/weight-xlsx.test.mjs",
     "build:foods": "node tools/build-foods.mjs"
   },
   "dependencies": {

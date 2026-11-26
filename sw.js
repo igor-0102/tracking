@@ -1,20 +1,24 @@
 /* Tracking · service worker: guarda la app para usarla sin conexión.
    Al publicar cambios, sube VERSION para que los móviles se actualicen. */
-const VERSION = 'tracking-2.5.5';
+const VERSION = 'tracking-2.6.0';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './weight-xlsx.js',
+  './weight-extras.js',
   './ranges.js',
   './chart-ranges.js',
   './gym.js',
+  './exercise-guide.js',
   './gymcalc.js',
   './gym-plus.js',
   './body.js',
   './native.js',
   './nutri.js',
   './foods.js',
+  './prepared-foods.js',
   './foods-db.js',
   './foods-usda.js',
   './diet.js',

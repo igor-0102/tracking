@@ -12,7 +12,7 @@ Lee también `CLAUDE.md` (reglas del proyecto) y `docs/TAREAS.md` (tareas; haz s
 - No cambies `VERSION` (`sw.js`) ni `APP_VERSION` (`app.js`): eso lo hace Claude al publicar.
 
 ## Cómo entregar
-Crea (o reemplaza) la carpeta `CODEX_HANDOFF/` en la raíz con tres archivos:
+Crea (o reemplaza) la carpeta `CODEX_HANDOFF/` en la raíz con tres archivos, en una rama `handoff/<tarea>` subida a GitHub (avisa al usuario del nombre de la rama):
 
 1. `BASELINE.md` — sobre qué versión has trabajado:
    - commit de partida (`git rev-parse HEAD`) y rama,

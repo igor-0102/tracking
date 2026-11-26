@@ -10,7 +10,7 @@ Los datos viven solo en el móvil (IndexedDB). Sin servidor ni backend.
 
 ## Stack y comandos
 - JavaScript sin framework ni bundler: `index.html`, `styles.css` y scripts sueltos.
-- Tests: `npm test` (node:test, `tests/nutri.test.mjs`).
+- Tests: `npm test` (node:test, archivos en `tests/`).
 - Regenerar alimentos: `npm install && npm run build:foods` (fuente: `tools/foods-es.txt`).
 - Android: `npm run sync` (copia a `www/` con `tools/build-www.mjs`); el APK se compila en GitHub Actions.
 

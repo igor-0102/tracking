@@ -902,6 +902,7 @@ function openExercise(id) {
         <button class="icon-btn" data-x="menu">${dotsIcon}</button>
       </div>
       <div class="page-body">
+        ${typeof exerciseGuideHTML === 'function' ? exerciseGuideHTML(ex) : ''}
         ${ss.length ? `
         <div class="stats stats-2">
           <div class="card stat"><div class="label">Peso máximo</div><div class="val">${fmtN(b.kg)} kg</div></div>

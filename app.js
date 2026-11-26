@@ -1,7 +1,7 @@
 /* Tracking · registro de peso. Todo se guarda en este dispositivo (IndexedDB). */
 'use strict';
 
-const APP_VERSION = '2.5.5';
+const APP_VERSION = '2.6.0';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -1054,12 +1054,13 @@ addForm.addEventListener('submit', async ev => {
       if (!ok) return;
     }
     if (editing && editing !== date) await removeEntry(editing);
+    const before = entries.slice();
     await upsert({ date, kg });
     if (navigator.vibrate) try { navigator.vibrate(18); } catch (_) {}
     const wasEdit = !!editing;
     closeSheet();
     renderAll();
-    toast(wasEdit ? 'Registro actualizado' : `Guardado: ${fmtKg(kg)} kg`);
+    weightSavedToast(kg, date, wasEdit, before);      // weight-extras.js
   } catch (err) {
     showError('No se pudo guardar. Inténtalo de nuevo.');
   } finally {

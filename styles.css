@@ -350,6 +350,17 @@ textarea:focus { border-color: var(--accent); }
 .toast.open { transform: translate(-50%, 0); opacity: 1; }
 .toast button { border: 0; background: rgba(255,255,255,.12); color: #9fb8ff; font-weight: 800; border-radius: 10px; min-height: 38px; padding: 0 14px; }
 
+.goal-celebrate {
+  animation: goal-celebrate 1.35s ease both;
+  box-shadow: 0 0 0 2px var(--goal), 0 0 24px var(--goal), var(--shadow) !important;
+}
+@keyframes goal-celebrate {
+  0% { transform: scale(1); }
+  28% { transform: scale(1.035) rotate(-.5deg); }
+  55% { transform: scale(1.015) rotate(.35deg); }
+  100% { transform: scale(1); }
+}
+
 /* ----- Pantalla completa ----- */
 .fs {
   position: fixed; inset: 0; z-index: 50; background: var(--bg);
@@ -694,6 +705,14 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
 .sq-ok.on { background: var(--good); border-color: var(--good); color: #062418; }
 .sq-no.on { background: var(--bad); border-color: var(--bad); color: #fff; }
 .done-extra { margin: 10px 0 0; font-size: 14px; color: var(--muted); font-weight: 600; }
+.cheat-meal { margin-top: 10px; }
+.exercise-guide { display: grid; grid-template-columns: 110px 1fr; gap: 14px; align-items: center; }
+.exercise-guide h3 { margin: 3px 0 6px; font-size: 16px; }
+.exercise-guide p { margin: 0 0 7px; font-size: 14px; line-height: 1.45; }
+.exercise-guide small { color: var(--muted); font-size: 11px; line-height: 1.35; }
+.muscle-map { width: 100%; max-height: 145px; fill: var(--surface-2); stroke: var(--muted); stroke-width: 2; stroke-linejoin: round; }
+.muscle-map .muscle { fill: var(--line); stroke: var(--surface); stroke-width: 1; }
+.muscle-map .muscle.active { fill: var(--goal); }
 .wstrip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 12px; }
 .wday { border: 2px solid transparent; border-radius: 12px; background: var(--surface-2); min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--muted); padding: 0; }
 .wday small { font-size: 11px; font-weight: 700; text-transform: capitalize; }
@@ -773,3 +792,5 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
 }
 .info-text p { margin: 0 0 12px; color: var(--muted); line-height: 1.5; font-size: 15px; }
 .info-text b { color: var(--fg); }
+
+.exercise-guide .view-note { display: block; text-align: center; margin-top: 2px; }

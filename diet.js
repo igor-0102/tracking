@@ -304,6 +304,7 @@ function doneCardHTML() {
       </div>
     </div>
     ${cur && !cur.ok ? `<p class="done-extra">${cur.extra ? `${cur.extra > 0 ? '+' : '−'}${fK(Math.abs(cur.extra))} kcal extra estimadas` : 'Sin calorías extra apuntadas'} · <button class="link" style="padding:0" data-dt="done-extra">cambiar</button></p>` : ''}
+    <button class="btn btn-ghost btn-small cheat-meal" data-dt="cheat-meal">🍰 Comida trampa · ${fK(commonExtraCalories())} kcal</button>
     <div class="wstrip">${strip}</div>
     <p class="fine" style="margin:8px 0 0">${a.marked ? `Últimas 4 semanas: cumplida <b>${a.ok}</b> de ${a.marked} días marcados (${fK(a.pct)} %).` : 'Marca cada día si has seguido la dieta. Toca un día de la semana para marcar uno anterior.'}</p>
   </div>`;
@@ -455,14 +456,16 @@ $('#tab-dieta').addEventListener('click', async e => {
       toast('Dieta borrada', { action: 'Deshacer', ms: 6000, onAction: async () => { Dt.diets.push(d); S.dietId = d.id; await saveDiet(d); await saveSettings(); dietDerive(); dietRenderAll(); } });
     }
   } else if (act === 'edit-meals') editMeals(d);
-  else if (act === 'done-ok' || act === 'done-no' || act === 'done-extra') {
+  else if (act === 'done-ok' || act === 'done-no' || act === 'done-extra' || act === 'cheat-meal') {
     const cur = Dt.log[logDate];
     const kcal = Math.round(dietKcalNow());
     if (!kcal) return toast('Primero añade ingredientes a las opciones elegidas');
     if (act === 'done-ok') return setLog(logDate, cur && cur.ok ? null : { ok: true, extra: 0, kcal });
     if (act === 'done-no' && cur && !cur.ok) return setLog(logDate, null);
-    const extra = await askExtra(cur && !cur.ok ? cur.extra : 0);
+    const initialExtra = act === 'cheat-meal' ? commonExtraCalories() : cur && !cur.ok ? cur.extra : 0;
+    const extra = await askExtra(initialExtra);
     if (extra == null) return;
+    if (act === 'cheat-meal' && extra <= 0) return toast('La comida trampa debe tener calorías extra positivas');
     setLog(logDate, { ok: false, extra, kcal: cur ? cur.kcal || kcal : kcal });
   } else if (act === 'use-real') {
     S.getOverride = +b.dataset.real; await saveSettings(); renderAll(); toast('Objetivo recalculado con tu gasto real');
@@ -566,6 +569,7 @@ function editOption(d, meal, opt) {
         </div>`).join('')}
         ${!opt.items.length ? '<p class="fine center" style="margin:26px 0 8px">Añade los ingredientes de esta opción.</p>' : ''}
         <button class="btn btn-primary btn-block" data-o="add">＋ Añadir ingrediente</button>
+        <button class="btn btn-secondary btn-block" data-o="prepared">Añadir plato preparado</button>
         ${Dt.templates.length ? '<button class="btn btn-ghost btn-block" data-o="tpl">Añadir desde plantilla</button>' : ''}
         <div style="height:60px"></div>
       </div>`;
@@ -597,6 +601,8 @@ function editOption(d, meal, opt) {
       if (!item) return;
       opt.items.push(item);
       rememberFood(food);
+    } else if (a === 'prepared') {
+      if (!(await addPreparedMeal(opt))) return;      // prepared-foods.js
     } else if (a === 'edit') {
       const it = opt.items[i];
       const item = await askQuantity({ key: it.key, name: it.name, per100: it.per100, portions: it.portions || (it.portionG ? [{ name: it.portionName, g: it.portionG }] : []) }, it);

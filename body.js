@@ -162,3 +162,14 @@ document.addEventListener('click', e => {
   e.stopPropagation();
   openGetInfo();
 }, true);
+
+/* ---------- Dieta: comida trampa ----------
+   Calorías extra propuestas: las más repetidas en tus días ✗ (500 kcal si aún no hay ninguna). */
+function commonExtraCalories() {
+  const counts = new Map();
+  for (const log of Object.values(Dt.log)) {
+    if (!log.ok && Number.isFinite(log.extra) && log.extra > 0) counts.set(log.extra, (counts.get(log.extra) || 0) + 1);
+  }
+  const top = [...counts].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0];
+  return top ? top[0] : 500;
+}
