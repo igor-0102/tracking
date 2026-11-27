@@ -1,0 +1,291 @@
+diff --git a/exercise-guide.js b/exercise-guide.js
+index 6a3534b..88018cb 100644
+--- a/exercise-guide.js
++++ b/exercise-guide.js
+@@ -1,51 +1,120 @@
+-/* Guía local de ejercicios: zonas musculares esquemáticas e instrucciones breves. */
++/* Catálogo local de ejercicios y mapas musculares SVG. No usa red ni dependencias. */
+ 'use strict';
+ 
+ (() => {
+-  const guides = [
+-    [/press banca|press de banca|banca|flexion|apertura|cruce|pec deck/, 'Pecho', 'Tumbado o con el torso estable, baja el peso con control hacia el pecho. Empuja sin rebotar y mantén las muñecas alineadas.'],
+-    [/remo|jalon|pulldown|dominada|face pull/, 'Espalda', 'Inicia el tirón llevando los codos hacia atrás o abajo. Mantén el tronco firme y evita balancearte para mover el peso.'],
+-    [/sentadilla|prensa|zancada|extension de cuadriceps|curl femoral/, 'Piernas', 'Apoya todo el pie y acompaña el movimiento con las rodillas en la dirección de los pies. Usa un recorrido cómodo y controlado.'],
+-    [/peso muerto|rumano|buenos dias/, 'Espalda', 'Lleva la cadera atrás con la espalda neutra y el peso cerca del cuerpo. Termina erguido sin hiperextender la zona lumbar.'],
+-    [/hip thrust|puente de gluteo|patada de gluteo/, 'Glúteos', 'Empuja desde los talones y extiende la cadera. Mantén las costillas recogidas y no arquees la espalda al final.'],
+-    [/press militar|press hombro|arnold/, 'Hombros', 'Empuja sobre la cabeza con abdomen firme. Baja hasta un rango cómodo sin encoger los hombros.'],
+-    [/elevacion lateral|elevacion frontal|pajaro|deltoide posterior/, 'Hombros', 'Eleva los brazos con ligera flexión de codos y sin impulso. Detén el recorrido antes de que los hombros se encojan.'],
+-    [/curl|biceps/, 'Bíceps', 'Mantén los codos cerca del cuerpo. Flexiona y baja el brazo despacio, sin balancear el tronco.'],
+-    [/triceps|extension de codo|fondos/, 'Tríceps', 'Fija los hombros y mueve el antebrazo. Extiende el codo con control, sin bloquearlo con fuerza.'],
+-    [/plancha|crunch|abdominal|rueda/, 'Core', 'Mantén el tronco estable y respira. Evita que la zona lumbar se hunda o que el cuello cargue el esfuerzo.'],
+-    [/correr|cinta|bici|eliptica/, 'Cardio', 'Empieza a un ritmo que puedas sostener y aumenta la intensidad de forma gradual. Ajusta la máquina antes de empezar.'],
++  const catalog = [
++    { name: 'Press banca', aliases: ['bench press', 'barbell bench press', 'press banca', 'press de banca'], primary: 'chest', secondary: ['front-delts', 'triceps'], setup: 'Apoya cabeza, espalda y glúteos en el banco; planta los pies y junta suavemente las escápulas.', move: 'Baja la barra hacia la parte media del pecho y empújala arriba manteniendo los antebrazos casi verticales.', error: 'Evita rebotar la barra o separar los glúteos del banco.' },
++    { name: 'Press banca inclinado', aliases: ['incline bench press', 'incline barbell bench press', 'press inclinado', 'press banca inclinado', 'press de banca inclinado'], primary: 'chest', secondary: ['front-delts', 'triceps'], setup: 'Inclina el banco unos 20–35° y apoya los pies, la espalda y la cabeza.', move: 'Desciende la barra hacia la parte alta del pecho y empuja sin perder la posición de los hombros.', error: 'Evita elevar demasiado el respaldo o arquear la zona lumbar para completar la repetición.' },
++    { name: 'Press con mancuernas', aliases: ['dumbbell bench press', 'flat dumbbell press', 'press con mancuernas', 'press banca mancuernas'], primary: 'chest', secondary: ['front-delts', 'triceps'], setup: 'Túmbate con una mancuerna en cada mano, pies apoyados y muñecas sobre los codos.', move: 'Baja ambas mancuernas a los lados del pecho y vuelve a juntarlas arriba sin chocarlas.', error: 'Evita dejar que los codos caigan muy por debajo del torso si molesta el hombro.' },
++    { name: 'Press inclinado con mancuernas', aliases: ['incline dumbbell press', 'press inclinado con mancuernas'], primary: 'chest', secondary: ['front-delts', 'triceps'], setup: 'Ajusta el banco a una inclinación moderada y estabiliza los pies antes de empezar.', move: 'Baja las mancuernas a ambos lados de la parte alta del pecho y empuja hacia arriba.', error: 'No conviertas el movimiento en un press vertical encogiendo los hombros.' },
++    { name: 'Aperturas de pecho', aliases: ['dumbbell fly', 'chest fly', 'dumbbell chest fly', 'aperturas', 'aperturas con mancuernas'], primary: 'chest', secondary: ['front-delts'], setup: 'Túmbate con los brazos sobre el pecho y los codos ligeramente flexionados.', move: 'Abre los brazos en arco hasta sentir un estiramiento cómodo y vuelve a cerrar sobre el pecho.', error: 'Evita estirar los codos por completo o bajar más allá de un rango cómodo.' },
++    { name: 'Cruce de poleas', aliases: ['cable crossover', 'cable fly', 'cable chest fly', 'cruce de poleas', 'aperturas en polea'], primary: 'chest', secondary: ['front-delts'], setup: 'Coloca las poleas a la altura elegida, adelanta un pie y mantén el tronco firme.', move: 'Junta las manos delante del pecho describiendo un arco y regresa despacio.', error: 'No uses impulso del tronco ni conviertas el gesto en un empuje con los codos.' },
++    { name: 'Flexiones', aliases: ['push up', 'push-up', 'pushups', 'flexiones', 'flexión'], primary: 'chest', secondary: ['front-delts', 'triceps', 'abs'], setup: 'Coloca las manos algo más abiertas que los hombros y forma una línea estable de cabeza a talones.', move: 'Baja el pecho entre las manos y empuja el suelo hasta extender los brazos.', error: 'Evita hundir la cadera o abrir los codos en exceso.' },
++    { name: 'Remo sentado en polea', aliases: ['seated cable row', 'cable row', 'remo sentado', 'remo en polea baja'], primary: 'lats', secondary: ['mid-back', 'biceps', 'rear-delts'], setup: 'Siéntate con el tronco erguido, rodillas ligeramente flexionadas y agarre estable.', move: 'Lleva el agarre hacia el abdomen moviendo los codos atrás y vuelve con control.', error: 'Evita balancear el torso o encoger los hombros para tirar más peso.' },
++    { name: 'Remo con barra', aliases: ['barbell row', 'bent over row', 'remo con barra', 'remo inclinado con barra'], primary: 'mid-back', secondary: ['lats', 'biceps', 'rear-delts'], setup: 'Flexiona la cadera, mantén la espalda neutra y sujeta la barra debajo de los hombros.', move: 'Lleva la barra hacia el abdomen y bájala hasta extender los brazos sin perder la postura.', error: 'No redondees la espalda ni uses tirones de cadera para levantarla.' },
++    { name: 'Remo con mancuerna', aliases: ['dumbbell row', 'one arm dumbbell row', 'remo con mancuerna', 'remo unilateral'], primary: 'lats', secondary: ['mid-back', 'biceps'], setup: 'Apoya una mano y una rodilla en el banco; mantén el torso estable.', move: 'Lleva la mancuerna hacia la cadera con el codo cerca del cuerpo y bájala despacio.', error: 'Evita girar el tronco o tirar la mancuerna hacia el hombro.' },
++    { name: 'Jalón al pecho', aliases: ['lat pulldown', 'wide grip lat pulldown', 'jalon al pecho', 'jalón al pecho', 'jalon en polea'], primary: 'lats', secondary: ['biceps', 'mid-back'], setup: 'Ajusta el apoyo sobre los muslos y agarra la barra algo más ancha que los hombros.', move: 'Lleva la barra hacia la parte alta del pecho dirigiendo los codos hacia abajo.', error: 'No tires la barra tras la nuca ni te reclines para convertirlo en un balanceo.' },
++    { name: 'Dominadas', aliases: ['pull up', 'pull-up', 'pullups', 'chin up', 'dominada', 'dominadas'], primary: 'lats', secondary: ['biceps', 'mid-back'], setup: 'Sujeta la barra con un agarre cómodo y deja el cuerpo suspendido con control.', move: 'Lleva el pecho hacia la barra y baja hasta extender los brazos sin soltarte de golpe.', error: 'Evita impulsarte con las piernas o forzar un rango que cause dolor.' },
++    { name: 'Face pull', aliases: ['face pull', 'face pulls', 'tiron a la cara', 'tirón a la cara'], primary: 'rear-delts', secondary: ['mid-back', 'traps'], setup: 'Coloca la cuerda a la altura de la cara y da un paso atrás para tensar el cable.', move: 'Tira de la cuerda hacia la frente separando las manos y llevando los codos hacia fuera.', error: 'No arquees la espalda ni eleves los hombros hacia las orejas.' },
++    { name: 'Peso muerto', aliases: ['deadlift', 'conventional deadlift', 'peso muerto convencional'], primary: 'hamstrings', secondary: ['glutes', 'lower-back', 'mid-back', 'quads'], setup: 'Coloca los pies bajo la barra, acerca las espinillas y fija el tronco antes de despegarla.', move: 'Empuja el suelo y extiende cadera y rodillas a la vez; devuelve la barra pegada al cuerpo.', error: 'No redondees la espalda ni hiperextiendas la zona lumbar al terminar.' },
++    { name: 'Peso muerto rumano', aliases: ['romanian deadlift', 'rdl', 'peso muerto rumano', 'peso muerto con piernas semirrígidas'], primary: 'hamstrings', secondary: ['glutes', 'lower-back'], setup: 'Sujeta la barra delante de los muslos con rodillas desbloqueadas y espalda neutra.', move: 'Lleva la cadera atrás mientras bajas la barra cerca de las piernas; vuelve extendiendo la cadera.', error: 'No conviertas el gesto en una sentadilla ni busques el suelo perdiendo la postura.' },
++    { name: 'Sentadilla', aliases: ['squat', 'barbell squat', 'back squat', 'sentadilla', 'sentadilla con barra'], primary: 'quads', secondary: ['glutes', 'adductors', 'abs'], setup: 'Apoya la barra con seguridad, coloca los pies a una anchura cómoda y toma aire.', move: 'Flexiona cadera y rodillas siguiendo la dirección de los pies; empuja el suelo para subir.', error: 'Evita que las rodillas colapsen hacia dentro o que los talones se despeguen.' },
++    { name: 'Sentadilla frontal', aliases: ['front squat', 'sentadilla frontal'], primary: 'quads', secondary: ['glutes', 'abs'], setup: 'Apoya la barra delante de los hombros y mantén los codos altos.', move: 'Desciende entre las piernas con el torso erguido y sube empujando el suelo.', error: 'No dejes caer los codos ni fuerces profundidad si pierdes estabilidad.' },
++    { name: 'Prensa de piernas', aliases: ['leg press', '45 degree leg press', 'prensa', 'prensa de piernas'], primary: 'quads', secondary: ['glutes', 'adductors'], setup: 'Apoya la espalda en el respaldo y coloca los pies en la plataforma a una anchura cómoda.', move: 'Desbloquea el seguro, baja hasta un rango controlado y empuja sin bloquear con fuerza las rodillas.', error: 'Evita que la pelvis se enrolle al fondo o que las rodillas se junten.' },
++    { name: 'Extensión de cuádriceps', aliases: ['leg extension', 'knee extension', 'extension de cuadriceps', 'extensión de cuádriceps'], primary: 'quads', secondary: [], setup: 'Ajusta el eje de la máquina a la rodilla y coloca el rodillo sobre la parte baja de la espinilla.', move: 'Extiende las rodillas de forma controlada y baja el peso sin dejarlo caer.', error: 'Evita dar una patada rápida o usar un peso que levante la cadera del asiento.' },
++    { name: 'Curl femoral', aliases: ['leg curl', 'lying leg curl', 'seated leg curl', 'curl femoral', 'curl de piernas'], primary: 'hamstrings', secondary: ['calves'], setup: 'Alinea la rodilla con el eje de la máquina y ajusta el rodillo sobre el tobillo.', move: 'Flexiona las rodillas acercando los talones y regresa despacio al inicio.', error: 'No arquees la espalda ni acortes el recorrido para mover más peso.' },
++    { name: 'Hip thrust', aliases: ['hip thrust', 'barbell hip thrust', 'empuje de cadera'], primary: 'glutes', secondary: ['hamstrings'], setup: 'Apoya la parte alta de la espalda en el banco y coloca los pies firmes bajo las rodillas.', move: 'Eleva la cadera hasta alinear el torso y aprieta los glúteos antes de bajar.', error: 'No termines arqueando la espalda ni apoyes el banco sobre el cuello.' },
++    { name: 'Zancada', aliases: ['lunge', 'lunges', 'walking lunge', 'zancada', 'zancadas'], primary: 'quads', secondary: ['glutes', 'hamstrings'], setup: 'Colócate erguido con los pies separados a la anchura de las caderas.', move: 'Da un paso cómodo, baja ambas rodillas y vuelve empujando con el pie delantero.', error: 'Evita perder el equilibrio o dejar que la rodilla delantera se desplace bruscamente hacia dentro.' },
++    { name: 'Sentadilla búlgara', aliases: ['bulgarian split squat', 'split squat', 'sentadilla bulgara', 'sentadilla búlgara'], primary: 'quads', secondary: ['glutes', 'adductors'], setup: 'Apoya el empeine trasero en un banco bajo y coloca el pie delantero a una distancia estable.', move: 'Baja verticalmente con control y empuja el suelo con el pie delantero para subir.', error: 'No coloques los pies en una línea estrecha si eso te hace perder el equilibrio.' },
++    { name: 'Elevación de gemelos', aliases: ['calf raise', 'standing calf raise', 'seated calf raise', 'elevacion de gemelos', 'elevación de talones'], primary: 'calves', secondary: [], setup: 'Apoya el antepié en la plataforma y estabiliza el cuerpo con las rodillas extendidas o ligeramente flexionadas.', move: 'Baja el talón con control y elévalo hasta ponerte de puntillas.', error: 'Evita rebotar o recortar el recorrido; usa apoyo para no perder estabilidad.' },
++    { name: 'Press de hombros', aliases: ['shoulder press', 'overhead press', 'military press', 'press militar', 'press de hombros'], primary: 'front-delts', secondary: ['triceps', 'side-delts'], setup: 'Siéntate o ponte de pie con el abdomen firme y las manos a la altura de los hombros.', move: 'Empuja el peso sobre la cabeza y bájalo hasta un rango cómodo.', error: 'No arquees la zona lumbar ni encoges los hombros al final.' },
++    { name: 'Elevación lateral', aliases: ['lateral raise', 'dumbbell lateral raise', 'elevacion lateral', 'elevaciones laterales'], primary: 'side-delts', secondary: ['traps'], setup: 'Sujeta las mancuernas a los lados con los codos ligeramente flexionados.', move: 'Eleva los brazos hacia los lados hasta aproximadamente la altura del hombro y baja despacio.', error: 'No balancees el cuerpo ni subas los hombros hacia las orejas.' },
++    { name: 'Elevación frontal', aliases: ['front raise', 'dumbbell front raise', 'elevacion frontal', 'elevaciones frontales'], primary: 'front-delts', secondary: [], setup: 'Sujeta las mancuernas delante de los muslos con el tronco estable.', move: 'Eleva un brazo o ambos al frente hasta la altura del hombro y baja con control.', error: 'Evita impulsarte con la espalda o subir el peso por encima de un rango cómodo.' },
++    { name: 'Pájaros / deltoide posterior', aliases: ['reverse fly', 'rear delt fly', 'bent over reverse fly', 'pajaros', 'pájaros', 'deltoide posterior'], primary: 'rear-delts', secondary: ['mid-back'], setup: 'Inclina el torso con espalda neutra y deja los brazos bajo los hombros.', move: 'Abre los brazos hacia los lados apretando la parte posterior de los hombros y vuelve despacio.', error: 'No uses impulso ni conviertas la repetición en un encogimiento.' },
++    { name: 'Curl de bíceps', aliases: ['bicep curl', 'barbell curl', 'dumbbell curl', 'curl de biceps', 'curl de bíceps'], primary: 'biceps', secondary: ['forearms'], setup: 'Ponte erguido con los codos junto al torso y las muñecas alineadas.', move: 'Flexiona los codos para acercar el peso a los hombros y bájalo lentamente.', error: 'Evita balancear la espalda o adelantar los codos para terminar la repetición.' },
++    { name: 'Curl martillo', aliases: ['hammer curl', 'dumbbell hammer curl', 'curl martillo'], primary: 'biceps', secondary: ['forearms'], setup: 'Sujeta las mancuernas con las palmas enfrentadas y los codos cerca del cuerpo.', move: 'Flexiona los codos sin girar las muñecas y desciende con control.', error: 'No uses impulso de cadera ni dejes que las muñecas se doblen.' },
++    { name: 'Curl predicador', aliases: ['preacher curl', 'preacher curls', 'curl predicador', 'curl scott'], primary: 'biceps', secondary: ['forearms'], setup: 'Apoya los brazos en el banco predicador y ajusta el asiento para que las axilas queden cerca del borde.', move: 'Flexiona los codos sin despegar los brazos del apoyo y baja hasta un estiramiento cómodo.', error: 'No bloquees con fuerza el codo ni rebotes desde abajo.' },
++    { name: 'Extensión de tríceps en polea', aliases: ['triceps pushdown', 'tricep pushdown', 'cable pushdown', 'extension de triceps en polea', 'extensión de tríceps en polea'], primary: 'triceps', secondary: [], setup: 'Coloca la polea arriba y mantén los codos pegados al torso.', move: 'Extiende los codos hacia abajo y vuelve hasta que los antebrazos queden controlados.', error: 'No balancees el tronco ni separes los codos para mover más carga.' },
++    { name: 'Extensión de tríceps sobre la cabeza', aliases: ['overhead triceps extension', 'overhead cable triceps extension', 'extension triceps por encima de la cabeza', 'extensión de tríceps sobre la cabeza'], primary: 'triceps', secondary: ['abs'], setup: 'Sujeta una mancuerna o cuerda sobre la cabeza y mantén los codos apuntando al frente.', move: 'Flexiona los codos para bajar detrás de la cabeza y vuelve a extenderlos.', error: 'Evita abrir mucho los codos o arquear la espalda.' },
++    { name: 'Fondos', aliases: ['dip', 'dips', 'triceps dip', 'fondos en paralelas'], primary: 'triceps', secondary: ['chest', 'front-delts'], setup: 'Sujétate en las barras con hombros estables y el cuerpo bajo control.', move: 'Flexiona los codos para bajar en un rango cómodo y empuja para volver arriba.', error: 'No rebotes al fondo ni desciendas más allá de la movilidad del hombro.' },
++    { name: 'Aducción de cadera', aliases: ['hip adduction', 'adductor machine', 'hip adduction machine', 'aductor', 'aductores', 'aduccion de cadera'], primary: 'adductors', secondary: [], setup: 'Ajusta los apoyos a la cara interna de las piernas y siéntate con la espalda apoyada.', move: 'Junta las piernas contra la resistencia y ábrelas de vuelta lentamente.', error: 'No dejes que las placas choquen ni rebotes al abrir.' },
++    { name: 'Abducción de cadera', aliases: ['hip abduction', 'abductor machine', 'hip abduction machine', 'abductor', 'abductores', 'abduccion de cadera'], primary: 'abductors', secondary: ['glutes'], setup: 'Siéntate con la espalda apoyada y coloca las piernas contra la parte externa de los apoyos.', move: 'Separa las rodillas contra la resistencia y regresa con control.', error: 'Evita impulsarte con el tronco o abrir más de lo que permite la cadera.' },
++    { name: 'Plancha', aliases: ['plank', 'front plank', 'plancha'], primary: 'abs', secondary: ['obliques', 'glutes'], setup: 'Apoya antebrazos y puntas de los pies; alinea cabeza, cadera y talones.', move: 'Mantén el abdomen y los glúteos activos mientras respiras con normalidad.', error: 'No dejes caer la cadera ni aguantes la respiración para prolongar la serie.' },
++    { name: 'Crunch en polea', aliases: ['cable crunch', 'kneeling cable crunch', 'crunch en polea'], primary: 'abs', secondary: ['obliques'], setup: 'Arrodíllate frente a la polea alta y sujeta la cuerda a los lados de la cabeza.', move: 'Acerca las costillas a la pelvis flexionando el tronco y vuelve despacio.', error: 'No tires solo con los brazos ni conviertas el movimiento en una bisagra de cadera.' },
++    { name: 'Extensión lumbar', aliases: ['back extension', 'hyperextension', '45 degree back extension', 'extension lumbar', 'extensión lumbar'], primary: 'lower-back', secondary: ['glutes', 'hamstrings'], setup: 'Ajusta el banco para que el borde quede bajo la cadera y fija los pies.', move: 'Inclina el tronco desde la cadera y vuelve hasta alinear el cuerpo.', error: 'No hiperextiendas la espalda ni uses impulso al subir.' },
++    { name: 'Encogimientos', aliases: ['shrug', 'barbell shrug', 'dumbbell shrug', 'encogimientos', 'encogimiento de hombros'], primary: 'traps', secondary: ['forearms'], setup: 'Sujeta la carga a los lados y mantén los brazos relajados y el cuello neutro.', move: 'Eleva los hombros hacia arriba y bájalos lentamente.', error: 'No hagas círculos con los hombros ni adelantes la cabeza.' },
++    { name: 'Press banca con agarre cerrado', aliases: ['close grip bench press', 'close-grip bench press', 'press cerrado', 'press banca agarre cerrado'], primary: 'triceps', secondary: ['chest', 'front-delts'], setup: 'Túmbate como en el press banca y coloca las manos algo más cerca que los hombros.', move: 'Baja la barra hacia el pecho con los codos cerca del cuerpo y empuja arriba.', error: 'No juntes las manos en exceso ni dejes que las muñecas se doblen.' },
++    { name: 'Remo con pecho apoyado', aliases: ['chest supported row', 'chest-supported row', 'incline dumbbell row', 'remo con pecho apoyado'], primary: 'mid-back', secondary: ['lats', 'biceps', 'rear-delts'], setup: 'Apoya el pecho en el banco inclinado y deja los brazos extendidos bajo los hombros.', move: 'Lleva los codos atrás y baja el peso con control sin despegar el pecho.', error: 'Evita encoger los hombros o levantar el torso para iniciar el tirón.' },
++    { name: 'Patada de glúteo', aliases: ['glute kickback', 'cable kickback', 'donkey kick', 'patada de gluteo', 'patada de glúteo'], primary: 'glutes', secondary: ['hamstrings'], setup: 'Coloca el tobillo en la correa o apoya manos y rodillas con el tronco estable.', move: 'Lleva la pierna hacia atrás extendiendo la cadera y regresa sin perder el control.', error: 'No arquees la zona lumbar para elevar la pierna más alto.' },
++    { name: 'Buenos días', aliases: ['good morning', 'barbell good morning', 'buenos dias', 'buenos días'], primary: 'hamstrings', secondary: ['glutes', 'lower-back'], setup: 'Apoya la barra de forma estable y desbloquea ligeramente las rodillas.', move: 'Lleva la cadera atrás con la espalda neutra y vuelve apretando glúteos.', error: 'No bajes más allá del rango en que puedas conservar la espalda estable.' },
++    { name: 'Pullover en polea', aliases: ['straight arm pulldown', 'cable pullover', 'lat pullover', 'pullover en polea'], primary: 'lats', secondary: ['abs'], setup: 'Colócate frente a la polea alta con brazos casi extendidos y abdomen firme.', move: 'Lleva la barra en arco hacia los muslos y regresa hasta arriba con control.', error: 'No flexiones y extiendas los codos como si fuera un pressdown.' },
++    { name: 'Remo al mentón', aliases: ['upright row', 'barbell upright row', 'remo al menton', 'remo al mentón'], primary: 'side-delts', secondary: ['traps', 'biceps'], setup: 'Sujeta la barra delante de los muslos con un agarre cómodo y hombros relajados.', move: 'Guía la carga hacia arriba manteniéndola cerca del cuerpo y baja despacio.', error: 'No fuerces una altura o agarre que provoque molestias en el hombro.' },
+   ];
+-  const targets = { Pecho: 'chest', Espalda: 'back', Hombros: 'shoulders', Bíceps: 'biceps', Tríceps: 'triceps', Piernas: 'legs', Glúteos: 'glutes', Core: 'core', Cardio: 'legs', Otro: 'core' };
+-  const BACK = new Set(['back', 'triceps', 'glutes']);      // se ven mejor por detrás
+-  const targetOf = muscle => (Object.prototype.hasOwnProperty.call(targets, muscle) ? targets[muscle] : 'core');
+-  const escape = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+-  // Silueta de frente (pecho, hombros, bíceps, abdomen, piernas) o de espaldas (espalda, tríceps, glúteos).
+-  const SHAPES = {
+-    front: `<ellipse class="muscle chest" cx="80" cy="58" rx="19" ry="11"/>
+-    <circle class="muscle shoulders" cx="62" cy="43" r="8"/><circle class="muscle shoulders" cx="98" cy="43" r="8"/>
+-    <path class="muscle biceps" d="M50 51 43 72 49 74 57 55M110 51 117 72 111 74 103 55"/>
+-    <ellipse class="muscle core" cx="80" cy="83" rx="13" ry="20"/>
+-    <path class="muscle legs" d="M65 110 77 112 75 158 63 158ZM83 112 95 110 97 158 85 158Z"/>`,
+-    back: `<path class="muscle back" d="M64 44 Q80 40 96 44 L94 70 Q88 92 80 96 Q72 92 66 70Z"/>
+-    <circle class="muscle shoulders" cx="62" cy="43" r="8"/><circle class="muscle shoulders" cx="98" cy="43" r="8"/>
+-    <path class="muscle triceps" d="M50 51 43 72 49 74 57 55M110 51 117 72 111 74 103 55"/>
+-    <path class="muscle glutes" d="M65 99 Q80 91 95 99 L93 112 67 112Z"/>
+-    <path class="muscle legs" d="M65 113 77 114 75 158 63 158ZM83 114 95 113 97 158 85 158Z"/>`,
++
++  const labels = {
++    chest: 'Pecho', 'front-delts': 'Deltoides anterior', 'side-delts': 'Deltoides lateral',
++    'rear-delts': 'Deltoides posterior', lats: 'Dorsales', 'mid-back': 'Espalda media',
++    traps: 'Trapecio', biceps: 'Bíceps', triceps: 'Tríceps', forearms: 'Antebrazos',
++    quads: 'Cuádriceps', hamstrings: 'Isquiotibiales', glutes: 'Glúteos',
++    adductors: 'Aductores', abductors: 'Abductores', calves: 'Gemelos',
++    abs: 'Abdominales', obliques: 'Oblicuos', 'lower-back': 'Zona lumbar',
++  };
++  const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
++    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
++  const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
++  const aliases = catalog.flatMap(item => item.aliases.map(alias => ({ key: normalize(alias), item })))
++    .sort((a, b) => b.key.length - a.key.length);
++  const fallback = [
++    [/press banca|press de banca|banca|flexion|apertura|cruce|pec deck/, 'chest'],
++    [/remo|jalon|pulldown|dominada|face pull/, 'lats'],
++    [/sentadilla|prensa|zancada|extension de cuadriceps/, 'quads'],
++    [/curl femoral|peso muerto|rumano|buenos dias/, 'hamstrings'],
++    [/hip thrust|puente de gluteo|patada de gluteo/, 'glutes'],
++    [/press militar|press hombro|arnold/, 'front-delts'],
++    [/elevacion lateral|elevacion frontal|pajaro|deltoide posterior/, 'side-delts'],
++    [/curl|biceps/, 'biceps'], [/triceps|extension de codo|fondos/, 'triceps'],
++    [/plancha|crunch|abdominal|rueda/, 'abs'],
++  ];
++  const resolve = exercise => {
++    const name = normalize(exercise.name);
++    const hit = aliases.find(alias => name === alias.key || name.includes(alias.key));
++    if (hit) return hit.item;
++    const old = fallback.find(([pattern]) => pattern.test(name));
++    if (old) return { primary: old[1], secondary: [], setup: 'Coloca el cuerpo de forma estable y prepara un recorrido cómodo.', move: 'Mueve la carga con control y mantén la postura durante toda la repetición.', error: 'Evita el impulso y detente si aparece dolor.' };
++    const muscle = normalize(exercise.muscle);
++    const primary = Object.keys(labels).find(id => muscle.includes(normalize(labels[id])));
++    return { primary: primary || 'other', secondary: [], setup: 'Coloca el cuerpo de forma estable y empieza con una carga ligera.', move: 'Controla el recorrido y respira sin perder la postura.', error: 'Evita el impulso y detente si aparece dolor.' };
+   };
+-  const body = muscle => {
+-    const target = targetOf(muscle), view = BACK.has(target) ? 'back' : 'front';
+-    const shapes = SHAPES[view].replace(new RegExp(`class="muscle ${target}"`, 'g'), `class="muscle active ${target}"`);
+-    return `<svg class="muscle-map" viewBox="0 0 160 180" role="img" aria-label="Esquema del grupo muscular: ${escape(muscle)}${view === 'back' ? ', vista de espaldas' : ''}">
+-    <circle cx="80" cy="20" r="12"/><path class="silhouette" d="M68 35 Q80 30 92 35 L100 73 95 107 98 166 83 166 80 118 77 166 62 166 65 107 60 73Z"/>
+-    <path class="silhouette" d="M62 42 47 48 35 85 42 89 58 61M98 42 113 48 125 85 118 89 102 61"/>
+-    ${shapes}</svg>${view === 'back' ? '<small class="view-note">Vista de espaldas</small>' : ''}`;
++
++  const anatomy = {
++    front: `<ellipse class="muscle chest" cx="100" cy="70" rx="20" ry="11"/><ellipse class="muscle chest" cx="100" cy="70" rx="20" ry="11" transform="translate(-21 0)"/><ellipse class="muscle chest" cx="100" cy="70" rx="20" ry="11" transform="translate(21 0)"/>
++      <path class="muscle front-delts" d="M76 48Q66 43 66 55L72 67 82 60ZM124 48Q134 43 134 55L128 67 118 60Z"/><path class="muscle side-delts" d="M67 50Q58 48 58 61L66 70 73 59ZM133 50Q142 48 142 61L134 70 127 59Z"/>
++      <path class="muscle biceps" d="M63 66Q57 72 59 86L66 91 72 72ZM137 66Q143 72 141 86L134 91 128 72Z"/><path class="muscle forearms" d="M58 91 65 92 61 116 54 114ZM142 91 135 92 139 116 146 114Z"/>
++      <path class="muscle abs" d="M89 82Q100 78 111 82L109 111 91 111Z"/><path class="muscle obliques" d="M84 81 90 83 89 108 81 104ZM116 81 110 83 111 108 119 104Z"/>
++      <path class="muscle quads" d="M83 118 98 119 96 167 81 166ZM102 119 117 118 119 166 104 167Z"/><path class="muscle adductors" d="M97 121 102 121 103 158 97 158Z"/><path class="muscle abductors" d="M78 119 85 119 82 146 77 143ZM122 119 115 119 118 146 123 143Z"/><path class="muscle calves" d="M82 170 96 170 94 202 84 202ZM104 170 118 170 116 202 106 202Z"/>`,
++    back: `<path class="muscle traps" d="M82 45Q100 38 118 45L111 67 100 78 89 67Z"/><path class="muscle rear-delts" d="M76 48Q65 44 65 57L73 66 84 59ZM124 48Q135 44 135 57L127 66 116 59Z"/>
++      <path class="muscle triceps" d="M63 66Q57 72 59 86L66 91 72 72ZM137 66Q143 72 141 86L134 91 128 72Z"/><path class="muscle forearms" d="M58 91 65 92 61 116 54 114ZM142 91 135 92 139 116 146 114Z"/>
++      <path class="muscle lats" d="M84 67 99 77 96 106 84 112 77 88ZM116 67 101 77 104 106 116 112 123 88Z"/><path class="muscle mid-back" d="M96 70 104 70 105 99 100 105 95 99Z"/>
++      <path class="muscle lower-back" d="M96 103 104 103 110 119 100 126 90 119Z"/><path class="muscle glutes" d="M83 119Q100 113 117 119L115 141 102 145 100 139 98 145 85 141Z"/><path class="muscle hamstrings" d="M83 144 98 146 96 174 82 173ZM102 146 117 144 118 173 104 174Z"/><path class="muscle calves" d="M82 176 96 176 94 203 84 203ZM104 176 118 176 116 203 106 203Z"/>`,
++  };
++  const diagram = (view, primary, secondary) => {
++    const shapes = anatomy[view].replace(/class="muscle ([a-z-]+)"/g, (_, id) => `class="muscle ${id}${id === primary ? ' primary' : secondary.includes(id) ? ' secondary' : ''}"`);
++    return `<svg class="muscle-map" viewBox="0 0 200 220" role="img" aria-label="Mapa muscular de ${view === 'front' ? 'frente' : 'espaldas'}; principal: ${escape(labels[primary] || 'grupo importado')}">
++      <circle class="silhouette" cx="100" cy="23" r="13"/><path class="silhouette" d="M82 39Q100 32 118 39L130 49 138 78 128 92 120 84 121 114 124 119 120 169 119 207 105 207 100 153 95 207 81 207 80 169 76 119 79 114 80 84 72 92 62 78 70 49Z"/>
++      <path class="silhouette" d="M72 49 61 55 47 91 55 96 72 72ZM128 49 139 55 153 91 145 96 128 72Z"/>${shapes}</svg>`;
+   };
+-  function guideHTML(ex) {
+-    const name = String(ex.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+-    const guide = guides.find(([pattern]) => pattern.test(name));
+-    const muscle = guide ? guide[1] : (ex.muscle || 'Otro');
+-    const instruction = guide ? guide[2] : 'Consulta el nombre y el grupo muscular como referencia. Empieza con poco peso, controla el recorrido y detente si aparece dolor.';
+-    return `<section class="card exercise-guide"><div>${body(muscle)}</div><div><div class="label">${escape(muscle)}</div><h3>Cómo hacerlo</h3><p>${instruction}</p><small>Ilustración esquemática del grupo principal; otros músculos también pueden participar.</small></div></section>`;
++  function guideHTML(exercise) {
++    const current = exercise || {};
++    const guide = resolve(current);
++    const primary = Object.prototype.hasOwnProperty.call(labels, guide.primary) ? guide.primary : '';
++    const secondary = (guide.secondary || []).filter(id => labels[id]);
++    const primaryName = labels[guide.primary] || escape(current.muscle || 'Grupo principal');
++    const otherNames = secondary.map(id => labels[id]);
++    const muscles = `<div class="exercise-maps">${diagram('front', primary, secondary)}${diagram('back', primary, secondary)}<div class="map-legend"><span><i class="map-dot main"></i>Principal</span><span><i class="map-dot assist"></i>Secundario</span></div></div>`;
++    const details = `<div><div class="label">${primaryName}${otherNames.length ? ` · también: ${otherNames.join(', ')}` : ''}</div><h3>Cómo hacerlo</h3><ol class="exercise-steps"><li><b>Colocación:</b> ${guide.setup}</li><li><b>Movimiento:</b> ${guide.move}</li><li><b>Evita:</b> ${guide.error}</li></ol><small>Guía general: adapta el rango y la carga a tu movilidad. La técnica puede variar según el equipo y la persona.</small></div>`;
++    return `<section class="card exercise-guide">${muscles}${details}</section>`;
+   }
++
+   window.exerciseGuideHTML = guideHTML;
++  window.exerciseGuideCatalog = Object.freeze(catalog.map(item => Object.freeze({ ...item, aliases: Object.freeze([...item.aliases]), secondary: Object.freeze([...item.secondary]) })));
+ })();
+diff --git a/styles.css b/styles.css
+index e97772d..bb8ccdb 100644
+--- a/styles.css
++++ b/styles.css
+@@ -706,13 +706,25 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
+ .sq-no.on { background: var(--bad); border-color: var(--bad); color: #fff; }
+ .done-extra { margin: 10px 0 0; font-size: 14px; color: var(--muted); font-weight: 600; }
+ .cheat-meal { margin-top: 10px; }
+-.exercise-guide { display: grid; grid-template-columns: 110px 1fr; gap: 14px; align-items: center; }
++.exercise-guide { display: grid; grid-template-columns: minmax(142px, 176px) 1fr; gap: 14px; align-items: center; }
+ .exercise-guide h3 { margin: 3px 0 6px; font-size: 16px; }
+-.exercise-guide p { margin: 0 0 7px; font-size: 14px; line-height: 1.45; }
+ .exercise-guide small { color: var(--muted); font-size: 11px; line-height: 1.35; }
+-.muscle-map { width: 100%; max-height: 145px; fill: var(--surface-2); stroke: var(--muted); stroke-width: 2; stroke-linejoin: round; }
++.exercise-maps { display: grid; grid-template-columns: 1fr 1fr; align-items: end; gap: 3px; }
++.muscle-map { width: 100%; max-height: 184px; fill: transparent; stroke: var(--muted); stroke-width: 1.5; stroke-linejoin: round; }
++.muscle-map .silhouette { fill: var(--surface-2); stroke: var(--muted); }
+ .muscle-map .muscle { fill: var(--line); stroke: var(--surface); stroke-width: 1; }
+-.muscle-map .muscle.active { fill: var(--goal); }
++.muscle-map .muscle.primary { fill: var(--goal); }
++.muscle-map .muscle.secondary { fill: var(--accent); }
++.map-legend { grid-column: 1 / -1; display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: 10px; }
++.map-legend span { display: inline-flex; align-items: center; gap: 4px; }
++.map-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--goal); }
++.map-dot.assist { background: var(--accent); }
++.exercise-steps { margin: 0 0 8px; padding-left: 18px; font-size: 13px; line-height: 1.42; }
++.exercise-steps li { padding-left: 2px; margin: 0 0 5px; }
++@media (max-width: 520px) {
++  .exercise-guide { grid-template-columns: 1fr; }
++  .exercise-maps { width: min(100%, 290px); margin: 0 auto 4px; }
++}
+ .wstrip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 12px; }
+ .wday { border: 2px solid transparent; border-radius: 12px; background: var(--surface-2); min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--muted); padding: 0; }
+ .wday small { font-size: 11px; font-weight: 700; text-transform: capitalize; }
+diff --git a/tests/exercise-guide.test.mjs b/tests/exercise-guide.test.mjs
+index 0835a44..994dfbb 100644
+--- a/tests/exercise-guide.test.mjs
++++ b/tests/exercise-guide.test.mjs
+@@ -4,36 +4,68 @@ import test from 'node:test';
+ import assert from 'node:assert/strict';
+ 
+ const source = await readFile(new URL('../exercise-guide.js', import.meta.url), 'utf8');
+-function render(exercise) {
++function guideAPI() {
+   const window = {};
+   vm.runInNewContext(source, { window });
+-  return window.exerciseGuideHTML(exercise);
++  return window;
+ }
++function render(exercise) { return guideAPI().exerciseGuideHTML(exercise); }
+ 
+-test('la guía resalta el grupo de un ejercicio conocido', () => {
++test('el catálogo local incluye al menos 40 ejercicios completos y sin dependencias', () => {
++  const { exerciseGuideCatalog: catalog } = guideAPI();
++  assert.ok(catalog.length >= 40);
++  assert.ok(catalog.every(x => x.name && x.aliases.length && x.setup && x.move && x.error));
++  assert.ok(catalog.some(x => x.aliases.includes('bench press')));
++  assert.ok(catalog.some(x => x.aliases.includes('press banca')));
++  assert.doesNotMatch(source, /https?:\/\//);
++});
++
++test('cada alias del catálogo encuentra su grupo principal', () => {
++  const { exerciseGuideCatalog: catalog, exerciseGuideHTML } = guideAPI();
++  for (const item of catalog) {
++    for (const alias of item.aliases) {
++      assert.match(exerciseGuideHTML({ name: alias }), new RegExp(`class="muscle ${item.primary} primary"`), alias);
++    }
++  }
++});
++
++test('la guía resalta músculos principales y secundarios para un ejercicio específico', () => {
+   const html = render({ name: 'Press banca', muscle: 'Pecho' });
+-  assert.match(html, /muscle active chest/);
+-  assert.match(html, /Cómo hacerlo/);
++  assert.match(html, /class="muscle chest primary"/);
++  assert.match(html, /class="muscle triceps secondary"/);
++  assert.match(html, /Colocación:/);
++  assert.match(html, /Movimiento:/);
++  assert.match(html, /Evita:/);
+   assert.match(html, /sin rebotar/);
+ });
+ 
+-test('la guía escapa el grupo muscular importado', () => {
++test('reconoce variantes en español e inglés y distingue ejercicios parecidos', () => {
++  const incline = render({ name: 'Press banca inclinado con mancuernas' });
++  const legCurl = render({ name: 'Seated leg curl' });
++  assert.match(incline, /Deltoides anterior/);
++  assert.match(legCurl, /Isquiotibiales/);
++  assert.doesNotMatch(legCurl, /Cuádriceps · también/);
++});
++
++test('presenta mapas musculares frontal y posterior con leyenda', () => {
++  const html = render({ name: 'Remo sentado en polea' });
++  assert.match(html, /Mapa muscular de frente/);
++  assert.match(html, /Mapa muscular de espaldas/);
++  assert.match(html, /Principal/);
++  assert.match(html, /Secundario/);
++  assert.match(html, /class="muscle lats primary"/);
++  assert.match(html, /class="muscle biceps secondary"/);
++});
++
++test('escapa el grupo muscular importado y conserva un fallback para nombres desconocidos', () => {
+   const html = render({ name: 'Ejercicio importado', muscle: '<img src=x onerror=alert(1)>' });
+   assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;/);
+   assert.doesNotMatch(html, /<img/);
++  assert.match(render({ name: 'Remo unilateral raro', muscle: 'Espalda' }), /Movimiento:/);
+ });
+ 
+-test('espalda, tríceps y glúteos se muestran en la vista de espaldas (no se ilumina el pecho)', () => {
+-  const html = render({ name: 'Remo sentado con cable', muscle: 'Espalda' });
+-  assert.match(html, /muscle active back/);
+-  assert.match(html, /vista de espaldas/);
+-  assert.doesNotMatch(html, /muscle chest/);
+-  assert.match(render({ name: 'Press banca', muscle: 'Pecho' }), /muscle active chest/);
+-});
+-
+-test('un grupo muscular con un nombre raro (de una copia importada) no rompe la guía', () => {
++test('grupos musculares raros o heredados no rompen la guía', () => {
+   for (const muscle of ['constructor', 'toString', '__proto__', '(', '[']) {
+-    const html = render({ name: 'Ejercicio raro', muscle });
+-    assert.match(html, /Cómo hacerlo/);
++    assert.match(render({ name: 'Ejercicio raro', muscle }), /Cómo hacerlo/);
+   }
+ });
