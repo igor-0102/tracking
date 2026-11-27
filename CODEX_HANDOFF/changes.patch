@@ -1,0 +1,25 @@
+diff --git a/index.html b/index.html
+index 6cab460..a251e57 100644
+--- a/index.html
++++ b/index.html
+@@ -333,6 +333,7 @@
+ <script src="prepared-foods.js"></script>
+ <script src="diet.js"></script>
+ <script src="body.js"></script>
++<script src="get-adjustment-help.js"></script>
+ <script src="native.js"></script>
+ </body>
+ </html>
+diff --git a/package.json b/package.json
+index 80fe5f9..0d9485c 100644
+--- a/package.json
++++ b/package.json
+@@ -8,7 +8,7 @@
+     "sync": "npm run build:www && npx cap sync android",
+     "open": "npx cap open android",
+     "apk": "npm run sync && cd android && gradlew assembleRelease",
+-    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs tests/exercise-guide.test.mjs tests/weight-xlsx.test.mjs",
++    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs tests/exercise-guide.test.mjs tests/weight-xlsx.test.mjs tests/get-adjustment-help.test.mjs",
+     "build:foods": "node tools/build-foods.mjs"
+   },
+   "dependencies": {
