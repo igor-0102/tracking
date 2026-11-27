@@ -8,7 +8,7 @@
     "sync": "npm run build:www && npx cap sync android",
     "open": "npx cap open android",
     "apk": "npm run sync && cd android && gradlew assembleRelease",
-    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs tests/exercise-guide.test.mjs tests/weight-xlsx.test.mjs",
+    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs tests/prepared-foods.test.mjs tests/exercise-guide.test.mjs tests/weight-xlsx.test.mjs tests/get-adjustment-help.test.mjs",
     "build:foods": "node tools/build-foods.mjs"
   },
   "dependencies": {

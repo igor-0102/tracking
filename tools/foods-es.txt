@@ -265,3 +265,74 @@ Salsa de soja | Salsas y condimentos | soy sauce made from soy and wheat (shoyu)
 Vinagre | Salsas y condimentos | vinegar, cider | cucharada=15
 Sal | Salsas y condimentos | salt, table | pizca=1
 Pizza de queso | Salsas y condimentos | pizza, cheese topping, regular crust, frozen, cooked
+
+# ---- Ampliación de alimentos habituales en España (USDA SR28)
+# Carnes y embutidos
+Morcilla | Carnes | 07005 | ración=40
+Chistorra | Carnes | 07036 | ración=30
+Salchicha fresca de cerdo | Carnes | 07063 | unidad=50
+Salchicha de cerdo cocinada | Carnes | 07065 | unidad=50
+Salchicha ahumada de cerdo | Carnes | 07074 | unidad=50
+Salchicha de pavo para desayuno | Carnes | 07919 | unidad=20
+Salchicha de pavo ahumada | Carnes | 07929 | unidad=50
+Salami de cerdo y ternera | Carnes | 07072 | loncha=15
+Paté de hígado de cerdo | Carnes | 07041 | ración=30
+Panceta de cerdo, cruda | Carnes | 10005 | loncha=40
+Salchicha vienesa en conserva | Carnes | 07083 | unidad=45
+Salchicha italiana de cerdo, cocinada | Carnes | 07089 | ración=75
+Jamón cocido extra magro | Carnes | 07028 | loncha=20
+Jamón de pavo en lonchas | Carnes | 42128 | loncha=20
+
+# Quesos
+Queso azul | Huevos y lácteos | 01004 | porción=30
+Queso brick | Huevos y lácteos | 01005 | porción=30
+Queso camembert | Huevos y lácteos | 01007 | porción=30
+Queso colby | Huevos y lácteos | 01011 | porción=30
+Queso edam | Huevos y lácteos | 01018 | porción=30
+Queso fontina | Huevos y lácteos | 01020 | porción=30
+Queso gruyere | Huevos y lácteos | 01023 | porción=30
+Queso monterey | Huevos y lácteos | 01025 | porción=30
+Queso muenster | Huevos y lácteos | 01030 | porción=30
+Queso provolone | Huevos y lácteos | 01035 | porción=30
+Queso parmesano rallado | Huevos y lácteos | 01032 | cucharada=5
+
+# Panes, bollería y galletas
+Pan de pita blanco | Cereales, pan y patata | 18041 | unidad=60
+Pan de pita integral | Cereales, pan y patata | 18042 | unidad=60
+Pan pumpernickel (centeno oscuro) | Cereales, pan y patata | 18044 | rebanada=30
+Pan italiano | Cereales, pan y patata | 18033 | rebanada=30
+Bagel clásico | Cereales, pan y patata | 18001 | unidad=95
+Bagel de huevo | Cereales, pan y patata | 18003 | unidad=95
+Bagel de avena | Cereales, pan y patata | 18007 | unidad=95
+Bagel de trigo | Cereales, pan y patata | 18968 | unidad=95
+Bollo de hamburguesa | Cereales, pan y patata | 28394 | unidad=50
+Bollo integral de hamburguesa | Cereales, pan y patata | 28377 | unidad=50
+Bizcocho esponjoso | Dulces y snacks | 18133 | porción=50
+Galleta de mantequilla | Dulces y snacks | 18155 | unidad=10
+
+# Conservas de pescado, legumbres y verduras
+Bacalao en conserva | Pescados y mariscos | 15017 | ración=80
+Caballa en conserva, escurrida | Pescados y mariscos | 15048 | ración=80
+Salmón chum en conserva, escurrido | Pescados y mariscos | 15080 | ración=85
+Salmón rosado en conserva | Pescados y mariscos | 15084 | ración=85
+Salmón rojo en conserva, escurrido | Pescados y mariscos | 15087 | ración=85
+Sardinas en tomate, escurridas | Pescados y mariscos | 15089 | lata=90
+Almejas en conserva, escurridas | Pescados y mariscos | 15160 | ración=65
+Alubias rojas en conserva | Legumbres | 16029 | ración=130
+Alubias pintas en conserva | Legumbres | 16044 | ración=130
+Alubias rojas en conserva, escurridas | Legumbres | 16034 | ración=130
+Alubias pintas en conserva, escurridas | Legumbres | 16146 | ración=130
+Guisantes en conserva, escurridos | Legumbres | 11308 | ración=130
+Espárragos en conserva, escurridos | Verduras | 11015 | ración=100
+Champiñones en conserva, escurridos | Verduras | 11264 | ración=100
+Remolacha en conserva, escurrida | Verduras | 11084 | ración=100
+
+# Salsas y aliños
+Pesto refrigerado | Salsas y condimentos | 06626 | cucharada=15
+Pesto de larga conservación | Salsas y condimentos | 06627 | cucharada=15
+Salsa mexicana lista para servir | Salsas y condimentos | 06164 | cucharada=15
+Salsa verde mexicana | Salsas y condimentos | 27047 | cucharada=15
+Aliño de queso azul | Salsas y condimentos | 04539 | cucharada=15
+Aliño ranchero | Salsas y condimentos | 04639 | cucharada=15
+Salsa mil islas | Salsas y condimentos | 04017 | cucharada=15
+Aliño italiano para ensalada | Salsas y condimentos | 04114 | cucharada=15

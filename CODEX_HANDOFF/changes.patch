@@ -1,0 +1,797 @@
+diff --git a/RECOMMENDATIONS_FOR_CLAUDE.md b/RECOMMENDATIONS_FOR_CLAUDE.md
+new file mode 100644
+index 0000000..fe4daf3
+--- /dev/null
++++ b/RECOMMENDATIONS_FOR_CLAUDE.md
+@@ -0,0 +1,50 @@
++# Recomendaciones para Claude
++
++Este documento propone mejoras; no cambia la pantalla de Inicio ni implementa las recomendaciones de interfaz.
++
++## Simplificar Inicio
++
++1. Mantener las dos acciones principales —**Añadir peso** y **Empezar entrenamiento**— como el foco visual de la primera pantalla.
++2. Debajo, mostrar como máximo un resumen compacto del estado de hoy (por ejemplo, peso registrado y entrenamiento activo); evitar duplicar gráficos, totales de dieta y accesos que ya existen en sus pestañas.
++3. Reducir las tarjetas de dieta y acciones rápidas a una sola línea con un botón claro para abrir **Dieta**; desplegar el detalle bajo demanda.
++4. Hacer que los avisos secundarios, como el recordatorio de copia, ocupen menos espacio y no compitan visualmente con las acciones principales.
++5. Usar estados vacíos con una sola siguiente acción: añadir primer peso, crear primera rutina o crear primera dieta.
++6. Revisar la pantalla en móvil estrecho y aumentar el espacio entre secciones; la prioridad visual debe ser evidente en pocos segundos.
++
++## Hacer la app más intuitiva
++
++1. Añadir un recorrido inicial breve y opcional: registrar peso, elegir si quiere entrenar y configurar dieta. Permitir saltar cualquier paso.
++2. Unificar los nombres y verbos de los botones entre Inicio, pestañas y diálogos; indicar siempre qué se guarda y qué ocurre al confirmar.
++3. Tras acciones importantes, mostrar confirmación con una opción de deshacer cuando sea seguro (borrar registro, editar rutina, importar o combinar datos).
++4. Hacer más visible la búsqueda de ejercicios, sus alias y grupos musculares; mostrar primero las coincidencias locales aunque no haya conexión.
++5. Mantener una jerarquía consistente en formularios: etiqueta, unidad, ayuda breve y validación junto al campo que tiene el problema.
++6. Añadir estados de carga, error y éxito para importar, exportar, guardar y sincronizar; evitar mensajes genéricos si se puede explicar cómo continuar.
++7. Comprobar accesibilidad móvil: áreas táctiles, foco visible, contraste, tamaño de letra y nombres accesibles para iconos y gráficos.
++
++## Mejoras priorizadas para planificar
++
++### P0 — Integrar las entregas preparadas
++
++1. Integrar las ramas `handoff/c1-platos-preparados`, `handoff/c2-alimentos-basicos`, `handoff/c3-guia-ejercicios`, `handoff/c4-exportar-peso-excel` y `handoff/c5-ayuda-ajuste-get` en una rama de trabajo. Resolver el solapamiento de `package.json` combinando todas las pruebas en el script `test`.
++2. Tras integrar C2, ejecutar `npm run build:foods` para regenerar las bases derivadas; revisar los 60 alimentos nuevos contra sus correspondencias USDA antes de publicar.
++3. Integrar `handoff/c6-guion-tutorial` después de validar las pantallas finales; grabar el MP4 con datos ficticios y comprobar que el flujo Excel abre en Excel móvil/escritorio.
++
++### P1 — Verificación antes de publicar
++
++4. Ejecutar la suite completa (`npm test`) y `node --check` para los módulos afectados en un entorno con Node/npm; añadir un resultado reproducible al informe de integración.
++5. Probar importación, exportación, persistencia, restauración y gráficos en Android real y en un navegador de escritorio; comprobar fechas, grandes historiales y cancelación del diálogo Compartir.
++6. Revisar los nombres importados de Hevy que no coincidan con los 46 ejercicios guiados; priorizar los ejercicios más usados y dejar fallback claro para los demás.
++
++### P2 — Tareas pendientes del plan original
++
++7. Implementar las fotos de progreso nativas con permisos claros, almacenamiento local, eliminación y comprobación en un teléfono real.
++8. Refactorizar gradualmente los módulos grandes (`app.js`, `gym.js`, `diet.js`) en piezas pequeñas con límites claros, preservando el comportamiento y añadiendo pruebas de lógica antes de mover cada bloque.
++9. Añadir pruebas de interfaz para los flujos críticos: primer registro de peso, finalizar entreno, editar dieta, exportar e importar copia. Mantener ensayos manuales en Android para notificaciones y permisos.
++10. Mantener Strava pendiente hasta que se decidan alojamiento, alcance de sincronización y manejo de credenciales; esa decisión no está tomada.
++
++## Orden de integración sugerido
++
++1. C1 → C2 → C3 → C4 → C5.
++2. Regenerar alimentos y ejecutar pruebas completas.
++3. C6 (guion) y C7 (este listado de recomendaciones).
++4. Continuar con tareas nativas, refactorización y pruebas de interfaz.
+diff --git a/VIDEO_TUTORIAL.md b/VIDEO_TUTORIAL.md
+new file mode 100644
+index 0000000..7a130c2
+--- /dev/null
++++ b/VIDEO_TUTORIAL.md
+@@ -0,0 +1,41 @@
++# Guion y storyboard del tutorial de Tracking
++
++**Duración objetivo:** 3:30–4:00 min · **Formato:** vertical 9:16 · **Idioma:** español · **Estilo:** grabación de pantalla con voz en off y rótulos breves.
++
++> Para grabar, integra primero las entregas C1–C5. El guion incluye los nuevos platos, la guía de ejercicios, el Excel y la ayuda del GET. Usa una cuenta de demostración y datos ficticios.
++
++## Storyboard
++
++| Tiempo | Pantalla y acción | Voz en off | Rótulo |
++| --- | --- | --- | --- |
++| 0:00–0:15 | Inicio. Enseñar las acciones de peso y entrenamiento, y la barra inferior. | «Tracking te ayuda a llevar en un mismo sitio el peso, tus entrenamientos y la dieta. Vamos a ver lo básico para empezar.» | «Peso · Entreno · Dieta» |
++| 0:15–0:55 | Tocar **Añadir peso**, escribir un dato de ejemplo, guardar. Abrir **Peso → Resumen** y mostrar el gráfico. | «Para apuntar tu peso, pulsa Añadir, introduce el dato y guarda. En Resumen puedes ver la evolución: el registro diario, la media y, si has definido uno, tu objetivo. Cambia el periodo para ver el progreso con más contexto.» | «Registra · Observa la tendencia» |
++| 0:55–1:20 | Mostrar **Medias**, **Historial** y **Medidas** desde los selectores de Peso. | «En Medias puedes revisar semanas o meses. Historial reúne tus registros y Medidas guarda otras medidas corporales. Así puedes consultar más que el último número de la báscula.» | «Medias · Historial · Medidas» |
++| 1:20–2:05 | Volver al inicio, tocar **Empezar entrenamiento**, elegir una rutina o empezar vacío. Añadir/abrir un ejercicio, introducir kg y repeticiones, marcar una serie y terminar. | «Para entrenar, elige una rutina o empieza con una sesión vacía. En cada ejercicio anota el peso y las repeticiones; marca con el visto bueno las series que completes. Al terminar, confirma para guardar la sesión. En la ficha del ejercicio encontrarás indicaciones de colocación, movimiento, errores frecuentes y los músculos principales y secundarios.» | «Anota cada serie» |
++| 2:05–2:55 | Abrir **Ajustes**, mostrar el perfil y objetivo de dieta; tocar la “i” junto a **Ajuste sobre el GET**. Ir a **Dieta**, seleccionar una opción de comida y mostrar el total diario. | «En Ajustes completas los datos que necesita el cálculo de dieta. La “i” explica el ajuste de calorías sobre tu GET estimado y da una referencia de ritmo de pérdida; es orientativa, no una garantía médica. En Dieta crea tus comidas o elige entre opciones, revisa calorías y macros y marca si has cumplido el día.» | «Configura · Elige · Registra» |
++| 2:55–3:25 | Abrir **Ajustes → Copias de seguridad**. Mostrar las opciones de copia completa y Excel; lanzar Excel con datos de ejemplo y enseñar el archivo. | «Desde Copias de seguridad puedes exportar una copia completa. Para revisar solo el peso, Exportar a Excel crea una hoja con fecha y peso y un gráfico de líneas.» | «Fecha + Peso + Gráfico» |
++| 3:25–3:40 | Volver a Inicio y cerrar con el nombre de la app. | «Empieza con lo esencial y añade detalles cuando los necesites. Tus datos de Tracking se guardan en tu dispositivo. ¡Listo para empezar!» | «Tu seguimiento, a tu ritmo» |
++
++## Texto de voz en off continuo
++
++«Tracking te ayuda a llevar en un mismo sitio el peso, tus entrenamientos y la dieta. Vamos a ver lo básico para empezar.
++
++Para apuntar tu peso, pulsa Añadir, introduce el dato y guarda. En Resumen puedes ver la evolución: el registro diario, la media y, si has definido uno, tu objetivo. Cambia el periodo para ver el progreso con más contexto.
++
++En Medias puedes revisar semanas o meses. Historial reúne tus registros y Medidas guarda otras medidas corporales. Así puedes consultar más que el último número de la báscula.
++
++Para entrenar, elige una rutina o empieza con una sesión vacía. En cada ejercicio anota el peso y las repeticiones; marca con el visto bueno las series que completes. Al terminar, confirma para guardar la sesión. En la ficha del ejercicio encontrarás indicaciones de colocación, movimiento, errores frecuentes y los músculos principales y secundarios.
++
++En Ajustes completas los datos que necesita el cálculo de dieta. La “i” explica el ajuste de calorías sobre tu GET estimado y da una referencia de ritmo de pérdida; es orientativa, no una garantía médica. En Dieta crea tus comidas o elige entre opciones, revisa calorías y macros y marca si has cumplido el día.
++
++Desde Copias de seguridad puedes exportar una copia completa. Para revisar solo el peso, Exportar a Excel crea una hoja con fecha y peso y un gráfico de líneas.
++
++Empieza con lo esencial y añade detalles cuando los necesites. Tus datos de Tracking se guardan en tu dispositivo. ¡Listo para empezar!»
++
++## Preparación de la grabación
++
++- Crea registros ficticios suficientes para que los gráficos y el Excel tengan varios puntos.
++- Oculta notificaciones, datos personales, nombres de perfil y cualquier otra app que aparezca en la grabación.
++- Toca los controles despacio y deja cada pantalla visible unos segundos; añade subtítulos para que se entienda sin audio.
++- Graba el flujo de Excel solo cuando C4 esté integrada y puedas abrir el archivo resultante.
++- Haz una pasada completa con cronómetro antes de grabar la versión final y recorta pausas, pantallas de carga o errores.
+diff --git a/exercise-guide.js b/exercise-guide.js
+index 6a3534b..88018cb 100644
+--- a/exercise-guide.js
++++ b/exercise-guide.js
+@@ -1 +1 @@
+-/* Guía local de ejercicios: zonas musculares esquemáticas e instrucciones breves. */
++/* Catálogo local de ejercicios y mapas musculares SVG. No usa red ni dependencias. */
+@@ -5,12 +5,47 @@
+-  const guides = [
+-    [/press banca|press de banca|banca|flexion|apertura|cruce|pec deck/, 'Pecho', 'Tumbado o con el torso estable, baja el peso con control hacia el pecho. Empuja sin rebotar y mantén las muñecas alineadas.'],
+-    [/remo|jalon|pulldown|dominada|face pull/, 'Espalda', 'Inicia el tirón llevando los codos hacia atrás o abajo. Mantén el tronco firme y evita balancearte para mover el peso.'],
+-    [/sentadilla|prensa|zancada|extension de cuadriceps|curl femoral/, 'Piernas', 'Apoya todo el pie y acompaña el movimiento con las rodillas en la dirección de los pies. Usa un recorrido cómodo y controlado.'],
+-    [/peso muerto|rumano|buenos dias/, 'Espalda', 'Lleva la cadera atrás con la espalda neutra y el peso cerca del cuerpo. Termina erguido sin hiperextender la zona lumbar.'],
+-    [/hip thrust|puente de gluteo|patada de gluteo/, 'Glúteos', 'Empuja desde los talones y extiende la cadera. Mantén las costillas recogidas y no arquees la espalda al final.'],
+-    [/press militar|press hombro|arnold/, 'Hombros', 'Empuja sobre la cabeza con abdomen firme. Baja hasta un rango cómodo sin encoger los hombros.'],
+-    [/elevacion lateral|elevacion frontal|pajaro|deltoide posterior/, 'Hombros', 'Eleva los brazos con ligera flexión de codos y sin impulso. Detén el recorrido antes de que los hombros se encojan.'],
+-    [/curl|biceps/, 'Bíceps', 'Mantén los codos cerca del cuerpo. Flexiona y baja el brazo despacio, sin balancear el tronco.'],
+-    [/triceps|extension de codo|fondos/, 'Tríceps', 'Fija los hombros y mueve el antebrazo. Extiende el codo con control, sin bloquearlo con fuerza.'],
+-    [/plancha|crunch|abdominal|rueda/, 'Core', 'Mantén el tronco estable y respira. Evita que la zona lumbar se hunda o que el cuello cargue el esfuerzo.'],
+-    [/correr|cinta|bici|eliptica/, 'Cardio', 'Empieza a un ritmo que puedas sostener y aumenta la intensidad de forma gradual. Ajusta la máquina antes de empezar.'],
++  const catalog = [
++    { name: 'Press banca', aliases: ['bench press', 'barbell bench press', 'press banca', 'press de banca'], primary: 'chest', secondary: ['front-delts', 'triceps'], setup: 'Apoya cabeza, espalda y glúteos en el banco; planta los pies y junta suavemente las escápulas.', move: 'Baja la barra hacia la parte media del pecho y empújala arriba manteniendo los antebrazos casi verticales.', error: 'Evita rebotar la barra o separar los glúteos del banco.' },
++    { name: 'Press banca inclinado', aliases: ['incline bench press', 'incline barbell bench press', 'press inclinado', 'press banca inclinado', 'press de banca inclinado'], primary: 'chest', secondary: ['front-delts', 'triceps'], setup: 'Inclina el banco unos 20–35° y apoya los pies, la espalda y la cabeza.', move: 'Desciende la barra hacia la parte alta del pecho y empuja sin perder la posición de los hombros.', error: 'Evita elevar demasiado el respaldo o arquear la zona lumbar para completar la repetición.' },
++    { name: 'Press con mancuernas', aliases: ['dumbbell bench press', 'flat dumbbell press', 'press con mancuernas', 'press banca mancuernas'], primary: 'chest', secondary: ['front-delts', 'triceps'], setup: 'Túmbate con una mancuerna en cada mano, pies apoyados y muñecas sobre los codos.', move: 'Baja ambas mancuernas a los lados del pecho y vuelve a juntarlas arriba sin chocarlas.', error: 'Evita dejar que los codos caigan muy por debajo del torso si molesta el hombro.' },
++    { name: 'Press inclinado con mancuernas', aliases: ['incline dumbbell press', 'press inclinado con mancuernas'], primary: 'chest', secondary: ['front-delts', 'triceps'], setup: 'Ajusta el banco a una inclinación moderada y estabiliza los pies antes de empezar.', move: 'Baja las mancuernas a ambos lados de la parte alta del pecho y empuja hacia arriba.', error: 'No conviertas el movimiento en un press vertical encogiendo los hombros.' },
++    { name: 'Aperturas de pecho', aliases: ['dumbbell fly', 'chest fly', 'dumbbell chest fly', 'aperturas', 'aperturas con mancuernas'], primary: 'chest', secondary: ['front-delts'], setup: 'Túmbate con los brazos sobre el pecho y los codos ligeramente flexionados.', move: 'Abre los brazos en arco hasta sentir un estiramiento cómodo y vuelve a cerrar sobre el pecho.', error: 'Evita estirar los codos por completo o bajar más allá de un rango cómodo.' },
++    { name: 'Cruce de poleas', aliases: ['cable crossover', 'cable fly', 'cable chest fly', 'cruce de poleas', 'aperturas en polea'], primary: 'chest', secondary: ['front-delts'], setup: 'Coloca las poleas a la altura elegida, adelanta un pie y mantén el tronco firme.', move: 'Junta las manos delante del pecho describiendo un arco y regresa despacio.', error: 'No uses impulso del tronco ni conviertas el gesto en un empuje con los codos.' },
++    { name: 'Flexiones', aliases: ['push up', 'push-up', 'pushups', 'flexiones', 'flexión'], primary: 'chest', secondary: ['front-delts', 'triceps', 'abs'], setup: 'Coloca las manos algo más abiertas que los hombros y forma una línea estable de cabeza a talones.', move: 'Baja el pecho entre las manos y empuja el suelo hasta extender los brazos.', error: 'Evita hundir la cadera o abrir los codos en exceso.' },
++    { name: 'Remo sentado en polea', aliases: ['seated cable row', 'cable row', 'remo sentado', 'remo en polea baja'], primary: 'lats', secondary: ['mid-back', 'biceps', 'rear-delts'], setup: 'Siéntate con el tronco erguido, rodillas ligeramente flexionadas y agarre estable.', move: 'Lleva el agarre hacia el abdomen moviendo los codos atrás y vuelve con control.', error: 'Evita balancear el torso o encoger los hombros para tirar más peso.' },
++    { name: 'Remo con barra', aliases: ['barbell row', 'bent over row', 'remo con barra', 'remo inclinado con barra'], primary: 'mid-back', secondary: ['lats', 'biceps', 'rear-delts'], setup: 'Flexiona la cadera, mantén la espalda neutra y sujeta la barra debajo de los hombros.', move: 'Lleva la barra hacia el abdomen y bájala hasta extender los brazos sin perder la postura.', error: 'No redondees la espalda ni uses tirones de cadera para levantarla.' },
++    { name: 'Remo con mancuerna', aliases: ['dumbbell row', 'one arm dumbbell row', 'remo con mancuerna', 'remo unilateral'], primary: 'lats', secondary: ['mid-back', 'biceps'], setup: 'Apoya una mano y una rodilla en el banco; mantén el torso estable.', move: 'Lleva la mancuerna hacia la cadera con el codo cerca del cuerpo y bájala despacio.', error: 'Evita girar el tronco o tirar la mancuerna hacia el hombro.' },
++    { name: 'Jalón al pecho', aliases: ['lat pulldown', 'wide grip lat pulldown', 'jalon al pecho', 'jalón al pecho', 'jalon en polea'], primary: 'lats', secondary: ['biceps', 'mid-back'], setup: 'Ajusta el apoyo sobre los muslos y agarra la barra algo más ancha que los hombros.', move: 'Lleva la barra hacia la parte alta del pecho dirigiendo los codos hacia abajo.', error: 'No tires la barra tras la nuca ni te reclines para convertirlo en un balanceo.' },
++    { name: 'Dominadas', aliases: ['pull up', 'pull-up', 'pullups', 'chin up', 'dominada', 'dominadas'], primary: 'lats', secondary: ['biceps', 'mid-back'], setup: 'Sujeta la barra con un agarre cómodo y deja el cuerpo suspendido con control.', move: 'Lleva el pecho hacia la barra y baja hasta extender los brazos sin soltarte de golpe.', error: 'Evita impulsarte con las piernas o forzar un rango que cause dolor.' },
++    { name: 'Face pull', aliases: ['face pull', 'face pulls', 'tiron a la cara', 'tirón a la cara'], primary: 'rear-delts', secondary: ['mid-back', 'traps'], setup: 'Coloca la cuerda a la altura de la cara y da un paso atrás para tensar el cable.', move: 'Tira de la cuerda hacia la frente separando las manos y llevando los codos hacia fuera.', error: 'No arquees la espalda ni eleves los hombros hacia las orejas.' },
++    { name: 'Peso muerto', aliases: ['deadlift', 'conventional deadlift', 'peso muerto convencional'], primary: 'hamstrings', secondary: ['glutes', 'lower-back', 'mid-back', 'quads'], setup: 'Coloca los pies bajo la barra, acerca las espinillas y fija el tronco antes de despegarla.', move: 'Empuja el suelo y extiende cadera y rodillas a la vez; devuelve la barra pegada al cuerpo.', error: 'No redondees la espalda ni hiperextiendas la zona lumbar al terminar.' },
++    { name: 'Peso muerto rumano', aliases: ['romanian deadlift', 'rdl', 'peso muerto rumano', 'peso muerto con piernas semirrígidas'], primary: 'hamstrings', secondary: ['glutes', 'lower-back'], setup: 'Sujeta la barra delante de los muslos con rodillas desbloqueadas y espalda neutra.', move: 'Lleva la cadera atrás mientras bajas la barra cerca de las piernas; vuelve extendiendo la cadera.', error: 'No conviertas el gesto en una sentadilla ni busques el suelo perdiendo la postura.' },
++    { name: 'Sentadilla', aliases: ['squat', 'barbell squat', 'back squat', 'sentadilla', 'sentadilla con barra'], primary: 'quads', secondary: ['glutes', 'adductors', 'abs'], setup: 'Apoya la barra con seguridad, coloca los pies a una anchura cómoda y toma aire.', move: 'Flexiona cadera y rodillas siguiendo la dirección de los pies; empuja el suelo para subir.', error: 'Evita que las rodillas colapsen hacia dentro o que los talones se despeguen.' },
++    { name: 'Sentadilla frontal', aliases: ['front squat', 'sentadilla frontal'], primary: 'quads', secondary: ['glutes', 'abs'], setup: 'Apoya la barra delante de los hombros y mantén los codos altos.', move: 'Desciende entre las piernas con el torso erguido y sube empujando el suelo.', error: 'No dejes caer los codos ni fuerces profundidad si pierdes estabilidad.' },
++    { name: 'Prensa de piernas', aliases: ['leg press', '45 degree leg press', 'prensa', 'prensa de piernas'], primary: 'quads', secondary: ['glutes', 'adductors'], setup: 'Apoya la espalda en el respaldo y coloca los pies en la plataforma a una anchura cómoda.', move: 'Desbloquea el seguro, baja hasta un rango controlado y empuja sin bloquear con fuerza las rodillas.', error: 'Evita que la pelvis se enrolle al fondo o que las rodillas se junten.' },
++    { name: 'Extensión de cuádriceps', aliases: ['leg extension', 'knee extension', 'extension de cuadriceps', 'extensión de cuádriceps'], primary: 'quads', secondary: [], setup: 'Ajusta el eje de la máquina a la rodilla y coloca el rodillo sobre la parte baja de la espinilla.', move: 'Extiende las rodillas de forma controlada y baja el peso sin dejarlo caer.', error: 'Evita dar una patada rápida o usar un peso que levante la cadera del asiento.' },
++    { name: 'Curl femoral', aliases: ['leg curl', 'lying leg curl', 'seated leg curl', 'curl femoral', 'curl de piernas'], primary: 'hamstrings', secondary: ['calves'], setup: 'Alinea la rodilla con el eje de la máquina y ajusta el rodillo sobre el tobillo.', move: 'Flexiona las rodillas acercando los talones y regresa despacio al inicio.', error: 'No arquees la espalda ni acortes el recorrido para mover más peso.' },
++    { name: 'Hip thrust', aliases: ['hip thrust', 'barbell hip thrust', 'empuje de cadera'], primary: 'glutes', secondary: ['hamstrings'], setup: 'Apoya la parte alta de la espalda en el banco y coloca los pies firmes bajo las rodillas.', move: 'Eleva la cadera hasta alinear el torso y aprieta los glúteos antes de bajar.', error: 'No termines arqueando la espalda ni apoyes el banco sobre el cuello.' },
++    { name: 'Zancada', aliases: ['lunge', 'lunges', 'walking lunge', 'zancada', 'zancadas'], primary: 'quads', secondary: ['glutes', 'hamstrings'], setup: 'Colócate erguido con los pies separados a la anchura de las caderas.', move: 'Da un paso cómodo, baja ambas rodillas y vuelve empujando con el pie delantero.', error: 'Evita perder el equilibrio o dejar que la rodilla delantera se desplace bruscamente hacia dentro.' },
++    { name: 'Sentadilla búlgara', aliases: ['bulgarian split squat', 'split squat', 'sentadilla bulgara', 'sentadilla búlgara'], primary: 'quads', secondary: ['glutes', 'adductors'], setup: 'Apoya el empeine trasero en un banco bajo y coloca el pie delantero a una distancia estable.', move: 'Baja verticalmente con control y empuja el suelo con el pie delantero para subir.', error: 'No coloques los pies en una línea estrecha si eso te hace perder el equilibrio.' },
++    { name: 'Elevación de gemelos', aliases: ['calf raise', 'standing calf raise', 'seated calf raise', 'elevacion de gemelos', 'elevación de talones'], primary: 'calves', secondary: [], setup: 'Apoya el antepié en la plataforma y estabiliza el cuerpo con las rodillas extendidas o ligeramente flexionadas.', move: 'Baja el talón con control y elévalo hasta ponerte de puntillas.', error: 'Evita rebotar o recortar el recorrido; usa apoyo para no perder estabilidad.' },
++    { name: 'Press de hombros', aliases: ['shoulder press', 'overhead press', 'military press', 'press militar', 'press de hombros'], primary: 'front-delts', secondary: ['triceps', 'side-delts'], setup: 'Siéntate o ponte de pie con el abdomen firme y las manos a la altura de los hombros.', move: 'Empuja el peso sobre la cabeza y bájalo hasta un rango cómodo.', error: 'No arquees la zona lumbar ni encoges los hombros al final.' },
++    { name: 'Elevación lateral', aliases: ['lateral raise', 'dumbbell lateral raise', 'elevacion lateral', 'elevaciones laterales'], primary: 'side-delts', secondary: ['traps'], setup: 'Sujeta las mancuernas a los lados con los codos ligeramente flexionados.', move: 'Eleva los brazos hacia los lados hasta aproximadamente la altura del hombro y baja despacio.', error: 'No balancees el cuerpo ni subas los hombros hacia las orejas.' },
++    { name: 'Elevación frontal', aliases: ['front raise', 'dumbbell front raise', 'elevacion frontal', 'elevaciones frontales'], primary: 'front-delts', secondary: [], setup: 'Sujeta las mancuernas delante de los muslos con el tronco estable.', move: 'Eleva un brazo o ambos al frente hasta la altura del hombro y baja con control.', error: 'Evita impulsarte con la espalda o subir el peso por encima de un rango cómodo.' },
++    { name: 'Pájaros / deltoide posterior', aliases: ['reverse fly', 'rear delt fly', 'bent over reverse fly', 'pajaros', 'pájaros', 'deltoide posterior'], primary: 'rear-delts', secondary: ['mid-back'], setup: 'Inclina el torso con espalda neutra y deja los brazos bajo los hombros.', move: 'Abre los brazos hacia los lados apretando la parte posterior de los hombros y vuelve despacio.', error: 'No uses impulso ni conviertas la repetición en un encogimiento.' },
++    { name: 'Curl de bíceps', aliases: ['bicep curl', 'barbell curl', 'dumbbell curl', 'curl de biceps', 'curl de bíceps'], primary: 'biceps', secondary: ['forearms'], setup: 'Ponte erguido con los codos junto al torso y las muñecas alineadas.', move: 'Flexiona los codos para acercar el peso a los hombros y bájalo lentamente.', error: 'Evita balancear la espalda o adelantar los codos para terminar la repetición.' },
++    { name: 'Curl martillo', aliases: ['hammer curl', 'dumbbell hammer curl', 'curl martillo'], primary: 'biceps', secondary: ['forearms'], setup: 'Sujeta las mancuernas con las palmas enfrentadas y los codos cerca del cuerpo.', move: 'Flexiona los codos sin girar las muñecas y desciende con control.', error: 'No uses impulso de cadera ni dejes que las muñecas se doblen.' },
++    { name: 'Curl predicador', aliases: ['preacher curl', 'preacher curls', 'curl predicador', 'curl scott'], primary: 'biceps', secondary: ['forearms'], setup: 'Apoya los brazos en el banco predicador y ajusta el asiento para que las axilas queden cerca del borde.', move: 'Flexiona los codos sin despegar los brazos del apoyo y baja hasta un estiramiento cómodo.', error: 'No bloquees con fuerza el codo ni rebotes desde abajo.' },
++    { name: 'Extensión de tríceps en polea', aliases: ['triceps pushdown', 'tricep pushdown', 'cable pushdown', 'extension de triceps en polea', 'extensión de tríceps en polea'], primary: 'triceps', secondary: [], setup: 'Coloca la polea arriba y mantén los codos pegados al torso.', move: 'Extiende los codos hacia abajo y vuelve hasta que los antebrazos queden controlados.', error: 'No balancees el tronco ni separes los codos para mover más carga.' },
++    { name: 'Extensión de tríceps sobre la cabeza', aliases: ['overhead triceps extension', 'overhead cable triceps extension', 'extension triceps por encima de la cabeza', 'extensión de tríceps sobre la cabeza'], primary: 'triceps', secondary: ['abs'], setup: 'Sujeta una mancuerna o cuerda sobre la cabeza y mantén los codos apuntando al frente.', move: 'Flexiona los codos para bajar detrás de la cabeza y vuelve a extenderlos.', error: 'Evita abrir mucho los codos o arquear la espalda.' },
++    { name: 'Fondos', aliases: ['dip', 'dips', 'triceps dip', 'fondos en paralelas'], primary: 'triceps', secondary: ['chest', 'front-delts'], setup: 'Sujétate en las barras con hombros estables y el cuerpo bajo control.', move: 'Flexiona los codos para bajar en un rango cómodo y empuja para volver arriba.', error: 'No rebotes al fondo ni desciendas más allá de la movilidad del hombro.' },
++    { name: 'Aducción de cadera', aliases: ['hip adduction', 'adductor machine', 'hip adduction machine', 'aductor', 'aductores', 'aduccion de cadera'], primary: 'adductors', secondary: [], setup: 'Ajusta los apoyos a la cara interna de las piernas y siéntate con la espalda apoyada.', move: 'Junta las piernas contra la resistencia y ábrelas de vuelta lentamente.', error: 'No dejes que las placas choquen ni rebotes al abrir.' },
++    { name: 'Abducción de cadera', aliases: ['hip abduction', 'abductor machine', 'hip abduction machine', 'abductor', 'abductores', 'abduccion de cadera'], primary: 'abductors', secondary: ['glutes'], setup: 'Siéntate con la espalda apoyada y coloca las piernas contra la parte externa de los apoyos.', move: 'Separa las rodillas contra la resistencia y regresa con control.', error: 'Evita impulsarte con el tronco o abrir más de lo que permite la cadera.' },
++    { name: 'Plancha', aliases: ['plank', 'front plank', 'plancha'], primary: 'abs', secondary: ['obliques', 'glutes'], setup: 'Apoya antebrazos y puntas de los pies; alinea cabeza, cadera y talones.', move: 'Mantén el abdomen y los glúteos activos mientras respiras con normalidad.', error: 'No dejes caer la cadera ni aguantes la respiración para prolongar la serie.' },
++    { name: 'Crunch en polea', aliases: ['cable crunch', 'kneeling cable crunch', 'crunch en polea'], primary: 'abs', secondary: ['obliques'], setup: 'Arrodíllate frente a la polea alta y sujeta la cuerda a los lados de la cabeza.', move: 'Acerca las costillas a la pelvis flexionando el tronco y vuelve despacio.', error: 'No tires solo con los brazos ni conviertas el movimiento en una bisagra de cadera.' },
++    { name: 'Extensión lumbar', aliases: ['back extension', 'hyperextension', '45 degree back extension', 'extension lumbar', 'extensión lumbar'], primary: 'lower-back', secondary: ['glutes', 'hamstrings'], setup: 'Ajusta el banco para que el borde quede bajo la cadera y fija los pies.', move: 'Inclina el tronco desde la cadera y vuelve hasta alinear el cuerpo.', error: 'No hiperextiendas la espalda ni uses impulso al subir.' },
++    { name: 'Encogimientos', aliases: ['shrug', 'barbell shrug', 'dumbbell shrug', 'encogimientos', 'encogimiento de hombros'], primary: 'traps', secondary: ['forearms'], setup: 'Sujeta la carga a los lados y mantén los brazos relajados y el cuello neutro.', move: 'Eleva los hombros hacia arriba y bájalos lentamente.', error: 'No hagas círculos con los hombros ni adelantes la cabeza.' },
++    { name: 'Press banca con agarre cerrado', aliases: ['close grip bench press', 'close-grip bench press', 'press cerrado', 'press banca agarre cerrado'], primary: 'triceps', secondary: ['chest', 'front-delts'], setup: 'Túmbate como en el press banca y coloca las manos algo más cerca que los hombros.', move: 'Baja la barra hacia el pecho con los codos cerca del cuerpo y empuja arriba.', error: 'No juntes las manos en exceso ni dejes que las muñecas se doblen.' },
++    { name: 'Remo con pecho apoyado', aliases: ['chest supported row', 'chest-supported row', 'incline dumbbell row', 'remo con pecho apoyado'], primary: 'mid-back', secondary: ['lats', 'biceps', 'rear-delts'], setup: 'Apoya el pecho en el banco inclinado y deja los brazos extendidos bajo los hombros.', move: 'Lleva los codos atrás y baja el peso con control sin despegar el pecho.', error: 'Evita encoger los hombros o levantar el torso para iniciar el tirón.' },
++    { name: 'Patada de glúteo', aliases: ['glute kickback', 'cable kickback', 'donkey kick', 'patada de gluteo', 'patada de glúteo'], primary: 'glutes', secondary: ['hamstrings'], setup: 'Coloca el tobillo en la correa o apoya manos y rodillas con el tronco estable.', move: 'Lleva la pierna hacia atrás extendiendo la cadera y regresa sin perder el control.', error: 'No arquees la zona lumbar para elevar la pierna más alto.' },
++    { name: 'Buenos días', aliases: ['good morning', 'barbell good morning', 'buenos dias', 'buenos días'], primary: 'hamstrings', secondary: ['glutes', 'lower-back'], setup: 'Apoya la barra de forma estable y desbloquea ligeramente las rodillas.', move: 'Lleva la cadera atrás con la espalda neutra y vuelve apretando glúteos.', error: 'No bajes más allá del rango en que puedas conservar la espalda estable.' },
++    { name: 'Pullover en polea', aliases: ['straight arm pulldown', 'cable pullover', 'lat pullover', 'pullover en polea'], primary: 'lats', secondary: ['abs'], setup: 'Colócate frente a la polea alta con brazos casi extendidos y abdomen firme.', move: 'Lleva la barra en arco hacia los muslos y regresa hasta arriba con control.', error: 'No flexiones y extiendas los codos como si fuera un pressdown.' },
++    { name: 'Remo al mentón', aliases: ['upright row', 'barbell upright row', 'remo al menton', 'remo al mentón'], primary: 'side-delts', secondary: ['traps', 'biceps'], setup: 'Sujeta la barra delante de los muslos con un agarre cómodo y hombros relajados.', move: 'Guía la carga hacia arriba manteniéndola cerca del cuerpo y baja despacio.', error: 'No fuerces una altura o agarre que provoque molestias en el hombro.' },
+@@ -18,16 +53,34 @@
+-  const targets = { Pecho: 'chest', Espalda: 'back', Hombros: 'shoulders', Bíceps: 'biceps', Tríceps: 'triceps', Piernas: 'legs', Glúteos: 'glutes', Core: 'core', Cardio: 'legs', Otro: 'core' };
+-  const BACK = new Set(['back', 'triceps', 'glutes']);      // se ven mejor por detrás
+-  const targetOf = muscle => (Object.prototype.hasOwnProperty.call(targets, muscle) ? targets[muscle] : 'core');
+-  const escape = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+-  // Silueta de frente (pecho, hombros, bíceps, abdomen, piernas) o de espaldas (espalda, tríceps, glúteos).
+-  const SHAPES = {
+-    front: `<ellipse class="muscle chest" cx="80" cy="58" rx="19" ry="11"/>
+-    <circle class="muscle shoulders" cx="62" cy="43" r="8"/><circle class="muscle shoulders" cx="98" cy="43" r="8"/>
+-    <path class="muscle biceps" d="M50 51 43 72 49 74 57 55M110 51 117 72 111 74 103 55"/>
+-    <ellipse class="muscle core" cx="80" cy="83" rx="13" ry="20"/>
+-    <path class="muscle legs" d="M65 110 77 112 75 158 63 158ZM83 112 95 110 97 158 85 158Z"/>`,
+-    back: `<path class="muscle back" d="M64 44 Q80 40 96 44 L94 70 Q88 92 80 96 Q72 92 66 70Z"/>
+-    <circle class="muscle shoulders" cx="62" cy="43" r="8"/><circle class="muscle shoulders" cx="98" cy="43" r="8"/>
+-    <path class="muscle triceps" d="M50 51 43 72 49 74 57 55M110 51 117 72 111 74 103 55"/>
+-    <path class="muscle glutes" d="M65 99 Q80 91 95 99 L93 112 67 112Z"/>
+-    <path class="muscle legs" d="M65 113 77 114 75 158 63 158ZM83 114 95 113 97 158 85 158Z"/>`,
++
++  const labels = {
++    chest: 'Pecho', 'front-delts': 'Deltoides anterior', 'side-delts': 'Deltoides lateral',
++    'rear-delts': 'Deltoides posterior', lats: 'Dorsales', 'mid-back': 'Espalda media',
++    traps: 'Trapecio', biceps: 'Bíceps', triceps: 'Tríceps', forearms: 'Antebrazos',
++    quads: 'Cuádriceps', hamstrings: 'Isquiotibiales', glutes: 'Glúteos',
++    adductors: 'Aductores', abductors: 'Abductores', calves: 'Gemelos',
++    abs: 'Abdominales', obliques: 'Oblicuos', 'lower-back': 'Zona lumbar',
++  };
++  const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
++    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
++  const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
++  const aliases = catalog.flatMap(item => item.aliases.map(alias => ({ key: normalize(alias), item })))
++    .sort((a, b) => b.key.length - a.key.length);
++  const fallback = [
++    [/press banca|press de banca|banca|flexion|apertura|cruce|pec deck/, 'chest'],
++    [/remo|jalon|pulldown|dominada|face pull/, 'lats'],
++    [/sentadilla|prensa|zancada|extension de cuadriceps/, 'quads'],
++    [/curl femoral|peso muerto|rumano|buenos dias/, 'hamstrings'],
++    [/hip thrust|puente de gluteo|patada de gluteo/, 'glutes'],
++    [/press militar|press hombro|arnold/, 'front-delts'],
++    [/elevacion lateral|elevacion frontal|pajaro|deltoide posterior/, 'side-delts'],
++    [/curl|biceps/, 'biceps'], [/triceps|extension de codo|fondos/, 'triceps'],
++    [/plancha|crunch|abdominal|rueda/, 'abs'],
++  ];
++  const resolve = exercise => {
++    const name = normalize(exercise.name);
++    const hit = aliases.find(alias => name === alias.key || name.includes(alias.key));
++    if (hit) return hit.item;
++    const old = fallback.find(([pattern]) => pattern.test(name));
++    if (old) return { primary: old[1], secondary: [], setup: 'Coloca el cuerpo de forma estable y prepara un recorrido cómodo.', move: 'Mueve la carga con control y mantén la postura durante toda la repetición.', error: 'Evita el impulso y detente si aparece dolor.' };
++    const muscle = normalize(exercise.muscle);
++    const primary = Object.keys(labels).find(id => muscle.includes(normalize(labels[id])));
++    return { primary: primary || 'other', secondary: [], setup: 'Coloca el cuerpo de forma estable y empieza con una carga ligera.', move: 'Controla el recorrido y respira sin perder la postura.', error: 'Evita el impulso y detente si aparece dolor.' };
+@@ -35,7 +88,17 @@
+-  const body = muscle => {
+-    const target = targetOf(muscle), view = BACK.has(target) ? 'back' : 'front';
+-    const shapes = SHAPES[view].replace(new RegExp(`class="muscle ${target}"`, 'g'), `class="muscle active ${target}"`);
+-    return `<svg class="muscle-map" viewBox="0 0 160 180" role="img" aria-label="Esquema del grupo muscular: ${escape(muscle)}${view === 'back' ? ', vista de espaldas' : ''}">
+-    <circle cx="80" cy="20" r="12"/><path class="silhouette" d="M68 35 Q80 30 92 35 L100 73 95 107 98 166 83 166 80 118 77 166 62 166 65 107 60 73Z"/>
+-    <path class="silhouette" d="M62 42 47 48 35 85 42 89 58 61M98 42 113 48 125 85 118 89 102 61"/>
+-    ${shapes}</svg>${view === 'back' ? '<small class="view-note">Vista de espaldas</small>' : ''}`;
++
++  const anatomy = {
++    front: `<ellipse class="muscle chest" cx="100" cy="70" rx="20" ry="11"/><ellipse class="muscle chest" cx="100" cy="70" rx="20" ry="11" transform="translate(-21 0)"/><ellipse class="muscle chest" cx="100" cy="70" rx="20" ry="11" transform="translate(21 0)"/>
++      <path class="muscle front-delts" d="M76 48Q66 43 66 55L72 67 82 60ZM124 48Q134 43 134 55L128 67 118 60Z"/><path class="muscle side-delts" d="M67 50Q58 48 58 61L66 70 73 59ZM133 50Q142 48 142 61L134 70 127 59Z"/>
++      <path class="muscle biceps" d="M63 66Q57 72 59 86L66 91 72 72ZM137 66Q143 72 141 86L134 91 128 72Z"/><path class="muscle forearms" d="M58 91 65 92 61 116 54 114ZM142 91 135 92 139 116 146 114Z"/>
++      <path class="muscle abs" d="M89 82Q100 78 111 82L109 111 91 111Z"/><path class="muscle obliques" d="M84 81 90 83 89 108 81 104ZM116 81 110 83 111 108 119 104Z"/>
++      <path class="muscle quads" d="M83 118 98 119 96 167 81 166ZM102 119 117 118 119 166 104 167Z"/><path class="muscle adductors" d="M97 121 102 121 103 158 97 158Z"/><path class="muscle abductors" d="M78 119 85 119 82 146 77 143ZM122 119 115 119 118 146 123 143Z"/><path class="muscle calves" d="M82 170 96 170 94 202 84 202ZM104 170 118 170 116 202 106 202Z"/>`,
++    back: `<path class="muscle traps" d="M82 45Q100 38 118 45L111 67 100 78 89 67Z"/><path class="muscle rear-delts" d="M76 48Q65 44 65 57L73 66 84 59ZM124 48Q135 44 135 57L127 66 116 59Z"/>
++      <path class="muscle triceps" d="M63 66Q57 72 59 86L66 91 72 72ZM137 66Q143 72 141 86L134 91 128 72Z"/><path class="muscle forearms" d="M58 91 65 92 61 116 54 114ZM142 91 135 92 139 116 146 114Z"/>
++      <path class="muscle lats" d="M84 67 99 77 96 106 84 112 77 88ZM116 67 101 77 104 106 116 112 123 88Z"/><path class="muscle mid-back" d="M96 70 104 70 105 99 100 105 95 99Z"/>
++      <path class="muscle lower-back" d="M96 103 104 103 110 119 100 126 90 119Z"/><path class="muscle glutes" d="M83 119Q100 113 117 119L115 141 102 145 100 139 98 145 85 141Z"/><path class="muscle hamstrings" d="M83 144 98 146 96 174 82 173ZM102 146 117 144 118 173 104 174Z"/><path class="muscle calves" d="M82 176 96 176 94 203 84 203ZM104 176 118 176 116 203 106 203Z"/>`,
++  };
++  const diagram = (view, primary, secondary) => {
++    const shapes = anatomy[view].replace(/class="muscle ([a-z-]+)"/g, (_, id) => `class="muscle ${id}${id === primary ? ' primary' : secondary.includes(id) ? ' secondary' : ''}"`);
++    return `<svg class="muscle-map" viewBox="0 0 200 220" role="img" aria-label="Mapa muscular de ${view === 'front' ? 'frente' : 'espaldas'}; principal: ${escape(labels[primary] || 'grupo importado')}">
++      <circle class="silhouette" cx="100" cy="23" r="13"/><path class="silhouette" d="M82 39Q100 32 118 39L130 49 138 78 128 92 120 84 121 114 124 119 120 169 119 207 105 207 100 153 95 207 81 207 80 169 76 119 79 114 80 84 72 92 62 78 70 49Z"/>
++      <path class="silhouette" d="M72 49 61 55 47 91 55 96 72 72ZM128 49 139 55 153 91 145 96 128 72Z"/>${shapes}</svg>`;
+@@ -43,6 +106,10 @@
+-  function guideHTML(ex) {
+-    const name = String(ex.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+-    const guide = guides.find(([pattern]) => pattern.test(name));
+-    const muscle = guide ? guide[1] : (ex.muscle || 'Otro');
+-    const instruction = guide ? guide[2] : 'Consulta el nombre y el grupo muscular como referencia. Empieza con poco peso, controla el recorrido y detente si aparece dolor.';
+-    return `<section class="card exercise-guide"><div>${body(muscle)}</div><div><div class="label">${escape(muscle)}</div><h3>Cómo hacerlo</h3><p>${instruction}</p><small>Ilustración esquemática del grupo principal; otros músculos también pueden participar.</small></div></section>`;
++  function guideHTML(exercise) {
++    const current = exercise || {};
++    const guide = resolve(current);
++    const primary = Object.prototype.hasOwnProperty.call(labels, guide.primary) ? guide.primary : '';
++    const secondary = (guide.secondary || []).filter(id => labels[id]);
++    const primaryName = labels[guide.primary] || escape(current.muscle || 'Grupo principal');
++    const otherNames = secondary.map(id => labels[id]);
++    const muscles = `<div class="exercise-maps">${diagram('front', primary, secondary)}${diagram('back', primary, secondary)}<div class="map-legend"><span><i class="map-dot main"></i>Principal</span><span><i class="map-dot assist"></i>Secundario</span></div></div>`;
++    const details = `<div><div class="label">${primaryName}${otherNames.length ? ` · también: ${otherNames.join(', ')}` : ''}</div><h3>Cómo hacerlo</h3><ol class="exercise-steps"><li><b>Colocación:</b> ${guide.setup}</li><li><b>Movimiento:</b> ${guide.move}</li><li><b>Evita:</b> ${guide.error}</li></ol><small>Guía general: adapta el rango y la carga a tu movilidad. La técnica puede variar según el equipo y la persona.</small></div>`;
++    return `<section class="card exercise-guide">${muscles}${details}</section>`;
+@@ -49,0 +117 @@
++
+@@ -50,0 +119 @@
++  window.exerciseGuideCatalog = Object.freeze(catalog.map(item => Object.freeze({ ...item, aliases: Object.freeze([...item.aliases]), secondary: Object.freeze([...item.secondary]) })));
+diff --git a/get-adjustment-help.js b/get-adjustment-help.js
+new file mode 100644
+index 0000000..064ddd8
+--- /dev/null
++++ b/get-adjustment-help.js
+@@ -0,0 +1,43 @@
++/* Añade ayuda breve junto al ajuste de calorías sobre el GET. */
++'use strict';
++
++(() => {
++  const root = document.querySelector('#goal-box');
++  if (!root) return;
++
++  function addHelpButton() {
++    root.querySelectorAll('[data-goal="pct"]').forEach(input => {
++      const field = input.closest('.field');
++      const label = field && field.children[0];
++      if (!label || field.querySelector('[data-info="get-adjustment"]')) return;
++      const button = document.createElement('button');
++      button.type = 'button';
++      button.className = 'info-btn';
++      button.dataset.info = 'get-adjustment';
++      button.setAttribute('aria-label', 'Qué significa el ajuste sobre el GET');
++      button.textContent = 'i';
++      label.appendChild(button);
++    });
++  }
++
++  function openAdjustmentHelp() {
++    genSheet.innerHTML = `<div class="grabber"></div><h2>¿Qué es el ajuste sobre el GET?</h2>
++      <div class="info-text">
++        <p>El ajuste es la variación de calorías respecto al <b>GET estimado</b>: −10 % deja el objetivo un 10 % por debajo (déficit), +10 % un 10 % por encima (superávit) y 0 % lo iguala.</p>
++        <p>En deportistas, una referencia para perder peso gradualmente es <b>0,5–1 % del peso por semana</b>. No es universal ni garantiza evitar alteraciones hormonales: una disponibilidad energética baja puede afectarlas y el riesgo varía según la persona.</p>
++      </div>
++      <button class="btn btn-primary btn-block" id="get-adjustment-info-ok">Entendido</button>`;
++    genSheet.onclick = event => { if (event.target.closest('#get-adjustment-info-ok')) closeSheet(); };
++    openSheet(genSheet, () => { genSheet.onclick = null; });
++  }
++
++  addHelpButton();
++  new MutationObserver(addHelpButton).observe(root, { childList: true, subtree: true });
++  document.addEventListener('click', event => {
++    if (!event.target.closest('[data-info="get-adjustment"]')) return;
++    event.preventDefault();
++    event.stopPropagation();
++    event.stopImmediatePropagation();
++    openAdjustmentHelp();
++  }, true);
++})();
+diff --git a/index.html b/index.html
+index 6cab460..c01aafb 100644
+--- a/index.html
++++ b/index.html
+@@ -325,0 +326 @@
++<script src="weight-export.js"></script>
+@@ -335,0 +337 @@
++<script src="get-adjustment-help.js"></script>
+diff --git a/package.json b/package.json
+index 80fe5f9..f0f7184 100644
+--- a/package.json
++++ b/package.json
+@@ -11 +11 @@
+-    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs tests/exercise-guide.test.mjs tests/weight-xlsx.test.mjs",
++    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs tests/prepared-foods.test.mjs tests/exercise-guide.test.mjs tests/weight-xlsx.test.mjs tests/get-adjustment-help.test.mjs",
+diff --git a/prepared-foods.js b/prepared-foods.js
+index 5d42464..a62ab67 100644
+--- a/prepared-foods.js
++++ b/prepared-foods.js
+@@ -11,0 +12,18 @@ window.PREPARED_MEALS = [
++  { name: 'Macarrones con tomate', items: [['Pasta, cocida', 200], ['Salsa de tomate', 100], ['Aceite de oliva', 5], ['Queso curado (tipo parmesano)', 10]] },
++  { name: 'Paella de pollo y gambas', items: [['Arroz blanco, cocido', 200], ['Pechuga de pollo, asada', 80], ['Gambas o langostinos, crudos', 60], ['Guisantes congelados', 30], ['Pimiento rojo, crudo', 30], ['Aceite de oliva', 5]] },
++  { name: 'Cocido de garbanzos', items: [['Garbanzos, cocidos', 150], ['Repollo, crudo', 60], ['Zanahoria, cruda', 40], ['Patata, cocida', 120], ['Pechuga de pollo, asada', 80], ['Chorizo', 20]] },
++  { name: 'Salmorejo con huevo y jamón', items: [['Tomate', 250], ['Pan de barra', 40], ['Aceite de oliva', 10], ['Huevo cocido', 50], ['Jamón curado (tipo serrano)', 20]] },
++  { name: 'Pisto manchego', items: [['Tomate', 150], ['Calabacín, crudo', 100], ['Berenjena, cruda', 70], ['Pimiento verde, crudo', 50], ['Cebolla, cruda', 40], ['Aceite de oliva', 8]] },
++  { name: 'Revuelto de champiñones y jamón', items: [['Champiñones, crudos', 150], ['Huevo entero', 110], ['Jamón curado (tipo serrano)', 20], ['Aceite de oliva', 5]] },
++  { name: 'Pollo a la plancha con ensalada', items: [['Pechuga de pollo, asada', 130], ['Lechuga romana', 80], ['Tomate', 100], ['Aceite de oliva', 8]] },
++  { name: 'Yogur con avena y fruta', items: [['Yogur natural entero', 125], ['Copos de avena', 35], ['Plátano', 80], ['Manzana', 80]] },
++  { name: 'Tostada de tomate y jamón', items: [['Pan de barra', 60], ['Tomate', 60], ['Aceite de oliva', 5], ['Jamón curado (tipo serrano)', 25]] },
++  { name: 'Ensaladilla rusa', items: [['Patata, cocida', 160], ['Zanahoria, cruda', 40], ['Guisantes congelados', 30], ['Huevo cocido', 50], ['Mayonesa', 15]] },
++  { name: 'Merluza con judías verdes', items: [['Merluza o pescadilla, cruda', 180], ['Judías verdes, crudas', 150], ['Aceite de oliva', 8]] },
++  { name: 'Garbanzos con espinacas', items: [['Garbanzos, cocidos', 160], ['Espinacas, crudas', 100], ['Tomate triturado en lata', 80], ['Aceite de oliva', 5]] },
++  { name: 'Alubias blancas con chorizo', items: [['Alubias blancas, cocidas', 180], ['Chorizo', 30], ['Cebolla, cruda', 30], ['Tomate triturado en lata', 60]] },
++  { name: 'Tortilla francesa con jamón', items: [['Huevo entero', 110], ['Jamón cocido (york)', 30], ['Aceite de oliva', 4]] },
++  { name: 'Salmón con cuscús', items: [['Salmón, crudo', 150], ['Cuscús, cocido', 150], ['Aceite de oliva', 5]] },
++  { name: 'Bocadillo de jamón y queso', items: [['Pan de barra', 90], ['Jamón cocido (york)', 30], ['Queso curado (tipo parmesano)', 15], ['Tomate', 40]] },
++  { name: 'Wrap de atún', items: [['Tortilla de trigo (wrap)', 60], ['Atún en lata al natural, escurrido', 80], ['Tomate', 40], ['Lechuga romana', 30], ['Mayonesa', 10]] },
++  { name: 'Arroz con ternera y verduras', items: [['Arroz blanco, cocido', 180], ['Carne picada de ternera (5 % grasa), cruda', 100], ['Pimiento verde, crudo', 50], ['Salsa de tomate', 60], ['Aceite de oliva', 5]] },
+diff --git a/styles.css b/styles.css
+index e97772d..bb8ccdb 100644
+--- a/styles.css
++++ b/styles.css
+@@ -709 +709 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
+-.exercise-guide { display: grid; grid-template-columns: 110px 1fr; gap: 14px; align-items: center; }
++.exercise-guide { display: grid; grid-template-columns: minmax(142px, 176px) 1fr; gap: 14px; align-items: center; }
+@@ -711 +710,0 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
+-.exercise-guide p { margin: 0 0 7px; font-size: 14px; line-height: 1.45; }
+@@ -713 +712,3 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
+-.muscle-map { width: 100%; max-height: 145px; fill: var(--surface-2); stroke: var(--muted); stroke-width: 2; stroke-linejoin: round; }
++.exercise-maps { display: grid; grid-template-columns: 1fr 1fr; align-items: end; gap: 3px; }
++.muscle-map { width: 100%; max-height: 184px; fill: transparent; stroke: var(--muted); stroke-width: 1.5; stroke-linejoin: round; }
++.muscle-map .silhouette { fill: var(--surface-2); stroke: var(--muted); }
+@@ -715 +716,12 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
+-.muscle-map .muscle.active { fill: var(--goal); }
++.muscle-map .muscle.primary { fill: var(--goal); }
++.muscle-map .muscle.secondary { fill: var(--accent); }
++.map-legend { grid-column: 1 / -1; display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: 10px; }
++.map-legend span { display: inline-flex; align-items: center; gap: 4px; }
++.map-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--goal); }
++.map-dot.assist { background: var(--accent); }
++.exercise-steps { margin: 0 0 8px; padding-left: 18px; font-size: 13px; line-height: 1.42; }
++.exercise-steps li { padding-left: 2px; margin: 0 0 5px; }
++@media (max-width: 520px) {
++  .exercise-guide { grid-template-columns: 1fr; }
++  .exercise-maps { width: min(100%, 290px); margin: 0 auto 4px; }
++}
+diff --git a/tests/exercise-guide.test.mjs b/tests/exercise-guide.test.mjs
+index 0835a44..994dfbb 100644
+--- a/tests/exercise-guide.test.mjs
++++ b/tests/exercise-guide.test.mjs
+@@ -7 +7 @@ const source = await readFile(new URL('../exercise-guide.js', import.meta.url),
+-function render(exercise) {
++function guideAPI() {
+@@ -10 +10 @@ function render(exercise) {
+-  return window.exerciseGuideHTML(exercise);
++  return window;
+@@ -11,0 +12 @@ function render(exercise) {
++function render(exercise) { return guideAPI().exerciseGuideHTML(exercise); }
+@@ -13 +14,19 @@ function render(exercise) {
+-test('la guía resalta el grupo de un ejercicio conocido', () => {
++test('el catálogo local incluye al menos 40 ejercicios completos y sin dependencias', () => {
++  const { exerciseGuideCatalog: catalog } = guideAPI();
++  assert.ok(catalog.length >= 40);
++  assert.ok(catalog.every(x => x.name && x.aliases.length && x.setup && x.move && x.error));
++  assert.ok(catalog.some(x => x.aliases.includes('bench press')));
++  assert.ok(catalog.some(x => x.aliases.includes('press banca')));
++  assert.doesNotMatch(source, /https?:\/\//);
++});
++
++test('cada alias del catálogo encuentra su grupo principal', () => {
++  const { exerciseGuideCatalog: catalog, exerciseGuideHTML } = guideAPI();
++  for (const item of catalog) {
++    for (const alias of item.aliases) {
++      assert.match(exerciseGuideHTML({ name: alias }), new RegExp(`class="muscle ${item.primary} primary"`), alias);
++    }
++  }
++});
++
++test('la guía resalta músculos principales y secundarios para un ejercicio específico', () => {
+@@ -15,2 +34,5 @@ test('la guía resalta el grupo de un ejercicio conocido', () => {
+-  assert.match(html, /muscle active chest/);
+-  assert.match(html, /Cómo hacerlo/);
++  assert.match(html, /class="muscle chest primary"/);
++  assert.match(html, /class="muscle triceps secondary"/);
++  assert.match(html, /Colocación:/);
++  assert.match(html, /Movimiento:/);
++  assert.match(html, /Evita:/);
+@@ -20 +42,19 @@ test('la guía resalta el grupo de un ejercicio conocido', () => {
+-test('la guía escapa el grupo muscular importado', () => {
++test('reconoce variantes en español e inglés y distingue ejercicios parecidos', () => {
++  const incline = render({ name: 'Press banca inclinado con mancuernas' });
++  const legCurl = render({ name: 'Seated leg curl' });
++  assert.match(incline, /Deltoides anterior/);
++  assert.match(legCurl, /Isquiotibiales/);
++  assert.doesNotMatch(legCurl, /Cuádriceps · también/);
++});
++
++test('presenta mapas musculares frontal y posterior con leyenda', () => {
++  const html = render({ name: 'Remo sentado en polea' });
++  assert.match(html, /Mapa muscular de frente/);
++  assert.match(html, /Mapa muscular de espaldas/);
++  assert.match(html, /Principal/);
++  assert.match(html, /Secundario/);
++  assert.match(html, /class="muscle lats primary"/);
++  assert.match(html, /class="muscle biceps secondary"/);
++});
++
++test('escapa el grupo muscular importado y conserva un fallback para nombres desconocidos', () => {
+@@ -23,0 +64 @@ test('la guía escapa el grupo muscular importado', () => {
++  assert.match(render({ name: 'Remo unilateral raro', muscle: 'Espalda' }), /Movimiento:/);
+@@ -26,9 +67 @@ test('la guía escapa el grupo muscular importado', () => {
+-test('espalda, tríceps y glúteos se muestran en la vista de espaldas (no se ilumina el pecho)', () => {
+-  const html = render({ name: 'Remo sentado con cable', muscle: 'Espalda' });
+-  assert.match(html, /muscle active back/);
+-  assert.match(html, /vista de espaldas/);
+-  assert.doesNotMatch(html, /muscle chest/);
+-  assert.match(render({ name: 'Press banca', muscle: 'Pecho' }), /muscle active chest/);
+-});
+-
+-test('un grupo muscular con un nombre raro (de una copia importada) no rompe la guía', () => {
++test('grupos musculares raros o heredados no rompen la guía', () => {
+@@ -36,2 +69 @@ test('un grupo muscular con un nombre raro (de una copia importada) no rompe la
+-    const html = render({ name: 'Ejercicio raro', muscle });
+-    assert.match(html, /Cómo hacerlo/);
++    assert.match(render({ name: 'Ejercicio raro', muscle }), /Cómo hacerlo/);
+diff --git a/tests/get-adjustment-help.test.mjs b/tests/get-adjustment-help.test.mjs
+new file mode 100644
+index 0000000..dce87da
+--- /dev/null
++++ b/tests/get-adjustment-help.test.mjs
+@@ -0,0 +1,65 @@
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../get-adjustment-help.js', import.meta.url), 'utf8');
++
++function setup() {
++  const buttons = [];
++  const title = { children: [], appendChild(button) { this.children.push(button); buttons.push(button); } };
++  const field = { children: [title], querySelector: selector => selector === '[data-info="get-adjustment"]' ? buttons[0] || null : null };
++  const input = { closest: selector => selector === '.field' ? field : null };
++  const root = { querySelectorAll: selector => selector === '[data-goal="pct"]' ? [input] : [] };
++  const listeners = {};
++  let observer;
++  const document = {
++    querySelector: selector => selector === '#goal-box' ? root : null,
++    createElement: tag => ({ tagName: tag, dataset: {}, setAttribute(name, value) { this[name] = value; } }),
++    addEventListener: (type, handler, capture) => { listeners[type] = { handler, capture }; },
++  };
++  class Observer {
++    constructor(callback) { this.callback = callback; observer = this; }
++    observe(target, options) { this.target = target; this.options = options; }
++  }
++  const genSheet = {};
++  const opened = [];
++  vm.runInNewContext(source, {
++    document, MutationObserver: Observer, genSheet,
++    openSheet: (sheet, onClose) => opened.push({ sheet, onClose }), closeSheet() {},
++  });
++  return { buttons, field, genSheet, listeners, observer, opened, root };
++}
++
++test('inserta un botón i junto al porcentaje incluso después de volver a pintar la dieta', () => {
++  const state = setup();
++  assert.equal(state.buttons.length, 1);
++  assert.equal(state.buttons[0].type, 'button');
++  assert.equal(state.buttons[0].dataset.info, 'get-adjustment');
++  assert.equal(state.buttons[0].textContent, 'i');
++  assert.equal(state.observer.target, state.root);
++  assert.equal(state.observer.options.subtree, true);
++  state.observer.callback();
++  assert.equal(state.buttons.length, 1);
++});
++
++test('la ayuda explica el ajuste y limita el consejo del 1% a una referencia deportiva', () => {
++  const state = setup();
++  const event = {
++    target: { closest: selector => selector === '[data-info="get-adjustment"]' ? {} : null },
++    preventDefault() { this.prevented = true; },
++    stopPropagation() { this.stopped = true; },
++    stopImmediatePropagation() { this.immediate = true; },
++  };
++  state.listeners.click.handler(event);
++  assert.equal(state.listeners.click.capture, true);
++  assert.ok(event.prevented && event.stopped && event.immediate);
++  assert.match(state.genSheet.innerHTML, /déficit/);
++  assert.match(state.genSheet.innerHTML, /−10 %/);
++  assert.match(state.genSheet.innerHTML, /\+10 %/);
++  assert.match(state.genSheet.innerHTML, /0 % lo iguala/);
++  assert.match(state.genSheet.innerHTML, /0,5–1 % del peso por semana/);
++  assert.match(state.genSheet.innerHTML, /No es universal ni garantiza evitar/);
++  assert.match(state.genSheet.innerHTML, /alteraciones hormonales/);
++  assert.equal(state.opened.length, 1);
++});
+diff --git a/tests/prepared-foods.test.mjs b/tests/prepared-foods.test.mjs
+new file mode 100644
+index 0000000..fbc838d
+--- /dev/null
++++ b/tests/prepared-foods.test.mjs
+@@ -0,0 +1,25 @@
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const read = path => readFile(new URL(path, import.meta.url), 'utf8');
++const context = vm.createContext({ window: {} });
++vm.runInContext(await read('../foods-db.js'), context);
++vm.runInContext(await read('../prepared-foods.js'), context);
++const meals = context.window.PREPARED_MEALS;
++const foods = new Set(context.window.FOODS_ES.map(row => row[1]));
++
++test('hay 25 platos con nombres únicos', () => {
++  assert.equal(meals.length, 25);
++  assert.equal(new Set(meals.map(meal => meal.name)).size, meals.length);
++});
++
++test('todos los ingredientes existen en la lista básica y tienen cantidad por ración', () => {
++  const missing = [];
++  for (const meal of meals) for (const [name, grams] of meal.items) {
++    if (!foods.has(name)) missing.push(`${meal.name}: ${name}`);
++    assert.ok(Number.isFinite(grams) && grams > 0 && grams <= 1000, `${meal.name}: cantidad no válida para ${name}`);
++  }
++  assert.deepEqual(missing, []);
++});
+diff --git a/tests/weight-xlsx.test.mjs b/tests/weight-xlsx.test.mjs
+index b50f15a..d27f68d 100644
+--- a/tests/weight-xlsx.test.mjs
++++ b/tests/weight-xlsx.test.mjs
+@@ -4,0 +5 @@ import assert from 'node:assert/strict';
++import { Blob, Buffer } from 'node:buffer';
+@@ -6,0 +8 @@ const source = await readFile(new URL('../weight-xlsx.js', import.meta.url), 'ut
++const exportSource = await readFile(new URL('../weight-export.js', import.meta.url), 'utf8');
+@@ -11,0 +14,8 @@ async function workbook(entries) {
++function exportAPI(extra = {}) {
++  const window = {};
++  const listeners = {};
++  const document = { addEventListener: (name, handler, capture) => { listeners[name] = { handler, capture }; } };
++  vm.runInNewContext(source, { window, Blob, TextEncoder });
++  vm.runInNewContext(exportSource, { window, document, ...extra });
++  return { window, listeners };
++}
+@@ -19,0 +30,4 @@ test('genera un XLSX con hoja de pesos y gráfico', async () => {
++  assert.match(zipText, /<t>Fecha<\/t>/);
++  assert.match(zipText, /<t>Peso \(kg\)<\/t>/);
++  assert.match(zipText, /'Pesos'!\$A\$2:\$A\$3/);
++  assert.match(zipText, /'Pesos'!\$B\$2:\$B\$3/);
+@@ -25,0 +40,65 @@ test('escapa valores de fecha al crear la hoja', async () => {
++
++test('la exportación conserva solo fecha y peso válidos y los ordena por fecha', () => {
++  const { window, listeners } = exportAPI();
++  const rows = window.weightRowsForExport([
++    { date: '2026-03-02', kg: 80 },
++    { date: 'fecha inválida', kg: 81 },
++    { date: '2026-03-01', kg: 80.5, note: 'se descarta' },
++    { date: '2026-03-03', kg: NaN },
++    { date: '2026-03-04', kg: -2 },
++  ]);
++  assert.deepEqual(JSON.parse(JSON.stringify(rows)), [
++    { date: '2026-03-01', kg: 80.5 },
++    { date: '2026-03-02', kg: 80 },
++  ]);
++  assert.equal(listeners.click.capture, true);
++});
++
++test('el botón Excel intercepta el clic y explica si no hay registros', () => {
++  const messages = [];
++  const { listeners } = exportAPI({ entries: [], toast: message => messages.push(message) });
++  const event = {
++    target: { closest: selector => selector === '[data-action="export-excel"]' ? {} : null },
++    preventDefault() { this.prevented = true; },
++    stopPropagation() { this.stopped = true; },
++    stopImmediatePropagation() { this.immediate = true; },
++  };
++  listeners.click.handler(event);
++  assert.equal(event.prevented && event.stopped && event.immediate, true);
++  assert.deepEqual(messages, ['No hay pesos válidos que exportar']);
++});
++
++test('la exportación nativa guarda el XLSX en caché y abre el diálogo para compartirlo', async () => {
++  class Reader {
++    readAsDataURL(blob) {
++      blob.arrayBuffer().then(bytes => {
++        this.result = `data:application/zip;base64,${Buffer.from(bytes).toString('base64')}`;
++        this.onload();
++      });
++    }
++  }
++  const calls = [], messages = [];
++  const { listeners } = exportAPI({
++    entries: [{ date: '2026-03-01', kg: 70 }],
++    FileReader: Reader,
++    isNative: () => true,
++    todayISO: () => '2026-03-02',
++    toast: message => messages.push(message),
++    nativeCall: async (plugin, method, options) => {
++      calls.push({ plugin, method, options });
++      return method === 'writeFile' ? { uri: 'file://tracking-pesos.xlsx' } : {};
++    },
++  });
++  const event = {
++    target: { closest: () => ({}) },
++    preventDefault() {}, stopPropagation() {}, stopImmediatePropagation() {},
++  };
++  listeners.click.handler(event);
++  await new Promise(resolve => setTimeout(resolve, 0));
++  assert.equal(calls[0].method, 'writeFile');
++  assert.equal(calls[0].options.path, 'tracking-pesos-2026-03-02.xlsx');
++  assert.match(calls[0].options.data, /^UEs/);
++  assert.equal(calls[1].method, 'share');
++  assert.deepEqual(JSON.parse(JSON.stringify(calls[1].options.files)), ['file://tracking-pesos.xlsx']);
++  assert.deepEqual(messages, ['Excel exportado']);
++});
+diff --git a/tools/foods-es.txt b/tools/foods-es.txt
+index fd43b17..c4ebbc8 100644
+--- a/tools/foods-es.txt
++++ b/tools/foods-es.txt
+@@ -267,0 +268,71 @@ Pizza de queso | Salsas y condimentos | pizza, cheese topping, regular crust, fr
++
++# ---- Ampliación de alimentos habituales en España (USDA SR28)
++# Carnes y embutidos
++Morcilla | Carnes | 07005 | ración=40
++Chistorra | Carnes | 07036 | ración=30
++Salchicha fresca de cerdo | Carnes | 07063 | unidad=50
++Salchicha de cerdo cocinada | Carnes | 07065 | unidad=50
++Salchicha ahumada de cerdo | Carnes | 07074 | unidad=50
++Salchicha de pavo para desayuno | Carnes | 07919 | unidad=20
++Salchicha de pavo ahumada | Carnes | 07929 | unidad=50
++Salami de cerdo y ternera | Carnes | 07072 | loncha=15
++Paté de hígado de cerdo | Carnes | 07041 | ración=30
++Panceta de cerdo, cruda | Carnes | 10005 | loncha=40
++Salchicha vienesa en conserva | Carnes | 07083 | unidad=45
++Salchicha italiana de cerdo, cocinada | Carnes | 07089 | ración=75
++Jamón cocido extra magro | Carnes | 07028 | loncha=20
++Jamón de pavo en lonchas | Carnes | 42128 | loncha=20
++
++# Quesos
++Queso azul | Huevos y lácteos | 01004 | porción=30
++Queso brick | Huevos y lácteos | 01005 | porción=30
++Queso camembert | Huevos y lácteos | 01007 | porción=30
++Queso colby | Huevos y lácteos | 01011 | porción=30
++Queso edam | Huevos y lácteos | 01018 | porción=30
++Queso fontina | Huevos y lácteos | 01020 | porción=30
++Queso gruyere | Huevos y lácteos | 01023 | porción=30
++Queso monterey | Huevos y lácteos | 01025 | porción=30
++Queso muenster | Huevos y lácteos | 01030 | porción=30
++Queso provolone | Huevos y lácteos | 01035 | porción=30
++Queso parmesano rallado | Huevos y lácteos | 01032 | cucharada=5
++
++# Panes, bollería y galletas
++Pan de pita blanco | Cereales, pan y patata | 18041 | unidad=60
++Pan de pita integral | Cereales, pan y patata | 18042 | unidad=60
++Pan pumpernickel (centeno oscuro) | Cereales, pan y patata | 18044 | rebanada=30
++Pan italiano | Cereales, pan y patata | 18033 | rebanada=30
++Bagel clásico | Cereales, pan y patata | 18001 | unidad=95
++Bagel de huevo | Cereales, pan y patata | 18003 | unidad=95
++Bagel de avena | Cereales, pan y patata | 18007 | unidad=95
++Bagel de trigo | Cereales, pan y patata | 18968 | unidad=95
++Bollo de hamburguesa | Cereales, pan y patata | 28394 | unidad=50
++Bollo integral de hamburguesa | Cereales, pan y patata | 28377 | unidad=50
++Bizcocho esponjoso | Dulces y snacks | 18133 | porción=50
++Galleta de mantequilla | Dulces y snacks | 18155 | unidad=10
++
++# Conservas de pescado, legumbres y verduras
++Bacalao en conserva | Pescados y mariscos | 15017 | ración=80
++Caballa en conserva, escurrida | Pescados y mariscos | 15048 | ración=80
++Salmón chum en conserva, escurrido | Pescados y mariscos | 15080 | ración=85
++Salmón rosado en conserva | Pescados y mariscos | 15084 | ración=85
++Salmón rojo en conserva, escurrido | Pescados y mariscos | 15087 | ración=85
++Sardinas en tomate, escurridas | Pescados y mariscos | 15089 | lata=90
++Almejas en conserva, escurridas | Pescados y mariscos | 15160 | ración=65
++Alubias rojas en conserva | Legumbres | 16029 | ración=130
++Alubias pintas en conserva | Legumbres | 16044 | ración=130
++Alubias rojas en conserva, escurridas | Legumbres | 16034 | ración=130
++Alubias pintas en conserva, escurridas | Legumbres | 16146 | ración=130
++Guisantes en conserva, escurridos | Legumbres | 11308 | ración=130
++Espárragos en conserva, escurridos | Verduras | 11015 | ración=100
++Champiñones en conserva, escurridos | Verduras | 11264 | ración=100
++Remolacha en conserva, escurrida | Verduras | 11084 | ración=100
++
++# Salsas y aliños
++Pesto refrigerado | Salsas y condimentos | 06626 | cucharada=15
++Pesto de larga conservación | Salsas y condimentos | 06627 | cucharada=15
++Salsa mexicana lista para servir | Salsas y condimentos | 06164 | cucharada=15
++Salsa verde mexicana | Salsas y condimentos | 27047 | cucharada=15
++Aliño de queso azul | Salsas y condimentos | 04539 | cucharada=15
++Aliño ranchero | Salsas y condimentos | 04639 | cucharada=15
++Salsa mil islas | Salsas y condimentos | 04017 | cucharada=15
++Aliño italiano para ensalada | Salsas y condimentos | 04114 | cucharada=15
+diff --git a/weight-export.js b/weight-export.js
+new file mode 100644
+index 0000000..7404ac7
+--- /dev/null
++++ b/weight-export.js
+@@ -0,0 +1,64 @@
++/* Conecta el botón de exportación con el generador XLSX, sin tocar la lógica principal. */
++'use strict';
++
++(() => {
++  const DATE = /^\d{4}-\d{2}-\d{2}$/;
++
++  function weightRowsForExport(items) {
++    return (Array.isArray(items) ? items : [])
++      .filter(item => item && DATE.test(String(item.date || '')) && Number.isFinite(item.kg) && item.kg > 0)
++      .map(item => ({ date: item.date, kg: item.kg }))
++      .sort((a, b) => a.date.localeCompare(b.date));
++  }
++
++  function blobAsBase64(blob) {
++    return new Promise((resolve, reject) => {
++      const reader = new FileReader();
++      reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
++      reader.onerror = () => reject(reader.error || new Error('No se pudo preparar el archivo'));
++      reader.readAsDataURL(blob);
++    });
++  }
++
++  function download(blob, name) {
++    const link = document.createElement('a');
++    link.href = URL.createObjectURL(blob);
++    link.download = name;
++    document.body.appendChild(link);
++    link.click();
++    link.remove();
++    setTimeout(() => URL.revokeObjectURL(link.href), 2000);
++  }
++
++  async function exportWeightHistory() {
++    const rows = weightRowsForExport(typeof entries === 'undefined' ? [] : entries);
++    if (!rows.length) return toast('No hay pesos válidos que exportar');
++    const today = typeof todayISO === 'function' ? todayISO() : new Date().toISOString().slice(0, 10);
++    const name = `tracking-pesos-${today}.xlsx`;
++    const blob = window.createWeightWorkbook(rows);
++    if (typeof isNative === 'function' && isNative() && typeof nativeCall === 'function') {
++      const file = await nativeCall('Filesystem', 'writeFile', {
++        path: name, data: await blobAsBase64(blob), directory: 'CACHE',
++      });
++      await nativeCall('Share', 'share', {
++        title: 'Pesos de Tracking', dialogTitle: 'Guardar o compartir Excel', files: [file.uri],
++      });
++      return toast('Excel exportado');
++    }
++    download(blob, name);
++    toast('Excel descargado');
++  }
++
++  function onExportClick(event) {
++    if (!event.target.closest('[data-action="export-excel"]')) return;
++    event.preventDefault();
++    event.stopPropagation();
++    event.stopImmediatePropagation();
++    exportWeightHistory().catch(error => {
++      if (!/cancel|abort/i.test(String(error && (error.message || error.name) || error))) toast('No se pudo exportar el Excel');
++    });
++  }
++
++  window.weightRowsForExport = weightRowsForExport;
++  document.addEventListener('click', onExportClick, true);
++})();
