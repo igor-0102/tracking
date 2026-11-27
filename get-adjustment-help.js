@@ -2,7 +2,7 @@
 'use strict';
 
 (() => {
-  const root = document.querySelector('#diet-root');
+  const root = document.querySelector('#goal-box');
   if (!root) return;
 
   function addHelpButton() {

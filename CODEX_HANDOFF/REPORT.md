@@ -2,7 +2,7 @@
 
 ## Cambios
 
-- Aparece una «i» junto al campo `Ajuste sobre el GET`, también después de que la pantalla de dieta se vuelva a pintar.
+- Aparece una «i» junto al campo `Ajuste sobre el GET` de Ajustes (`#goal-box`), también después de que se vuelva a pintar el perfil.
 - El diálogo explica con ejemplos breves cómo −10 %, 0 % y +10 % cambian el objetivo de calorías frente al GET estimado.
 - La guía de peso aclara que 0,5–1 % semanal es una referencia de pérdida gradual para deportistas estudiados, no un límite universal ni garantía de prevenir alteraciones hormonales. La baja disponibilidad energética puede afectar la función hormonal y el riesgo depende de cada persona.
 - Sin dependencias ni solicitudes de red.

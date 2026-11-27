@@ -1,3 +1,52 @@
+diff --git a/get-adjustment-help.js b/get-adjustment-help.js
+new file mode 100644
+index 0000000..064ddd8
+--- /dev/null
++++ b/get-adjustment-help.js
+@@ -0,0 +1,43 @@
++/* Añade ayuda breve junto al ajuste de calorías sobre el GET. */
++'use strict';
++
++(() => {
++  const root = document.querySelector('#goal-box');
++  if (!root) return;
++
++  function addHelpButton() {
++    root.querySelectorAll('[data-goal="pct"]').forEach(input => {
++      const field = input.closest('.field');
++      const label = field && field.children[0];
++      if (!label || field.querySelector('[data-info="get-adjustment"]')) return;
++      const button = document.createElement('button');
++      button.type = 'button';
++      button.className = 'info-btn';
++      button.dataset.info = 'get-adjustment';
++      button.setAttribute('aria-label', 'Qué significa el ajuste sobre el GET');
++      button.textContent = 'i';
++      label.appendChild(button);
++    });
++  }
++
++  function openAdjustmentHelp() {
++    genSheet.innerHTML = `<div class="grabber"></div><h2>¿Qué es el ajuste sobre el GET?</h2>
++      <div class="info-text">
++        <p>El ajuste es la variación de calorías respecto al <b>GET estimado</b>: −10 % deja el objetivo un 10 % por debajo (déficit), +10 % un 10 % por encima (superávit) y 0 % lo iguala.</p>
++        <p>En deportistas, una referencia para perder peso gradualmente es <b>0,5–1 % del peso por semana</b>. No es universal ni garantiza evitar alteraciones hormonales: una disponibilidad energética baja puede afectarlas y el riesgo varía según la persona.</p>
++      </div>
++      <button class="btn btn-primary btn-block" id="get-adjustment-info-ok">Entendido</button>`;
++    genSheet.onclick = event => { if (event.target.closest('#get-adjustment-info-ok')) closeSheet(); };
++    openSheet(genSheet, () => { genSheet.onclick = null; });
++  }
++
++  addHelpButton();
++  new MutationObserver(addHelpButton).observe(root, { childList: true, subtree: true });
++  document.addEventListener('click', event => {
++    if (!event.target.closest('[data-info="get-adjustment"]')) return;
++    event.preventDefault();
++    event.stopPropagation();
++    event.stopImmediatePropagation();
++    openAdjustmentHelp();
++  }, true);
++})();
 diff --git a/index.html b/index.html
 index 6cab460..a251e57 100644
 --- a/index.html
@@ -23,3 +72,74 @@ index 80fe5f9..0d9485c 100644
      "build:foods": "node tools/build-foods.mjs"
    },
    "dependencies": {
+diff --git a/tests/get-adjustment-help.test.mjs b/tests/get-adjustment-help.test.mjs
+new file mode 100644
+index 0000000..dce87da
+--- /dev/null
++++ b/tests/get-adjustment-help.test.mjs
+@@ -0,0 +1,65 @@
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../get-adjustment-help.js', import.meta.url), 'utf8');
++
++function setup() {
++  const buttons = [];
++  const title = { children: [], appendChild(button) { this.children.push(button); buttons.push(button); } };
++  const field = { children: [title], querySelector: selector => selector === '[data-info="get-adjustment"]' ? buttons[0] || null : null };
++  const input = { closest: selector => selector === '.field' ? field : null };
++  const root = { querySelectorAll: selector => selector === '[data-goal="pct"]' ? [input] : [] };
++  const listeners = {};
++  let observer;
++  const document = {
++    querySelector: selector => selector === '#goal-box' ? root : null,
++    createElement: tag => ({ tagName: tag, dataset: {}, setAttribute(name, value) { this[name] = value; } }),
++    addEventListener: (type, handler, capture) => { listeners[type] = { handler, capture }; },
++  };
++  class Observer {
++    constructor(callback) { this.callback = callback; observer = this; }
++    observe(target, options) { this.target = target; this.options = options; }
++  }
++  const genSheet = {};
++  const opened = [];
++  vm.runInNewContext(source, {
++    document, MutationObserver: Observer, genSheet,
++    openSheet: (sheet, onClose) => opened.push({ sheet, onClose }), closeSheet() {},
++  });
++  return { buttons, field, genSheet, listeners, observer, opened, root };
++}
++
++test('inserta un botón i junto al porcentaje incluso después de volver a pintar la dieta', () => {
++  const state = setup();
++  assert.equal(state.buttons.length, 1);
++  assert.equal(state.buttons[0].type, 'button');
++  assert.equal(state.buttons[0].dataset.info, 'get-adjustment');
++  assert.equal(state.buttons[0].textContent, 'i');
++  assert.equal(state.observer.target, state.root);
++  assert.equal(state.observer.options.subtree, true);
++  state.observer.callback();
++  assert.equal(state.buttons.length, 1);
++});
++
++test('la ayuda explica el ajuste y limita el consejo del 1% a una referencia deportiva', () => {
++  const state = setup();
++  const event = {
++    target: { closest: selector => selector === '[data-info="get-adjustment"]' ? {} : null },
++    preventDefault() { this.prevented = true; },
++    stopPropagation() { this.stopped = true; },
++    stopImmediatePropagation() { this.immediate = true; },
++  };
++  state.listeners.click.handler(event);
++  assert.equal(state.listeners.click.capture, true);
++  assert.ok(event.prevented && event.stopped && event.immediate);
++  assert.match(state.genSheet.innerHTML, /déficit/);
++  assert.match(state.genSheet.innerHTML, /−10 %/);
++  assert.match(state.genSheet.innerHTML, /\+10 %/);
++  assert.match(state.genSheet.innerHTML, /0 % lo iguala/);
++  assert.match(state.genSheet.innerHTML, /0,5–1 % del peso por semana/);
++  assert.match(state.genSheet.innerHTML, /No es universal ni garantiza evitar/);
++  assert.match(state.genSheet.innerHTML, /alteraciones hormonales/);
++  assert.equal(state.opened.length, 1);
++});

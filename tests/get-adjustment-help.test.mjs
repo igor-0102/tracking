@@ -14,7 +14,7 @@ function setup() {
   const listeners = {};
   let observer;
   const document = {
-    querySelector: selector => selector === '#diet-root' ? root : null,
+    querySelector: selector => selector === '#goal-box' ? root : null,
     createElement: tag => ({ tagName: tag, dataset: {}, setAttribute(name, value) { this[name] = value; } }),
     addEventListener: (type, handler, capture) => { listeners[type] = { handler, capture }; },
   };
