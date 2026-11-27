@@ -105,10 +105,12 @@ diff --git a/exercise-guide.js b/exercise-guide.js
 index 6a3534b..88018cb 100644
 --- a/exercise-guide.js
 +++ b/exercise-guide.js
-@@ -1 +1 @@
+@@ -1,51 +1,120 @@
 -/* Guía local de ejercicios: zonas musculares esquemáticas e instrucciones breves. */
 +/* Catálogo local de ejercicios y mapas musculares SVG. No usa red ni dependencias. */
-@@ -5,12 +5,47 @@
+ 'use strict';
+ 
+ (() => {
 -  const guides = [
 -    [/press banca|press de banca|banca|flexion|apertura|cruce|pec deck/, 'Pecho', 'Tumbado o con el torso estable, baja el peso con control hacia el pecho. Empuja sin rebotar y mantén las muñecas alineadas.'],
 -    [/remo|jalon|pulldown|dominada|face pull/, 'Espalda', 'Inicia el tirón llevando los codos hacia atrás o abajo. Mantén el tronco firme y evita balancearte para mover el peso.'],
@@ -168,7 +170,7 @@ index 6a3534b..88018cb 100644
 +    { name: 'Buenos días', aliases: ['good morning', 'barbell good morning', 'buenos dias', 'buenos días'], primary: 'hamstrings', secondary: ['glutes', 'lower-back'], setup: 'Apoya la barra de forma estable y desbloquea ligeramente las rodillas.', move: 'Lleva la cadera atrás con la espalda neutra y vuelve apretando glúteos.', error: 'No bajes más allá del rango en que puedas conservar la espalda estable.' },
 +    { name: 'Pullover en polea', aliases: ['straight arm pulldown', 'cable pullover', 'lat pullover', 'pullover en polea'], primary: 'lats', secondary: ['abs'], setup: 'Colócate frente a la polea alta con brazos casi extendidos y abdomen firme.', move: 'Lleva la barra en arco hacia los muslos y regresa hasta arriba con control.', error: 'No flexiones y extiendas los codos como si fuera un pressdown.' },
 +    { name: 'Remo al mentón', aliases: ['upright row', 'barbell upright row', 'remo al menton', 'remo al mentón'], primary: 'side-delts', secondary: ['traps', 'biceps'], setup: 'Sujeta la barra delante de los muslos con un agarre cómodo y hombros relajados.', move: 'Guía la carga hacia arriba manteniéndola cerca del cuerpo y baja despacio.', error: 'No fuerces una altura o agarre que provoque molestias en el hombro.' },
-@@ -18,16 +53,34 @@
+   ];
 -  const targets = { Pecho: 'chest', Espalda: 'back', Hombros: 'shoulders', Bíceps: 'biceps', Tríceps: 'triceps', Piernas: 'legs', Glúteos: 'glutes', Core: 'core', Cardio: 'legs', Otro: 'core' };
 -  const BACK = new Set(['back', 'triceps', 'glutes']);      // se ven mejor por detrás
 -  const targetOf = muscle => (Object.prototype.hasOwnProperty.call(targets, muscle) ? targets[muscle] : 'core');
@@ -219,7 +221,7 @@ index 6a3534b..88018cb 100644
 +    const muscle = normalize(exercise.muscle);
 +    const primary = Object.keys(labels).find(id => muscle.includes(normalize(labels[id])));
 +    return { primary: primary || 'other', secondary: [], setup: 'Coloca el cuerpo de forma estable y empieza con una carga ligera.', move: 'Controla el recorrido y respira sin perder la postura.', error: 'Evita el impulso y detente si aparece dolor.' };
-@@ -35,7 +88,17 @@
+   };
 -  const body = muscle => {
 -    const target = targetOf(muscle), view = BACK.has(target) ? 'back' : 'front';
 -    const shapes = SHAPES[view].replace(new RegExp(`class="muscle ${target}"`, 'g'), `class="muscle active ${target}"`);
@@ -244,7 +246,7 @@ index 6a3534b..88018cb 100644
 +    return `<svg class="muscle-map" viewBox="0 0 200 220" role="img" aria-label="Mapa muscular de ${view === 'front' ? 'frente' : 'espaldas'}; principal: ${escape(labels[primary] || 'grupo importado')}">
 +      <circle class="silhouette" cx="100" cy="23" r="13"/><path class="silhouette" d="M82 39Q100 32 118 39L130 49 138 78 128 92 120 84 121 114 124 119 120 169 119 207 105 207 100 153 95 207 81 207 80 169 76 119 79 114 80 84 72 92 62 78 70 49Z"/>
 +      <path class="silhouette" d="M72 49 61 55 47 91 55 96 72 72ZM128 49 139 55 153 91 145 96 128 72Z"/>${shapes}</svg>`;
-@@ -43,6 +106,10 @@
+   };
 -  function guideHTML(ex) {
 -    const name = String(ex.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 -    const guide = guides.find(([pattern]) => pattern.test(name));
@@ -261,10 +263,11 @@ index 6a3534b..88018cb 100644
 +    const muscles = `<div class="exercise-maps">${diagram('front', primary, secondary)}${diagram('back', primary, secondary)}<div class="map-legend"><span><i class="map-dot main"></i>Principal</span><span><i class="map-dot assist"></i>Secundario</span></div></div>`;
 +    const details = `<div><div class="label">${primaryName}${otherNames.length ? ` · también: ${otherNames.join(', ')}` : ''}</div><h3>Cómo hacerlo</h3><ol class="exercise-steps"><li><b>Colocación:</b> ${guide.setup}</li><li><b>Movimiento:</b> ${guide.move}</li><li><b>Evita:</b> ${guide.error}</li></ol><small>Guía general: adapta el rango y la carga a tu movilidad. La técnica puede variar según el equipo y la persona.</small></div>`;
 +    return `<section class="card exercise-guide">${muscles}${details}</section>`;
-@@ -49,0 +117 @@
+   }
 +
-@@ -50,0 +119 @@
+   window.exerciseGuideHTML = guideHTML;
 +  window.exerciseGuideCatalog = Object.freeze(catalog.map(item => Object.freeze({ ...item, aliases: Object.freeze([...item.aliases]), secondary: Object.freeze([...item.secondary]) })));
+ })();
 diff --git a/get-adjustment-help.js b/get-adjustment-help.js
 new file mode 100644
 index 0000000..064ddd8
@@ -315,25 +318,48 @@ index 0000000..064ddd8
 +  }, true);
 +})();
 diff --git a/index.html b/index.html
-index 6cab460..c01aafb 100644
+index 6cab460..d0f3c9e 100644
 --- a/index.html
 +++ b/index.html
-@@ -325,0 +326 @@
+@@ -322,7 +322,9 @@
+ <script src="foods-db.js"></script>
+ <script src="ranges.js"></script>
+ <script src="app.js"></script>
++<!-- El exportador usa el generador XLSX anterior; la ayuda GET se inserta en #goal-box después del render. -->
+ <script src="weight-xlsx.js"></script>
 +<script src="weight-export.js"></script>
-@@ -335,0 +337 @@
+ <script src="weight-extras.js"></script>
+ <script src="chart-ranges.js"></script>
+ <script src="gymcalc.js"></script>
+@@ -333,6 +335,7 @@
+ <script src="prepared-foods.js"></script>
+ <script src="diet.js"></script>
+ <script src="body.js"></script>
 +<script src="get-adjustment-help.js"></script>
+ <script src="native.js"></script>
+ </body>
+ </html>
 diff --git a/package.json b/package.json
 index 80fe5f9..f0f7184 100644
 --- a/package.json
 +++ b/package.json
-@@ -11 +11 @@
+@@ -8,7 +8,7 @@
+     "sync": "npm run build:www && npx cap sync android",
+     "open": "npx cap open android",
+     "apk": "npm run sync && cd android && gradlew assembleRelease",
 -    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs tests/exercise-guide.test.mjs tests/weight-xlsx.test.mjs",
 +    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs tests/prepared-foods.test.mjs tests/exercise-guide.test.mjs tests/weight-xlsx.test.mjs tests/get-adjustment-help.test.mjs",
+     "build:foods": "node tools/build-foods.mjs"
+   },
+   "dependencies": {
 diff --git a/prepared-foods.js b/prepared-foods.js
 index 5d42464..a62ab67 100644
 --- a/prepared-foods.js
 +++ b/prepared-foods.js
-@@ -11,0 +12,18 @@ window.PREPARED_MEALS = [
+@@ -9,6 +9,24 @@ window.PREPARED_MEALS = [
+   { name: 'Pasta con tomate y pollo', items: [['Pasta, cocida', 180], ['Pechuga de pollo, asada', 100], ['Salsa de tomate', 80], ['Aceite de oliva', 5]] },
+   { name: 'Gazpacho', items: [['Tomate', 250], ['Pepino', 80], ['Pimiento verde, crudo', 35], ['Cebolla, cruda', 15], ['Aceite de oliva', 8]] },
+   { name: 'Merluza con patata', items: [['Merluza o pescadilla, cruda', 180], ['Patata, cocida', 180], ['Aceite de oliva', 8]] },
 +  { name: 'Macarrones con tomate', items: [['Pasta, cocida', 200], ['Salsa de tomate', 100], ['Aceite de oliva', 5], ['Queso curado (tipo parmesano)', 10]] },
 +  { name: 'Paella de pollo y gambas', items: [['Arroz blanco, cocido', 200], ['Pechuga de pollo, asada', 80], ['Gambas o langostinos, crudos', 60], ['Guisantes congelados', 30], ['Pimiento rojo, crudo', 30], ['Aceite de oliva', 5]] },
 +  { name: 'Cocido de garbanzos', items: [['Garbanzos, cocidos', 150], ['Repollo, crudo', 60], ['Zanahoria, cruda', 40], ['Patata, cocida', 120], ['Pechuga de pollo, asada', 80], ['Chorizo', 20]] },
@@ -352,21 +378,28 @@ index 5d42464..a62ab67 100644
 +  { name: 'Bocadillo de jamón y queso', items: [['Pan de barra', 90], ['Jamón cocido (york)', 30], ['Queso curado (tipo parmesano)', 15], ['Tomate', 40]] },
 +  { name: 'Wrap de atún', items: [['Tortilla de trigo (wrap)', 60], ['Atún en lata al natural, escurrido', 80], ['Tomate', 40], ['Lechuga romana', 30], ['Mayonesa', 10]] },
 +  { name: 'Arroz con ternera y verduras', items: [['Arroz blanco, cocido', 180], ['Carne picada de ternera (5 % grasa), cruda', 100], ['Pimiento verde, crudo', 50], ['Salsa de tomate', 60], ['Aceite de oliva', 5]] },
+ ];
+ 
+ // Busca el ingrediente por su nombre exacto en la lista básica (no en «Mis alimentos»,
 diff --git a/styles.css b/styles.css
-index e97772d..bb8ccdb 100644
+index e97772d..63ee420 100644
 --- a/styles.css
 +++ b/styles.css
-@@ -709 +709 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
+@@ -706,13 +706,26 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
+ .sq-no.on { background: var(--bad); border-color: var(--bad); color: #fff; }
+ .done-extra { margin: 10px 0 0; font-size: 14px; color: var(--muted); font-weight: 600; }
+ .cheat-meal { margin-top: 10px; }
 -.exercise-guide { display: grid; grid-template-columns: 110px 1fr; gap: 14px; align-items: center; }
++/* Estas clases colorean los IDs SVG del mapa muscular según grupo principal/secundario y se apilan en móvil. */
 +.exercise-guide { display: grid; grid-template-columns: minmax(142px, 176px) 1fr; gap: 14px; align-items: center; }
-@@ -711 +710,0 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
+ .exercise-guide h3 { margin: 3px 0 6px; font-size: 16px; }
 -.exercise-guide p { margin: 0 0 7px; font-size: 14px; line-height: 1.45; }
-@@ -713 +712,3 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
+ .exercise-guide small { color: var(--muted); font-size: 11px; line-height: 1.35; }
 -.muscle-map { width: 100%; max-height: 145px; fill: var(--surface-2); stroke: var(--muted); stroke-width: 2; stroke-linejoin: round; }
 +.exercise-maps { display: grid; grid-template-columns: 1fr 1fr; align-items: end; gap: 3px; }
 +.muscle-map { width: 100%; max-height: 184px; fill: transparent; stroke: var(--muted); stroke-width: 1.5; stroke-linejoin: round; }
 +.muscle-map .silhouette { fill: var(--surface-2); stroke: var(--muted); }
-@@ -715 +716,12 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
+ .muscle-map .muscle { fill: var(--line); stroke: var(--surface); stroke-width: 1; }
 -.muscle-map .muscle.active { fill: var(--goal); }
 +.muscle-map .muscle.primary { fill: var(--goal); }
 +.muscle-map .muscle.secondary { fill: var(--accent); }
@@ -380,19 +413,30 @@ index e97772d..bb8ccdb 100644
 +  .exercise-guide { grid-template-columns: 1fr; }
 +  .exercise-maps { width: min(100%, 290px); margin: 0 auto 4px; }
 +}
+ .wstrip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 12px; }
+ .wday { border: 2px solid transparent; border-radius: 12px; background: var(--surface-2); min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--muted); padding: 0; }
+ .wday small { font-size: 11px; font-weight: 700; text-transform: capitalize; }
 diff --git a/tests/exercise-guide.test.mjs b/tests/exercise-guide.test.mjs
-index 0835a44..994dfbb 100644
+index 0835a44..1beefe8 100644
 --- a/tests/exercise-guide.test.mjs
 +++ b/tests/exercise-guide.test.mjs
-@@ -7 +7 @@ const source = await readFile(new URL('../exercise-guide.js', import.meta.url),
+@@ -1,39 +1,72 @@
++// Pruebas offline del catálogo, las instrucciones y los mapas musculares SVG creados para la guía.
+ import { readFile } from 'node:fs/promises';
+ import vm from 'node:vm';
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+ 
+ const source = await readFile(new URL('../exercise-guide.js', import.meta.url), 'utf8');
 -function render(exercise) {
 +function guideAPI() {
-@@ -10 +10 @@ function render(exercise) {
+   const window = {};
+   vm.runInNewContext(source, { window });
 -  return window.exerciseGuideHTML(exercise);
 +  return window;
-@@ -11,0 +12 @@ function render(exercise) {
+ }
 +function render(exercise) { return guideAPI().exerciseGuideHTML(exercise); }
-@@ -13 +14,19 @@ function render(exercise) {
+ 
 -test('la guía resalta el grupo de un ejercicio conocido', () => {
 +test('el catálogo local incluye al menos 40 ejercicios completos y sin dependencias', () => {
 +  const { exerciseGuideCatalog: catalog } = guideAPI();
@@ -413,15 +457,18 @@ index 0835a44..994dfbb 100644
 +});
 +
 +test('la guía resalta músculos principales y secundarios para un ejercicio específico', () => {
-@@ -15,2 +34,5 @@ test('la guía resalta el grupo de un ejercicio conocido', () => {
+   const html = render({ name: 'Press banca', muscle: 'Pecho' });
 -  assert.match(html, /muscle active chest/);
 -  assert.match(html, /Cómo hacerlo/);
+-  assert.match(html, /sin rebotar/);
 +  assert.match(html, /class="muscle chest primary"/);
 +  assert.match(html, /class="muscle triceps secondary"/);
 +  assert.match(html, /Colocación:/);
 +  assert.match(html, /Movimiento:/);
 +  assert.match(html, /Evita:/);
-@@ -20 +42,19 @@ test('la guía resalta el grupo de un ejercicio conocido', () => {
++  assert.match(html, /rebotar la barra/);
+ });
+ 
 -test('la guía escapa el grupo muscular importado', () => {
 +test('reconoce variantes en español e inglés y distingue ejercicios parecidos', () => {
 +  const incline = render({ name: 'Press banca inclinado con mancuernas' });
@@ -442,9 +489,12 @@ index 0835a44..994dfbb 100644
 +});
 +
 +test('escapa el grupo muscular importado y conserva un fallback para nombres desconocidos', () => {
-@@ -23,0 +64 @@ test('la guía escapa el grupo muscular importado', () => {
+   const html = render({ name: 'Ejercicio importado', muscle: '<img src=x onerror=alert(1)>' });
+   assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;/);
+   assert.doesNotMatch(html, /<img/);
 +  assert.match(render({ name: 'Remo unilateral raro', muscle: 'Espalda' }), /Movimiento:/);
-@@ -26,9 +67 @@ test('la guía escapa el grupo muscular importado', () => {
+ });
+ 
 -test('espalda, tríceps y glúteos se muestran en la vista de espaldas (no se ilumina el pecho)', () => {
 -  const html = render({ name: 'Remo sentado con cable', muscle: 'Espalda' });
 -  assert.match(html, /muscle active back/);
@@ -455,16 +505,19 @@ index 0835a44..994dfbb 100644
 -
 -test('un grupo muscular con un nombre raro (de una copia importada) no rompe la guía', () => {
 +test('grupos musculares raros o heredados no rompen la guía', () => {
-@@ -36,2 +69 @@ test('un grupo muscular con un nombre raro (de una copia importada) no rompe la
+   for (const muscle of ['constructor', 'toString', '__proto__', '(', '[']) {
 -    const html = render({ name: 'Ejercicio raro', muscle });
 -    assert.match(html, /Cómo hacerlo/);
 +    assert.match(render({ name: 'Ejercicio raro', muscle }), /Cómo hacerlo/);
+   }
+ });
 diff --git a/tests/get-adjustment-help.test.mjs b/tests/get-adjustment-help.test.mjs
 new file mode 100644
-index 0000000..dce87da
+index 0000000..41c7d1e
 --- /dev/null
 +++ b/tests/get-adjustment-help.test.mjs
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,66 @@
++// Simula el repintado de Ajustes para comprobar que la ayuda GET sigue visible y abre su explicación.
 +import { readFile } from 'node:fs/promises';
 +import vm from 'node:vm';
 +import test from 'node:test';
@@ -532,10 +585,11 @@ index 0000000..dce87da
 +});
 diff --git a/tests/prepared-foods.test.mjs b/tests/prepared-foods.test.mjs
 new file mode 100644
-index 0000000..fbc838d
+index 0000000..fdeaad5
 --- /dev/null
 +++ b/tests/prepared-foods.test.mjs
-@@ -0,0 +1,25 @@
+@@ -0,0 +1,44 @@
++// Simulación de integración: verifica que cada receta se resuelve con Foods.search y se añade a la opción.
 +import { readFile } from 'node:fs/promises';
 +import vm from 'node:vm';
 +import test from 'node:test';
@@ -543,7 +597,9 @@ index 0000000..fbc838d
 +
 +const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 +const context = vm.createContext({ window: {} });
++vm.runInContext(await read('../nutri.js'), context);
 +vm.runInContext(await read('../foods-db.js'), context);
++vm.runInContext(await read('../foods.js'), context);
 +vm.runInContext(await read('../prepared-foods.js'), context);
 +const meals = context.window.PREPARED_MEALS;
 +const foods = new Set(context.window.FOODS_ES.map(row => row[1]));
@@ -561,29 +617,70 @@ index 0000000..fbc838d
 +  }
 +  assert.deepEqual(missing, []);
 +});
++
++test('las 25 recetas se pueden añadir usando Foods.search sin perder ingredientes', async () => {
++  let nextId = 0;
++  context.toast = () => {};
++  context.uid = () => `recipe-${++nextId}`;
++  for (const meal of meals) {
++    context.selectedMeal = meal.name;
++    context.actionSheet = async (_title, options) => options.find(item => item.value === context.selectedMeal)?.value;
++    context.simulatedOption = { items: [] };
++    const added = await vm.runInContext('addPreparedMeal(simulatedOption)', context);
++    const items = JSON.parse(JSON.stringify(context.simulatedOption.items));
++    assert.equal(added, true, `${meal.name}: no se pudo resolver la receta`);
++    assert.equal(items.length, meal.items.length, `${meal.name}: faltan ingredientes`);
++    assert.ok(items.every(item => item.key.startsWith('u:') && item.qty > 0 && item.unit === 'g'), meal.name);
++  }
++});
 diff --git a/tests/weight-xlsx.test.mjs b/tests/weight-xlsx.test.mjs
-index b50f15a..d27f68d 100644
+index b50f15a..189ae0f 100644
 --- a/tests/weight-xlsx.test.mjs
 +++ b/tests/weight-xlsx.test.mjs
-@@ -4,0 +5 @@ import assert from 'node:assert/strict';
+@@ -1,14 +1,29 @@
++// Regresión del contrato exportable: dos columnas, fechas reales y flujo de descarga/compartir simulado.
+ import { readFile } from 'node:fs/promises';
+ import vm from 'node:vm';
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
 +import { Blob, Buffer } from 'node:buffer';
-@@ -6,0 +8 @@ const source = await readFile(new URL('../weight-xlsx.js', import.meta.url), 'ut
+ 
+ const source = await readFile(new URL('../weight-xlsx.js', import.meta.url), 'utf8');
 +const exportSource = await readFile(new URL('../weight-export.js', import.meta.url), 'utf8');
-@@ -11,0 +14,8 @@ async function workbook(entries) {
+ async function workbook(entries) {
+   const window = {};
+   vm.runInNewContext(source, { window, Blob, TextEncoder });
+   return new Uint8Array(await window.createWeightWorkbook(entries).arrayBuffer());
+ }
 +function exportAPI(extra = {}) {
++  const { document: customDocument, ...globals } = extra;
 +  const window = {};
 +  const listeners = {};
-+  const document = { addEventListener: (name, handler, capture) => { listeners[name] = { handler, capture }; } };
++  const document = {
++    addEventListener: (name, handler, capture) => { listeners[name] = { handler, capture }; },
++    ...(customDocument || {}),
++  };
 +  vm.runInNewContext(source, { window, Blob, TextEncoder });
-+  vm.runInNewContext(exportSource, { window, document, ...extra });
++  vm.runInNewContext(exportSource, { window, document, ...globals });
 +  return { window, listeners };
 +}
-@@ -19,0 +30,4 @@ test('genera un XLSX con hoja de pesos y gráfico', async () => {
+ 
+ test('genera un XLSX con hoja de pesos y gráfico', async () => {
+   const bytes = await workbook([{ date: '2026-01-01', kg: 80.5 }, { date: '2026-01-02', kg: 80 }]);
+@@ -17,9 +32,105 @@ test('genera un XLSX con hoja de pesos y gráfico', async () => {
+   assert.match(zipText, /xl\/charts\/chart1\.xml/);
+   assert.match(zipText, /80\.5/);
+   assert.match(zipText, /Progreso de peso/);
 +  assert.match(zipText, /<t>Fecha<\/t>/);
 +  assert.match(zipText, /<t>Peso \(kg\)<\/t>/);
 +  assert.match(zipText, /'Pesos'!\$A\$2:\$A\$3/);
 +  assert.match(zipText, /'Pesos'!\$B\$2:\$B\$3/);
-@@ -25,0 +40,65 @@ test('escapa valores de fecha al crear la hoja', async () => {
+ });
+ 
+ test('escapa valores de fecha al crear la hoja', async () => {
+   const bytes = await workbook([{ date: '<test&"', kg: 70 }]);
+   assert.match(new TextDecoder().decode(bytes), /&lt;test&amp;&quot;/);
+ });
 +
 +test('la exportación conserva solo fecha y peso válidos y los ordena por fecha', () => {
 +  const { window, listeners } = exportAPI();
@@ -593,8 +690,12 @@ index b50f15a..d27f68d 100644
 +    { date: '2026-03-01', kg: 80.5, note: 'se descarta' },
 +    { date: '2026-03-03', kg: NaN },
 +    { date: '2026-03-04', kg: -2 },
++    { date: '2026-02-31', kg: 75 },
++    { date: '2025-02-29', kg: 76 },
++    { date: '2024-02-29', kg: 77 },
 +  ]);
 +  assert.deepEqual(JSON.parse(JSON.stringify(rows)), [
++    { date: '2024-02-29', kg: 77 },
 +    { date: '2026-03-01', kg: 80.5 },
 +    { date: '2026-03-02', kg: 80 },
 +  ]);
@@ -613,6 +714,29 @@ index b50f15a..d27f68d 100644
 +  listeners.click.handler(event);
 +  assert.equal(event.prevented && event.stopped && event.immediate, true);
 +  assert.deepEqual(messages, ['No hay pesos válidos que exportar']);
++});
++
++test('la exportación web descarga un archivo XLSX con el nombre del día', () => {
++  const messages = [], events = [], revoked = [];
++  const link = { click() { this.clicked = true; }, remove() { this.removed = true; } };
++  const { listeners } = exportAPI({
++    entries: [{ date: '2026-03-01', kg: 70 }],
++    todayISO: () => '2026-03-02',
++    toast: message => messages.push(message),
++    URL: { createObjectURL: blob => { events.push(blob.type); return 'blob:tracking'; }, revokeObjectURL: url => revoked.push(url) },
++    setTimeout: callback => callback(),
++    document: { createElement: () => link, body: { appendChild: item => events.push(item.download) } },
++  });
++  listeners.click.handler({
++    target: { closest: () => ({}) },
++    preventDefault() {}, stopPropagation() {}, stopImmediatePropagation() {},
++  });
++  assert.equal(link.href, 'blob:tracking');
++  assert.equal(link.download, 'tracking-pesos-2026-03-02.xlsx');
++  assert.ok(link.clicked && link.removed);
++  assert.deepEqual(events, ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'tracking-pesos-2026-03-02.xlsx']);
++  assert.deepEqual(revoked, ['blob:tracking']);
++  assert.deepEqual(messages, ['Excel descargado']);
 +});
 +
 +test('la exportación nativa guarda el XLSX en caché y abre el diálogo para compartirlo', async () => {
@@ -650,17 +774,28 @@ index b50f15a..d27f68d 100644
 +  assert.deepEqual(messages, ['Excel exportado']);
 +});
 diff --git a/tools/foods-es.txt b/tools/foods-es.txt
-index fd43b17..c4ebbc8 100644
+index fd43b17..839acb5 100644
 --- a/tools/foods-es.txt
 +++ b/tools/foods-es.txt
-@@ -267,0 +268,71 @@ Pizza de queso | Salsas y condimentos | pizza, cheese topping, regular crust, fr
+@@ -2,6 +2,7 @@
+ # Formato:  Nombre en español | Categoría | palabras que debe contener la descripción del USDA (separadas por ;) | porciones opcionales (nombre=gramos; …)
+ # Una palabra que empieza por ! no debe aparecer. Se elige la descripción más corta que cumpla todo.
+ # El número de 5 cifras al principio de la tercera columna fija un alimento concreto (código NDB).
++# Las denominaciones que usan una aproximación USDA se indican como tal; regenerar foods-db.js con npm run build:foods.
+ 
+ # ---- Carnes
+ Pechuga de pollo, cruda | Carnes | 05062
+@@ -265,3 +266,74 @@ Salsa de soja | Salsas y condimentos | soy sauce made from soy and wheat (shoyu)
+ Vinagre | Salsas y condimentos | vinegar, cider | cucharada=15
+ Sal | Salsas y condimentos | salt, table | pizca=1
+ Pizza de queso | Salsas y condimentos | pizza, cheese topping, regular crust, frozen, cooked
 +
 +# ---- Ampliación de alimentos habituales en España (USDA SR28)
 +# Carnes y embutidos
 +Morcilla | Carnes | 07005 | ración=40
-+Chistorra | Carnes | 07036 | ración=30
++Chistorra (aprox. salchicha italiana cruda) | Carnes | 07036 | ración=30
 +Salchicha fresca de cerdo | Carnes | 07063 | unidad=50
-+Salchicha de cerdo cocinada | Carnes | 07065 | unidad=50
++Salchicha de cerdo y ternera cocinada | Carnes | 07065 | unidad=50
 +Salchicha ahumada de cerdo | Carnes | 07074 | unidad=50
 +Salchicha de pavo para desayuno | Carnes | 07919 | unidad=20
 +Salchicha de pavo ahumada | Carnes | 07929 | unidad=50
@@ -692,7 +827,7 @@ index fd43b17..c4ebbc8 100644
 +Pan italiano | Cereales, pan y patata | 18033 | rebanada=30
 +Bagel clásico | Cereales, pan y patata | 18001 | unidad=95
 +Bagel de huevo | Cereales, pan y patata | 18003 | unidad=95
-+Bagel de avena | Cereales, pan y patata | 18007 | unidad=95
++Bagel de salvado de avena | Cereales, pan y patata | 18007 | unidad=95
 +Bagel de trigo | Cereales, pan y patata | 18968 | unidad=95
 +Bollo de hamburguesa | Cereales, pan y patata | 28394 | unidad=50
 +Bollo integral de hamburguesa | Cereales, pan y patata | 28377 | unidad=50
@@ -709,7 +844,7 @@ index fd43b17..c4ebbc8 100644
 +Almejas en conserva, escurridas | Pescados y mariscos | 15160 | ración=65
 +Alubias rojas en conserva | Legumbres | 16029 | ración=130
 +Alubias pintas en conserva | Legumbres | 16044 | ración=130
-+Alubias rojas en conserva, escurridas | Legumbres | 16034 | ración=130
++Alubias rojas en conserva (con líquido) | Legumbres | 16034 | ración=130
 +Alubias pintas en conserva, escurridas | Legumbres | 16146 | ración=130
 +Guisantes en conserva, escurridos | Legumbres | 11308 | ración=130
 +Espárragos en conserva, escurridos | Verduras | 11015 | ración=100
@@ -727,19 +862,29 @@ index fd43b17..c4ebbc8 100644
 +Aliño italiano para ensalada | Salsas y condimentos | 04114 | cucharada=15
 diff --git a/weight-export.js b/weight-export.js
 new file mode 100644
-index 0000000..7404ac7
+index 0000000..b63b736
 --- /dev/null
 +++ b/weight-export.js
-@@ -0,0 +1,64 @@
+@@ -0,0 +1,74 @@
 +/* Conecta el botón de exportación con el generador XLSX, sin tocar la lógica principal. */
 +'use strict';
 +
 +(() => {
-+  const DATE = /^\d{4}-\d{2}-\d{2}$/;
++  // A calendar check keeps impossible dates out of exported reports even if their shape is ISO-like.
++  function isISODate(value) {
++    if (typeof value !== 'string') return false;
++    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
++    if (!match) return false;
++    const [, yearText, monthText, dayText] = match;
++    const year = Number(yearText), month = Number(monthText), day = Number(dayText);
++    const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
++    const monthDays = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
++    return month >= 1 && month <= 12 && day >= 1 && day <= monthDays[month - 1];
++  }
 +
 +  function weightRowsForExport(items) {
 +    return (Array.isArray(items) ? items : [])
-+      .filter(item => item && DATE.test(String(item.date || '')) && Number.isFinite(item.kg) && item.kg > 0)
++      .filter(item => item && isISODate(item.date) && Number.isFinite(item.kg) && item.kg > 0)
 +      .map(item => ({ date: item.date, kg: item.kg }))
 +      .sort((a, b) => a.date.localeCompare(b.date));
 +  }

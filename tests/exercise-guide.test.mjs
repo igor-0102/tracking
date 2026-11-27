@@ -1,3 +1,4 @@
+// Pruebas offline del catálogo, las instrucciones y los mapas musculares SVG creados para la guía.
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import test from 'node:test';
@@ -36,7 +37,7 @@ test('la guía resalta músculos principales y secundarios para un ejercicio esp
   assert.match(html, /Colocación:/);
   assert.match(html, /Movimiento:/);
   assert.match(html, /Evita:/);
-  assert.match(html, /sin rebotar/);
+  assert.match(html, /rebotar la barra/);
 });
 
 test('reconoce variantes en español e inglés y distingue ejercicios parecidos', () => {

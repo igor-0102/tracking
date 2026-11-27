@@ -2,6 +2,7 @@
 # Formato:  Nombre en español | Categoría | palabras que debe contener la descripción del USDA (separadas por ;) | porciones opcionales (nombre=gramos; …)
 # Una palabra que empieza por ! no debe aparecer. Se elige la descripción más corta que cumpla todo.
 # El número de 5 cifras al principio de la tercera columna fija un alimento concreto (código NDB).
+# Las denominaciones que usan una aproximación USDA se indican como tal; regenerar foods-db.js con npm run build:foods.
 
 # ---- Carnes
 Pechuga de pollo, cruda | Carnes | 05062
@@ -269,9 +270,9 @@ Pizza de queso | Salsas y condimentos | pizza, cheese topping, regular crust, fr
 # ---- Ampliación de alimentos habituales en España (USDA SR28)
 # Carnes y embutidos
 Morcilla | Carnes | 07005 | ración=40
-Chistorra | Carnes | 07036 | ración=30
+Chistorra (aprox. salchicha italiana cruda) | Carnes | 07036 | ración=30
 Salchicha fresca de cerdo | Carnes | 07063 | unidad=50
-Salchicha de cerdo cocinada | Carnes | 07065 | unidad=50
+Salchicha de cerdo y ternera cocinada | Carnes | 07065 | unidad=50
 Salchicha ahumada de cerdo | Carnes | 07074 | unidad=50
 Salchicha de pavo para desayuno | Carnes | 07919 | unidad=20
 Salchicha de pavo ahumada | Carnes | 07929 | unidad=50
@@ -303,7 +304,7 @@ Pan pumpernickel (centeno oscuro) | Cereales, pan y patata | 18044 | rebanada=30
 Pan italiano | Cereales, pan y patata | 18033 | rebanada=30
 Bagel clásico | Cereales, pan y patata | 18001 | unidad=95
 Bagel de huevo | Cereales, pan y patata | 18003 | unidad=95
-Bagel de avena | Cereales, pan y patata | 18007 | unidad=95
+Bagel de salvado de avena | Cereales, pan y patata | 18007 | unidad=95
 Bagel de trigo | Cereales, pan y patata | 18968 | unidad=95
 Bollo de hamburguesa | Cereales, pan y patata | 28394 | unidad=50
 Bollo integral de hamburguesa | Cereales, pan y patata | 28377 | unidad=50
@@ -320,7 +321,7 @@ Sardinas en tomate, escurridas | Pescados y mariscos | 15089 | lata=90
 Almejas en conserva, escurridas | Pescados y mariscos | 15160 | ración=65
 Alubias rojas en conserva | Legumbres | 16029 | ración=130
 Alubias pintas en conserva | Legumbres | 16044 | ración=130
-Alubias rojas en conserva, escurridas | Legumbres | 16034 | ración=130
+Alubias rojas en conserva (con líquido) | Legumbres | 16034 | ración=130
 Alubias pintas en conserva, escurridas | Legumbres | 16146 | ración=130
 Guisantes en conserva, escurridos | Legumbres | 11308 | ración=130
 Espárragos en conserva, escurridos | Verduras | 11015 | ración=100

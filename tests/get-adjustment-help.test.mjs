@@ -1,3 +1,4 @@
+// Simula el repintado de Ajustes para comprobar que la ayuda GET sigue visible y abre su explicación.
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import test from 'node:test';

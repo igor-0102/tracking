@@ -2,9 +2,14 @@
 
 ## Cómo usar este paquete
 
-La rama `handoff/claude-ready` contiene el conjunto integrado de cambios y los **archivos completos**, ya puestos en sus rutas normales del proyecto. Claude puede sustituir cada archivo en `main` por el archivo del mismo nombre y ruta de esta rama, o usar esta rama como base para integrar el trabajo. En particular, `index.html` y `package.json` ya reúnen las aportaciones de varias tareas.
+La rama `handoff/claude-ready` contiene el conjunto integrado de cambios. Para facilitar la validación se preparan **dos versiones** del mismo trabajo:
 
-`CODEX_HANDOFF/changes.patch` es una referencia del diff desde el baseline. Si se copian archivos completos, no se debe volver a aplicar el parche encima. Los informes y ramas C1–C7 originales siguen disponibles para revisar cada tarea por separado.
+1. `CODEX_HANDOFF/changes.patch`: diferencias respecto al baseline para revisar exactamente qué líneas cambian.
+2. `CODEX_HANDOFF/REEMPLAZOS/`: copias completas de cada archivo de proyecto modificado o añadido, conservando debajo de esa carpeta su ruta relativa original. Si Claude valida el cambio, puede copiar cada archivo de ahí sobre la misma ruta del proyecto.
+
+Las copias completas ya integran las tareas que comparten archivo: `index.html` incluye los dos scripts nuevos y `package.json` recoge las pruebas de todas las tareas. El parche sirve para revisar; la carpeta de reemplazos sirve para sustituir. **No se deben aplicar ambos formatos a la vez**, porque duplicaría los mismos cambios.
+
+Los informes y ramas C1–C7 originales siguen disponibles para revisar cada tarea por separado. `CODEX_HANDOFF/REEMPLAZOS/LEEME.md` enumera el procedimiento de copia y aclara las excepciones.
 
 ### Archivos completos listos para sustituir
 
@@ -25,7 +30,7 @@ La rama `handoff/claude-ready` contiene el conjunto integrado de cambios y los *
 | `VIDEO_TUTORIAL.md` | Guion y storyboard para grabar. |
 | `RECOMMENDATIONS_FOR_CLAUDE.md` | Recomendaciones y plan de trabajo, sin cambios de interfaz. |
 
-Cada ruta de la tabla tiene en esta rama su archivo completo, no un fragmento para copiar. En particular, usar el `index.html` y `package.json` de esta rama evita perder una de las integraciones.
+Cada ruta de la tabla tiene en `CODEX_HANDOFF/REEMPLAZOS/` su archivo completo, no un fragmento. Las rutas de esa carpeta corresponden a las rutas de destino del repositorio. En particular, usar el `index.html` y `package.json` completos evita perder una de las integraciones.
 
 **Excepción deliberada:** no se sustituyen `foods-db.js` ni `foods-usda.js`. Son archivos generados y las instrucciones del proyecto prohíben editarlos directamente. C2 entrega la fuente `tools/foods-es.txt`; tras sustituirla, ejecutar `npm run build:foods` y revisar los archivos generados.
 
@@ -35,6 +40,8 @@ Cada ruta de la tabla tiene en esta rama su archivo completo, no un fragmento pa
 - Mantener los cambios fuera de `main` hasta que Claude los revise e integre.
 - El script `npm test` ya incluye las pruebas añadidas; también debe ejecutarse `node --check` en un entorno con Node.
 - No se abrió PR. El proyecto define entrega mediante ramas `handoff/...` con baseline, diff e informe.
+- Se dejó `main` intacta y se mantuvo la entrega en la rama de handoff indicada.
+- Los comentarios explicativos para Claude se añadieron al código JavaScript, CSS, HTML, pruebas y fuente de alimentos. `package.json` es JSON y no admite comentarios sin dejar de ser válido; su propósito y el script integrado se explican aquí.
 
 ## Cambios incluidos
 
@@ -78,14 +85,15 @@ Cada ruta de la tabla tiene en esta rama su archivo completo, no un fragmento pa
 
 ## Ensayos y resultados
 
-- C1: validación manual de 25 platos, unicidad, ingredientes y cantidades. PASS.
-- C2: validación manual de las 60 entradas y sus IDs locales. PASS; falta reconstruir la salida generada.
-- C3: validación manual de 46 entradas/198 alias, mapa frontal/posterior, secundarios, fallback y escape. PASS.
-- C4: inspección del XLSX ZIP: 10 partes, dos columnas, orden cronológico y referencias del gráfico. Flujo Android simulado de base64/caché/compartir. PASS.
-- C5: simulación de `#goal-box`, repintado y apertura de la explicación. PASS.
-- `git diff --check`: limpio en las entregas individuales y en el paquete.
-- `npm test` no se pudo ejecutar: PowerShell no reconoce `npm`. Las pruebas añadidas deben ejecutarse durante la integración en un entorno con Node/npm.
-- No se pudo probar en un teléfono físico; el flujo Android de Excel solo se ensayó con sustitutos del puente nativo.
+- C1: recorrido de las 25 recetas mediante el `Foods.search()` real del proyecto; se añadieron 106 ingredientes en total y cada ingrediente conservó su clave local, cantidad y unidad. PASS.
+- C2: verificación de las 60 entradas nuevas contra `foods-usda.js`; todos los IDs existen. Además, se corrigieron etiquetas que antes atribuían una descripción aproximada o un estado de escurrido incorrectos. PASS. Falta reconstruir los ficheros generados después de que Claude apruebe la fuente.
+- C3: recorrido de los 198 alias de los 46 ejercicios, mapas frontal/posterior, músculos secundarios y escape de texto importado. PASS.
+- C4: XLSX generado en simulación; incluye cabeceras Fecha/Peso (kg) y el gráfico, con registros ordenados. Se rechazaron fechas imposibles (31 de febrero y 29 de febrero de 2025) y se aceptó el día bisiesto válido de 2024. Se simularon la descarga web y las llamadas Android de escritura en caché/compartir. PASS.
+- C5: simulación de `#goal-box`, inserción y repintado del botón «i», captura del clic y apertura de la explicación. PASS.
+- Mejora de calidad adicional: `tests/prepared-foods.test.mjs` ahora cubre la integración real entre las recetas y la búsqueda local, además de comprobar el catálogo estático.
+- Suite del proyecto: se ejecutaron con el runner integrado `node:test` los mismos siete archivos que enumera el script `npm test`; resultado **60/60 pruebas aprobadas, 0 fallos**. El comando `npm test` como tal no se pudo invocar porque PowerShell no reconoce `npm`.
+- `git diff --check` del código del paquete (excluyendo `changes.patch`, cuyos prefijos de espacio forman parte del formato unified diff): limpio.
+- No se pudo probar en un teléfono físico ni abrir el Excel con Microsoft Excel real; el flujo Android se simuló con sustitutos del puente nativo.
 
 ## Salud: formulación comprobada
 
@@ -98,3 +106,12 @@ El 0,5–1 % de pérdida semanal se presenta en la ayuda como referencia para ci
 3. Grabar el tutorial tras integrar las rutas mostradas.
 4. Según `docs/TAREAS.md`, Claude mantiene fotos de progreso nativas, refactorización y pruebas de interfaz.
 5. Strava continúa pendiente por decisión del usuario.
+
+## Hallazgos corregidos en la última simulación
+
+- La exportación aceptaba fechas que solo parecían ISO, pero no existían en el calendario. Ahora filtra el calendario gregoriano real, incluidos los años bisiestos.
+- La prueba de integración de los platos solo comprobaba que los ingredientes aparecían en el catálogo; ahora también ejecuta cada receta con el buscador real y comprueba el resultado añadido.
+- Se afinaron etiquetas de alimentos ligadas a IDs USDA aproximados o a descripciones con líquido: chistorra aparece como aproximación de salchicha italiana cruda, la salchicha cocinada indica cerdo y ternera, el bagel especifica salvado de avena y las alubias rojas del ID 16034 ya no se presentan como escurridas.
+- La simulación inicial detectó dos expectativas de prueba obsoletas: una frase de la guía y el orden cronológico esperado de los pesos. Se ajustaron las pruebas al contenido y orden reales de la aplicación; después la suite completa pasó.
+
+La simulación cubre de forma reproducible los flujos descritos, pero no permite afirmar que no exista ningún otro defecto en toda la aplicación: falta la suite formal y la validación en dispositivos reales.
