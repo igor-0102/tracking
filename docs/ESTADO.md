@@ -28,7 +28,8 @@ Versión actual: **2.7.0** (`sw.js`, `app.js` y `package.json`). APK instalado e
 La lista completa de tareas pendientes está en `docs/TAREAS.md`.
 
 ## Decisiones
-- Claude dirige el proyecto; Codex hace tareas asignadas y entrega en `CODEX_HANDOFF/` (ver `AGENTS.md`). Nada de Codex entra sin revisión y PR.
+- Claude dirige el proyecto; Codex hace tareas asignadas y entrega con una Pull Request (ver `AGENTS.md`). Nada de Codex entra sin revisión.
+- Todo entra en `main` por Pull Request con Comprobaciones automáticas (tests, normas y prueba de la app en el navegador); `main` protegido.
 - Sin servidor: los datos nunca salen del móvil (privacidad y funcionamiento sin conexión).
 - El APK carga la web desde GitHub Pages: los cambios web llegan sin reinstalar.
 - Alimentos del USDA (dominio público) generados con `npm run build:foods`.

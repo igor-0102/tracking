@@ -37,6 +37,18 @@ Los datos viven solo en el móvil (IndexedDB). Sin servidor ni backend.
 - Si el usuario pide una actualización o un cambio concreto, impleméntalo, haz commit y súbelo **sin pedir confirmación**.
 - Para cualquier otra modificación (lo que propongas tú, limpiezas, cambios no pedidos): explica qué quieres hacer y espera su confirmación antes del commit.
 
+## GitHub: todo entra en `main` por Pull Request
+- `main` está protegido: **nadie sube directo** (ni Claude ni Codex). Cada cambio va en una rama y una Pull Request (PR).
+- Ramas: `claude/<tema>` (Claude), `handoff/<tarea>` (Codex), `codex/<tarea>` (Claude corrigiendo o publicando
+  parte del trabajo de Codex).
+- Cada PR pasa sola las **Comprobaciones** (`.github/workflows/checks.yml`): sintaxis de los `.js`, `npm test`,
+  normas de este archivo (`npm run check` → `tools/check-pr.mjs`) y prueba de la app en un navegador de móvil
+  (`npm run smoke` → `tools/smoke.cjs`: que abra, no se cuelgue, importe, recorra las pestañas y quepa en la pantalla).
+- La descripción de la PR sigue la plantilla `.github/pull_request_template.md` (Tarea · Cambios · Pruebas · Dudas y riesgos).
+- **Quién integra:** Claude, con las comprobaciones en verde y el OK del usuario. Si el usuario pidió el cambio
+  («haz…», «publica…»), ese pedido ya es el OK. Método: «Squash and merge» o «Merge» desde GitHub; luego se borra la rama.
+- Al integrar en `main` se publica la web (GitHub Pages) y, si cambian archivos nativos o `package.json`, se compila el APK.
+
 ## Codex (becario): cómo trabaja
 Claude es el responsable del proyecto: decide, revisa, integra y publica. Codex hace **solo** las tareas de
 `docs/TAREAS.md` con responsable **Codex**, y entrega su trabajo para que Claude lo revise.
@@ -49,7 +61,7 @@ Claude es el responsable del proyecto: decide, revisa, integra y publica. Codex 
 
 ### Qué puede tocar y qué no
 - **Sí:** archivos web (`*.js`, `index.html`, `styles.css`), `tests/`, `tools/foods-es.txt` y archivos nuevos.
-- **No:** `main` (ni commits ni push), `android/`, `.github/`, `capacitor.config.json`, claves o secretos,
+- **No:** `main` (ni commits ni push), `.claude/`, `tools/` (salvo `tools/foods-es.txt` y la lista `files` de `tools/build-www.mjs`), `android/`, `.github/`, `capacitor.config.json`, claves o secretos,
   `foods-db.js` y `foods-usda.js` a mano (se generan con `npm run build:foods`), `CLAUDE.md`, `AGENTS.md` y `docs/`
   (los mantiene Claude), ni `VERSION` / `APP_VERSION` (los sube Claude al publicar).
 - **Sin dependencias nuevas** (npm o CDN) ni llamadas a internet: la app funciona sin conexión y los datos no salen del móvil.
@@ -71,32 +83,36 @@ Claude es el responsable del proyecto: decide, revisa, integra y publica. Codex 
 - `npm test` pasa entero. Si no puedes ejecutarlo, dilo en el informe y explica por qué.
 - `node --check` sin errores en cada `.js` que hayas tocado.
 - Lo nuevo funciona sin conexión y no rompe lo que ya había (peso, entreno, dieta, copias de seguridad).
-- El parche solo contiene cambios de tu tarea.
+- La PR solo contiene cambios de tu tarea y las Comprobaciones de GitHub salen en verde.
 
-### Cómo entregar
-1. Crea una rama `handoff/<tarea-corta>` desde `main` y súbela a GitHub. Avisa al usuario del nombre de la rama.
-2. En esa rama, crea la carpeta `CODEX_HANDOFF/` con:
-   - `BASELINE.md`: commit de partida (`git rev-parse HEAD` antes de empezar), rama y `APP_VERSION` de `app.js`.
-   - `changes.patch`: `git add -N .` y `git diff <commit-de-partida> -- . ':!CODEX_HANDOFF' > CODEX_HANDOFF/changes.patch`.
-   - `REPORT.md`, en español, con estos apartados:
-     `## Tarea` (cuál de `docs/TAREAS.md`) · `## Cambios` (archivo por archivo y por qué) ·
-     `## Pruebas` (qué has probado y resultado de `npm test`) · `## Dudas y riesgos` (lo que no has podido comprobar).
-3. No hagas Pull Request: la prepara Claude tras revisar.
+### Cómo entregar (Pull Request)
+1. Trabaja en una rama `handoff/<tarea-corta>` creada desde el `main` más reciente. **Una tarea por rama.**
+2. Antes de subir, ejecuta `npm test`, `npm run check` y, si tienes Playwright, `npm run smoke`.
+3. Sube la rama y **abre una Pull Request hacia `main`** rellenando la plantilla (Tarea · Cambios · Pruebas ·
+   Dudas y riesgos). Ya **no** se usa la carpeta `CODEX_HANDOFF/` ni `changes.patch`.
+4. Espera a las **Comprobaciones** de GitHub. Si salen en rojo, corrígelo en la misma rama (sube más commits).
+5. No integres la PR ni la cierres: la revisa e integra Claude. Si Claude pide cambios en la PR, corrígelos en la misma rama.
+6. Si no puedes abrir la PR, sube la rama y avisa al usuario del nombre: Claude la abrirá.
 
 ## Claude: cómo revisa una entrega de Codex
-**Antes de cualquier tarea**, busca entregas nuevas: carpeta `CODEX_HANDOFF/` en `main` o ramas `handoff/*` en GitHub
-(`git ls-remote --heads origin`). Es nueva si la huella `sha256` de `changes.patch` no está anotada en `docs/TAREAS.md`. Si la hay:
-1. Lee `REPORT.md` y `BASELINE.md`.
-2. Inspecciona `changes.patch` entero; no te fíes solo del informe.
-3. Comprueba que el parche parte de la versión adecuada (commit y `APP_VERSION` de `BASELINE.md`).
-4. Verifica que se aplica sin conflictos (`git apply --check`).
-5. Revisa calidad del código y seguridad (reglas de este archivo y de la sección de Codex).
-6. Aplícalo en una rama aparte (`codex/<tarea>`), nunca en `main`.
-7. Ejecuta `npm test` y prueba la app.
-8. Corrige los errores y documenta cada corrección.
-9. Actualiza `docs/ESTADO.md`, `docs/TAREAS.md` (anota la entrega revisada) y esta memoria si hace falta.
-10. Prepara una Pull Request con el resultado. Integrarla en `main` necesita el OK del usuario.
-No integres nada que no hayas podido verificar. Si hay conflictos, errores o incompatibilidades, no fuerces el parche: informa.
+**Antes de cualquier tarea**, busca entregas nuevas: Pull Requests abiertas de ramas `handoff/*` y ramas `handoff/*`
+sin PR (`git ls-remote --heads origin`). Las revisadas se anotan en `docs/TAREAS.md` → «Entregas de Codex» (PR o rama y commit).
+Si hay una nueva:
+1. Si es una rama sin PR, ábrela tú (plantilla) para que pasen las Comprobaciones.
+2. Lee la descripción y **el diff completo** de la PR (`git diff origin/main...origin/handoff/<rama>`); no te fíes solo del informe.
+3. Mira las **Comprobaciones** de GitHub (tests, normas, prueba de la app). En rojo = no se integra así.
+4. Revisa calidad, seguridad e integración con lo que ya existe; prueba la app tú también si toca la interfaz.
+5. Informa al usuario: bien hecho · errores y gravedad · arquitectura · pruebas · qué corregir · qué es seguro.
+6. Según lo que decida el usuario:
+   - **Todo bien** → integrar la PR de Codex tal cual.
+   - **Fallos pequeños** → rama `codex/<tarea>` desde la de Codex, corregir (cada corrección documentada en la
+     descripción), PR nueva y cerrar la de Codex enlazando la nueva. No subas commits a la rama de Codex.
+   - **Solo una parte vale** → rama `codex/<tarea>` desde `main` con solo los archivos buenos; lo demás pasa a
+     `docs/TAREAS.md` como tareas nuevas de Codex, con cada error a corregir.
+   - **No vale** → comentar en la PR qué falla, cerrarla y pasar la tarea corregida a `docs/TAREAS.md`.
+7. Antes de integrar: subir versión (`VERSION`, `APP_VERSION`, `package.json`), actualizar `docs/ESTADO.md` y
+   `docs/TAREAS.md` en la misma PR, y comprobaciones en verde.
+No integres nada que no hayas podido verificar. Si hay conflictos, errores o incompatibilidades, no fuerces nada: informa.
 
 ## Equipo de agentes
 - Agentes en `.claude/agents/`: arquitecto (Opus), programador (Sonnet), revisor (Opus),
