@@ -12,13 +12,12 @@ function startRest(sec) {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.resume) audioCtx.resume();
   } catch (e) { console.warn('Sin audio para el aviso de descanso:', e); }
-  if (isStopwatch()) { G.active.restStart = Date.now(); G.active.restEnd = 0; }
-  else { G.active.restEnd = Date.now() + sec * 1000; G.active.restTotal = sec; G.active.restStart = 0; }
+  window.GymRest.start(G.active, sec, Date.now(), isStopwatch());
   saveActive();
   tick();
 }
 function stopRest() {
-  if (G.active) { G.active.restEnd = 0; G.active.restStart = 0; saveActive(); }
+  if (G.active) { window.GymRest.stop(G.active); saveActive(); }
   $('#rest-bar').hidden = true;
   document.body.classList.remove('resting');
   if (typeof nativeWorkoutSync === 'function') nativeWorkoutSync();
@@ -27,22 +26,26 @@ $('#rest-bar').addEventListener('click', e => {
   const b = e.target.closest('[data-rest]');
   if (!b || !G.active) return;
   if (b.dataset.rest === 'skip') { stopRest(); return; }
-  if (!G.active.restEnd) return;
-  const d = +b.dataset.rest * 1000;
-  G.active.restEnd = Math.max(Date.now() + 1000, G.active.restEnd + d);
-  G.active.restTotal = Math.max(G.active.restTotal + d / 1000, 1);
+  if (b.dataset.rest === 'toggle') window.GymRest.toggle(G.active, Date.now(), isStopwatch());
+  else if (b.dataset.rest === 'reset') window.GymRest.reset(G.active, Date.now(), isStopwatch());
+  else if (!isStopwatch() && (G.active.restEnd || G.active.restPaused)) window.GymRest.adjust(G.active, +b.dataset.rest, Date.now());
+  else return;
   saveActive();
   tick();
   if (typeof nativeWorkoutSync === 'function') nativeWorkoutSync();
 });
-function showRestBar(text, frac, stopwatch) {
+function showRestBar(text, frac, stopwatch, paused = false) {
   const bar = $('#rest-bar');
   bar.hidden = false;
   bar.classList.toggle('sw', stopwatch);
+  bar.classList.toggle('paused', paused);
   document.body.classList.add('resting');
   $('#rest-time').textContent = text;
-  $('#rest-label').textContent = stopwatch ? 'Descansando' : 'Descanso';
+  $('#rest-label').textContent = paused ? 'Pausado' : stopwatch ? 'Descansando' : 'Descanso';
   $('#rest-bar [data-rest="skip"]').textContent = stopwatch ? 'Parar' : 'Saltar';
+  const toggle = $('#rest-bar [data-rest="toggle"]');
+  toggle.textContent = paused ? 'Reanudar' : 'Pausar';
+  toggle.setAttribute('aria-label', paused ? 'Reanudar descanso' : 'Pausar descanso');
   $('#rest-fill').style.width = `${frac * 100}%`;
 }
 function restEnded(late) {
@@ -55,12 +58,16 @@ function restEnded(late) {
 function tick() {
   const now = Date.now(), a = G.active;
   $$('[data-clock]').forEach(el => { if (a) el.textContent = fmtClock((now - a.start) / 1000); });
-  if (a && a.restEnd) {
+  if (a && a.restPaused) {
+    const state = window.GymRest.read(a, now, isStopwatch());
+    showRestBar(fmtClock(state.seconds), state.fraction, isStopwatch(), true);
+  } else if (a && a.restEnd) {
     const left = (a.restEnd - now) / 1000;
     if (left <= 0) restEnded(left < -5);
     else showRestBar(fmtClock(Math.ceil(left)), clamp(left / (a.restTotal || 1), 0, 1), false);
-  } else if (a && a.restStart) {
-    showRestBar(fmtClock((now - a.restStart) / 1000), 1, true);
+  } else if (a && (a.restStart || (isStopwatch() && a.restElapsed))) {
+    const state = window.GymRest.read(a, now, true);
+    showRestBar(fmtClock(state.seconds), 1, true);
   } else if (!$('#rest-bar').hidden) {
     $('#rest-bar').hidden = true;
     document.body.classList.remove('resting');
@@ -84,11 +91,19 @@ $('#set-restmode').addEventListener('click', e => {
 
 /* ================= Marcar una serie y saltar a la siguiente ================= */
 function checkSet(ex, ei, si, row, fromKeyboard) {
+  // Claude: la rama cardio guarda distancia y duración sin contaminar peso/repeticiones.
   const s = ex.sets[si];
   if (s.done) { s.done = false; s.pr = false; wkChanged(); renderWk(); return; }
+  if (s.km == null && s.ph && s.ph.km != null) s.km = s.ph.km;
+  if (s.sec == null && s.ph && s.ph.sec != null) s.sec = s.ph.sec;
+  const distance = GymUnits.isDistanceExercise(ex.exId);
+  if (distance) {
+    if (s.km == null && s.sec == null) { toast('Escribe una distancia o una duración'); if (row) row.querySelector('.set-in').focus(); return; }
+    s.kg = 0; s.reps = 0;
+  }
   if (s.kg == null && s.ph && s.ph.kg != null) s.kg = s.ph.kg;
   if (s.reps == null && s.ph && s.ph.reps != null) s.reps = s.ph.reps;
-  if (s.reps == null && s.kg == null) {
+  if (!distance && s.reps == null && s.kg == null) {
     toast('Escribe los kg y las repeticiones');
     if (row) row.querySelector('.set-in').focus();
     return;
@@ -117,14 +132,14 @@ function livePR(ex, si, s) {
     if (k !== si && o.done && o.type !== 'warmup') { cur.kg = Math.max(cur.kg, o.kg || 0); cur.e1 = Math.max(cur.e1, e1rm(o.kg, o.reps)); }
   });
   const e1 = e1rm(s.kg, s.reps);
-  if (s.kg > Math.max(b.kg, cur.kg) && b.kg > 0) { s.pr = true; toast(`🏆 ¡Récord! Peso máximo en ${exName(ex.exId)}: ${fmtN(s.kg)} kg`, { ms: 3500 }); }
-  else if (e1 > Math.max(b.e1, cur.e1) + 0.01 && b.e1 > 0) { s.pr = true; toast(`🏆 ¡Récord! 1RM estimado: ${fmtN(Math.round(e1 * 10) / 10)} kg`, { ms: 3500 }); }
+  if (s.kg > Math.max(b.kg, cur.kg) && b.kg > 0) { s.pr = true; toast(`🏆 ¡Récord! Peso máximo en ${exName(ex.exId)}: ${GymUnits.formatWeight(s.kg)} ${GymUnits.unitFor('weight')}`, { ms: 3500 }); }
+  else if (e1 > Math.max(b.e1, cur.e1) + 0.01 && b.e1 > 0) { s.pr = true; toast(`🏆 ¡Récord! 1RM estimado: ${GymUnits.formatWeight(Math.round(e1 * 10) / 10)} ${GymUnits.unitFor('weight')}`, { ms: 3500 }); }
 }
 function focusSet([ei, si], withKeyboard) {
   const row = wkPage && wkPage.el.querySelector(`.set-row[data-ex="${ei}"][data-set="${si}"]`);
   if (!row) return;
   row.classList.add('next');
-  if (withKeyboard) row.querySelector('[data-f="kg"]').focus({ preventScroll: true });
+  if (withKeyboard) row.querySelector('[data-f="kg"], [data-f="distance"]').focus({ preventScroll: true });
   row.scrollIntoView({ block: 'center', behavior: withKeyboard ? 'auto' : 'smooth' });
 }
 // Intro / ✓ del teclado: de kg pasa a reps; en reps marca la serie.
@@ -132,7 +147,10 @@ function wkKey(e) {
   if (e.key !== 'Enter' || !e.target.matches('.set-in')) return;
   e.preventDefault();
   const row = e.target.closest('.set-row');
-  if (e.target.dataset.f === 'kg') { row.querySelector('[data-f="reps"]').focus(); return; }
+  if (e.target.dataset.f === 'kg' || e.target.dataset.f === 'distance') {
+    const next = e.target.dataset.f === 'distance' ? 'duration' : 'reps';
+    row.querySelector(`[data-f="${next}"]`).focus(); return;
+  }
   const ei = +row.dataset.ex, si = +row.dataset.set;
   const ex = wkData.exercises[ei];
   if (ex.sets[si].done) { const n = GymCalc.nextSet(wkData.exercises, ei, si); if (n) focusSet(n, true); return; }
@@ -167,7 +185,7 @@ function exExtrasHTML(ex) {
   const rest = isStopwatch() ? '<span class="ex-rest">⏱ Descanso: cronómetro</span>'
     : `<button class="ex-rest" data-act="ex-rest">⏱ Descanso: ${fmtRest(ex.rest ?? S.rest)}</button>`;
   const sug = GymCalc.suggestProgression(prevSetsFor(ex.exId, wkData.id));
-  const chips = sug.map(s => `<button class="chip chip-s" data-act="sug" data-kg="${s.kg}" data-reps="${s.reps}">${s.kg ? `${fmtN(s.kg)} × ${s.reps}` : `${s.reps} reps`}</button>`);
+  const chips = sug.map(s => `<button class="chip chip-s" data-act="sug" data-kg="${s.kg}" data-reps="${s.reps}">${s.kg ? `${GymUnits.formatWeight(s.kg)} ${GymUnits.unitFor('weight')} × ${s.reps}` : `${s.reps} reps`}</button>`);
   return badge + rest + (chips.length ? `<div class="sug"><span>💡 Hoy prueba</span>${chips.join('<em>o</em>')}</div>` : '');
 }
 function applySug(ex, b) {
@@ -207,7 +225,7 @@ function exPoints(sessions, metric) {
 }
 function exChartOpts(metric) {
   const f = v => (metric === 'vol' ? fmtInt(v) : fmtN(Math.round(v * 10) / 10));
-  return { trend: true, minMarker: false, fmtY: v => `${f(v)} kg`, fmtTag: f, tip3: p => `Mejor serie: ${fmtSet(p.best)} · media ${f(p.t)}` };
+  return { trend: true, minMarker: false, fmtY: v => `${GymUnits.formatWeight(v)} ${GymUnits.unitFor('weight')}`, fmtTag: f, tip3: p => `Mejor serie: ${fmtSet(p.best)} · media ${GymUnits.formatWeight(p.t)} ${GymUnits.unitFor('weight')}` };
 }
 function exChartMount(el, sessions, metric, range, title) {
   const cv = el.querySelector('.ex-chart canvas');
@@ -296,6 +314,6 @@ $('#gym-historial').addEventListener('click', async e => {
   if (!day) return;
   const ws = workoutsByDay().get(day.dataset.cal) || [];
   if (ws.length === 1) return openWorkoutDetail(ws[0].id);
-  const id = await actionSheet(cap(fmtD(F.wdDayMon, day.dataset.cal)), ws.map(w => ({ label: w.title, sub: `${fmtDur(w.end - w.start)} · ${fmtInt(wVolume(w))} kg`, value: w.id })));
+  const id = await actionSheet(cap(fmtD(F.wdDayMon, day.dataset.cal)), ws.map(w => ({ label: w.title, sub: `${fmtDur(w.end - w.start)} · ${GymUnits.formatWeight(wVolume(w))} ${GymUnits.unitFor('weight')}`, value: w.id })));
   if (id) openWorkoutDetail(id);
 });

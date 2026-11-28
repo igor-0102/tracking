@@ -54,9 +54,9 @@ const setVol = s => (s.kg || 0) * (s.reps || 0);
 const wVolume = w => w.exercises.reduce((a, e) => a + workSets(e.sets).reduce((b, s) => b + setVol(s), 0), 0);
 const wSetCount = w => w.exercises.reduce((a, e) => a + workSets(e.sets).length, 0);
 const fmtSet = s => {
-  if (s.km || s.sec) return [s.km ? `${fmtN(s.km)} km` : '', s.sec ? fmtClock(s.sec) : ''].filter(Boolean).join(' · ');
+  if (s.km || s.sec) return [s.km ? `${GymUnits.formatDistance(s.km)} ${GymUnits.unitFor('distance')}` : '', s.sec ? fmtClock(s.sec) : ''].filter(Boolean).join(' · ');
   if (!s.kg) return `${s.reps || 0} reps`;
-  return `${fmtN(s.kg)} kg × ${s.reps || 0}`;
+  return `${GymUnits.formatWeight(s.kg)} ${GymUnits.unitFor('weight')} × ${s.reps || 0}`;
 };
 
 /* ================= Carga y guardado ================= */
@@ -121,9 +121,9 @@ function workoutPRs(w) {
     if (!prev.n) continue;
     let kg = 0, e1 = 0, vol = 0;
     for (const s of workSets(ex.sets)) { kg = Math.max(kg, s.kg || 0); e1 = Math.max(e1, e1rm(s.kg, s.reps)); vol = Math.max(vol, setVol(s)); }
-    if (kg > prev.kg && prev.kg > 0) out.push({ exId: ex.exId, label: 'Peso máximo', value: `${fmtN(kg)} kg` });
-    if (e1 > prev.e1 + 0.01 && prev.e1 > 0) out.push({ exId: ex.exId, label: '1RM estimado', value: `${fmtN(Math.round(e1 * 10) / 10)} kg` });
-    else if (vol > prev.vol && prev.vol > 0) out.push({ exId: ex.exId, label: 'Mejor serie (volumen)', value: `${fmtN(vol)} kg` });
+    if (kg > prev.kg && prev.kg > 0) out.push({ exId: ex.exId, label: 'Peso máximo', value: `${GymUnits.formatWeight(kg)} ${GymUnits.unitFor('weight')}` });
+    if (e1 > prev.e1 + 0.01 && prev.e1 > 0) out.push({ exId: ex.exId, label: '1RM estimado', value: `${GymUnits.formatWeight(Math.round(e1 * 10) / 10)} ${GymUnits.unitFor('weight')}` });
+    else if (vol > prev.vol && prev.vol > 0) out.push({ exId: ex.exId, label: 'Mejor serie (volumen)', value: `${GymUnits.formatWeight(vol)} ${GymUnits.unitFor('weight')}` });
   }
   return out;
 }
@@ -218,19 +218,19 @@ async function pickRest(current) {
 
 function plateCalc(initial) {
   genSheet.innerHTML = `<div class="grabber"></div><h2>Calculadora de discos</h2>
-    <div class="weight-input"><input id="pc-kg" type="text" inputmode="decimal" placeholder="0" value="${initial ? fmtN(initial) : ''}"><span>kg</span></div>
-    <div class="seg seg-block" id="pc-bar" style="margin-top:12px">${[20, 15, 10, 0].map(b => `<button data-bar="${b}" class="${S.bar === b ? 'on' : ''}">${b ? `Barra ${b}` : 'Sin barra'}</button>`).join('')}</div>
+    <div class="weight-input"><input id="pc-kg" type="text" inputmode="decimal" placeholder="0" value="${initial ? GymUnits.formatWeight(initial) : ''}"><span>${GymUnits.unitFor('weight')}</span></div>
+    <div class="seg seg-block" id="pc-bar" style="margin-top:12px">${[20, 15, 10, 0].map(b => `<button data-bar="${b}" class="${S.bar === b ? 'on' : ''}">${b ? `Barra ${GymUnits.formatWeight(b)} ${GymUnits.unitFor('weight')}` : 'Sin barra'}</button>`).join('')}</div>
     <div id="pc-out" class="plates-out"></div>`;
   const out = $('#pc-out', genSheet), inp = $('#pc-kg', genSheet);
   const calc = () => {
-    const total = parseKg(inp.value);
+    const total = GymUnits.parseWeight(inp.value);
     if (isNaN(total) || total <= 0) { out.innerHTML = '<p class="fine center">Escribe el peso total.</p>'; return; }
     let side = (total - S.bar) / 2;
-    if (side < 0) { out.innerHTML = `<p class="fine center">Menos que la barra (${S.bar} kg).</p>`; return; }
+    if (side < 0) { out.innerHTML = `<p class="fine center">Menos que la barra (${GymUnits.formatWeight(S.bar)} ${GymUnits.unitFor('weight')}).</p>`; return; }
     const used = [];
     for (const p of PLATES) while (side >= p - 1e-9) { used.push(p); side = Math.round((side - p) * 1000) / 1000; }
-    out.innerHTML = `<div class="label center">En cada lado</div><div class="plates">${used.length ? used.map(p => `<span class="plate p${String(p).replace('.', '_')}">${fmtN(p)}</span>`).join('') : '<span class="fine">Solo la barra</span>'}</div>
-      ${side > 0 ? `<p class="fine center">Sobran ${fmtN(side * 2)} kg que no salen con discos normales.</p>` : ''}`;
+    out.innerHTML = `<div class="label center">En cada lado · ${GymUnits.unitFor('weight')}</div><div class="plates">${used.length ? used.map(p => `<span class="plate p${String(p).replace('.', '_')}">${GymUnits.formatWeight(p)}</span>`).join('') : '<span class="fine">Solo la barra</span>'}</div>
+      ${side > 0 ? `<p class="fine center">Sobran ${GymUnits.formatWeight(side * 2)} ${GymUnits.unitFor('weight')} que no salen con discos normales.</p>` : ''}`;
   };
   inp.addEventListener('input', calc);
   $('#pc-bar', genSheet).onclick = e => {
@@ -255,7 +255,7 @@ function newActiveEx(exId, templateSets) {
   const base = templateSets && templateSets.length ? templateSets : (prev.length ? prev : [{ type: 'normal' }, { type: 'normal' }, { type: 'normal' }]);
   return {
     uid: uid(), exId, notes: '', rest: (exById.get(exId) || {}).rest ?? null,
-    sets: base.map((s, i) => ({ type: s.type || 'normal', kg: null, reps: null, done: false, ph: { kg: (prev[i] || s).kg ?? null, reps: (prev[i] || s).reps ?? null } })),
+    sets: base.map((s, i) => ({ type: s.type || 'normal', kg: null, reps: null, km: null, sec: null, done: false, ph: { kg: (prev[i] || s).kg ?? null, reps: (prev[i] || s).reps ?? null, km: (prev[i] || s).km ?? null, sec: (prev[i] || s).sec ?? null } })),
   };
 }
 async function startWorkout({ routine = null, from = null } = {}) {
@@ -318,14 +318,19 @@ function setLabel(ex, i) {
   return String(n);
 }
 function exCardHTML(ex, idx) {
+  // Claude: GymUnits solo cambia lo que se muestra; las series guardan kg/km canónicos.
+  const distance = GymUnits.isDistanceExercise(ex.exId);
+  const firstUnit = distance ? GymUnits.unitFor('distance') : GymUnits.unitFor('weight');
   const prev = prevSetsFor(ex.exId, wkMode === 'edit' ? wkData.id : null) || [];
   const rows = ex.sets.map((s, i) => {
     const p = prev[i];
+    const firstValue = distance ? s.km : s.kg, previousValue = distance ? s.ph?.km : s.ph?.kg;
+    const secondValue = distance ? s.sec : s.reps, previousSecond = distance ? s.ph?.sec : s.ph?.reps;
     return `<div class="set-row${s.done ? ' done' : ''}${s.pr ? ' pr' : ''}" data-ex="${idx}" data-set="${i}">
       <button class="set-lbl t-${s.type}" data-act="set-menu">${setLabel(ex, i)}</button>
       <button class="set-prev" data-act="use-prev">${p ? esc(fmtSet(p)) : '—'}</button>
-      <input class="set-in" data-f="kg" inputmode="decimal" enterkeyhint="next" value="${s.kg != null ? fmtN(s.kg) : ''}" placeholder="${s.ph && s.ph.kg != null ? fmtN(s.ph.kg) : ''}">
-      <input class="set-in" data-f="reps" inputmode="numeric" enterkeyhint="done" value="${s.reps != null ? s.reps : ''}" placeholder="${s.ph && s.ph.reps != null ? s.ph.reps : ''}">
+      <input class="set-in" data-f="${distance ? 'distance' : 'kg'}" inputmode="decimal" enterkeyhint="next" value="${firstValue != null ? (distance ? GymUnits.formatDistance(firstValue) : GymUnits.formatWeight(firstValue)) : ''}" placeholder="${previousValue != null ? (distance ? GymUnits.formatDistance(previousValue) : GymUnits.formatWeight(previousValue)) : ''}">
+      <input class="set-in" data-f="${distance ? 'duration' : 'reps'}" inputmode="decimal" enterkeyhint="done" value="${secondValue != null ? (distance ? GymUnits.formatDuration(secondValue) : secondValue) : ''}" placeholder="${previousSecond != null ? (distance ? GymUnits.formatDuration(previousSecond) : previousSecond) : ''}">
       <button class="set-chk" data-act="check" aria-label="Serie hecha">${checkIcon}</button>
     </div>`;
   }).join('');
@@ -334,9 +339,9 @@ function exCardHTML(ex, idx) {
       <button class="ex-name" data-act="ex-open">${esc(exName(ex.exId))}</button>
       <button class="icon-btn icon-btn-sm" data-act="ex-menu" aria-label="Opciones">${dotsIcon}</button>
     </div>
-    ${ex.showNotes || ex.notes ? `<textarea class="ex-notes" data-act="notes" rows="1" placeholder="Notas del ejercicio">${esc(ex.notes || '')}</textarea>` : ''}
+    ${window.GymNotes.isVisible(ex) ? `<textarea class="ex-notes" data-act="notes" rows="1" placeholder="Notas del ejercicio">${esc(ex.notes || '')}</textarea>` : ''}
     ${exExtrasHTML(ex)}
-    <div class="set-head"><span>SERIE</span><span>ANTERIOR</span><span>KG</span><span>REPS</span><span>✓</span></div>
+    <div class="set-head"><span>SERIE</span><span>ANTERIOR</span><span>${distance ? firstUnit.toUpperCase() : firstUnit.toUpperCase()}</span><span>${distance ? 'MIN' : 'REPS'}</span><span>✓</span></div>
     ${rows}
     <button class="btn btn-ghost btn-block btn-small add-set" data-act="add-set">＋ Añadir serie</button>
   </div>`;
@@ -353,7 +358,7 @@ function renderWk() {
       <button class="icon-btn" data-act="wk-min" aria-label="${isActive ? 'Minimizar' : 'Cancelar'}">${isActive ? downIcon : backIcon}</button>
       <div class="page-bar-title">
         <input class="wk-title" data-act="title" value="${esc(d.title)}" aria-label="Nombre del entreno">
-        <small>${isActive ? `<span data-clock>${fmtClock((Date.now() - d.start) / 1000)}</span> · ` : esc(fmtWDate(d.start)) + ' · '}${fmtInt(vol)} kg · ${done} series</small>
+        <small>${isActive ? `<span data-clock>${fmtClock((Date.now() - d.start) / 1000)}</span> · ` : esc(fmtWDate(d.start)) + ' · '}${GymUnits.formatWeight(vol)} ${GymUnits.unitFor('weight')} · ${done} series</small>
       </div>
       <button class="btn btn-small btn-primary" data-act="wk-finish">${isActive ? 'Terminar' : 'Guardar'}</button>
     </div>
@@ -372,16 +377,19 @@ function updateWkHeader() {
   const d = wkData;
   const done = d.exercises.reduce((a, e) => a + e.sets.filter(s => s.done).length, 0);
   const vol = d.exercises.reduce((a, e) => a + e.sets.filter(s => s.done && s.type !== 'warmup').reduce((b, s) => b + setVol(s), 0), 0);
-  if (small) small.innerHTML = `${wkMode === 'active' ? `<span data-clock>${fmtClock((Date.now() - d.start) / 1000)}</span> · ` : esc(fmtWDate(d.start)) + ' · '}${fmtInt(vol)} kg · ${done} series`;
+  if (small) small.innerHTML = `${wkMode === 'active' ? `<span data-clock>${fmtClock((Date.now() - d.start) / 1000)}</span> · ` : esc(fmtWDate(d.start)) + ' · '}${GymUnits.formatWeight(vol)} ${GymUnits.unitFor('weight')} · ${done} series`;
 }
 const wkChanged = () => { if (wkMode === 'active') saveActive(); };
 
 function wkInput(e) {
+  // Claude: convierte cada edición a kg, km o segundos antes de persistir el entreno activo.
   const t = e.target;
   if (t.matches('.set-in')) {
     const row = t.closest('.set-row');
     const s = wkData.exercises[+row.dataset.ex].sets[+row.dataset.set];
-    if (t.dataset.f === 'kg') { const v = parseKg(t.value); s.kg = t.value.trim() === '' || isNaN(v) ? null : v; }
+    if (t.dataset.f === 'kg') { const v = GymUnits.parseWeight(t.value); s.kg = t.value.trim() === '' || isNaN(v) ? null : v; }
+    else if (t.dataset.f === 'distance') { const v = GymUnits.parseDistance(t.value); s.km = t.value.trim() === '' || isNaN(v) ? null : v; }
+    else if (t.dataset.f === 'duration') { const v = GymUnits.parseDuration(t.value); s.sec = t.value.trim() === '' || isNaN(v) ? null : v; }
     else { const v = parseInt(t.value, 10); s.reps = isNaN(v) ? null : v; }
     if (s.done) updateWkHeader();
     wkChanged();
@@ -426,7 +434,7 @@ async function wkClick(e) {
     const last = ex.sets[ex.sets.length - 1];
     const prev = prevSetsFor(ex.exId) || [];
     const p = prev[ex.sets.length];
-    ex.sets.push({ type: 'normal', kg: null, reps: null, done: wkMode === 'edit', ph: { kg: last ? (last.kg ?? last.ph?.kg ?? null) : p?.kg ?? null, reps: last ? (last.reps ?? last.ph?.reps ?? null) : p?.reps ?? null } });
+    ex.sets.push({ type: 'normal', kg: null, reps: null, km: null, sec: null, done: wkMode === 'edit', ph: { kg: last ? (last.kg ?? last.ph?.kg ?? null) : p?.kg ?? null, reps: last ? (last.reps ?? last.ph?.reps ?? null) : p?.reps ?? null, km: last ? (last.km ?? last.ph?.km ?? null) : p?.km ?? null, sec: last ? (last.sec ?? last.ph?.sec ?? null) : p?.sec ?? null } });
     wkChanged(); renderWk();
     return;
   }
@@ -442,14 +450,14 @@ async function wkClick(e) {
     const i = +card.dataset.ex;
     const lastKg = [...ex.sets].reverse().find(s => s.kg || s.ph?.kg);
     const v = await actionSheet(exName(ex.exId), [
-      { label: ex.showNotes || ex.notes ? 'Ocultar notas' : 'Añadir nota', value: 'notes' },
+      { label: window.GymNotes.isVisible(ex) ? 'Ocultar notas' : 'Añadir nota', value: 'notes' },
       { label: 'Calculadora de discos', value: 'plates' },
       ...(i > 0 ? [{ label: 'Subir', value: 'up' }] : []),
       ...(i < wkData.exercises.length - 1 ? [{ label: 'Bajar', value: 'down' }] : []),
       ...supMenuItems(i), { label: 'Reemplazar ejercicio', value: 'replace' },
       { label: 'Quitar ejercicio', value: 'remove', danger: true },
     ]);
-    if (v === 'notes') { ex.showNotes = !(ex.showNotes || ex.notes); if (!ex.showNotes) ex.notes = ''; }
+    if (v === 'notes') window.GymNotes.toggleVisibility(ex);
     else if (v === 'plates') { plateCalc(lastKg ? (lastKg.kg || lastKg.ph.kg) : null); return; }
     else if (v === 'up' || v === 'down') { const j = v === 'up' ? i - 1 : i + 1; [wkData.exercises[i], wkData.exercises[j]] = [wkData.exercises[j], wkData.exercises[i]]; }
     else if (v === 'replace') {
@@ -483,7 +491,7 @@ async function wkClick(e) {
   if (act === 'use-prev') {
     const p = (prevSetsFor(ex.exId, wkMode === 'edit' ? wkData.id : null) || [])[si];
     if (!p) return;
-    s.kg = p.kg ?? null; s.reps = p.reps ?? null;
+    s.kg = p.kg ?? null; s.reps = p.reps ?? null; s.km = p.km ?? null; s.sec = p.sec ?? null;
     wkChanged(); renderWk();
     return;
   }
@@ -508,7 +516,7 @@ async function finishWorkout() {
   }
   const w = {
     id: a.id, title: (a.title || '').trim() || 'Entreno', routineId: a.routineId || null, start: a.start, end: Date.now(), notes: a.notes || '',
-    exercises: a.exercises.map(e => ({ exId: e.exId, notes: e.notes || '', ...(e.sup ? { sup: e.sup } : {}), sets: e.sets.filter(s => s.done).map(s => ({ type: s.type, kg: s.kg || 0, reps: s.reps || 0 })) })).filter(e => e.sets.length),
+    exercises: a.exercises.map(e => ({ exId: e.exId, notes: e.notes || '', ...(e.sup ? { sup: e.sup } : {}), sets: e.sets.filter(s => s.done).map(s => ({ type: s.type, kg: s.kg || 0, reps: s.reps || 0, ...(s.km ? { km: s.km } : {}), ...(s.sec ? { sec: s.sec } : {}) })) })).filter(e => e.sets.length),
   };
   const prs = workoutPRs(w);
   await DB.put('workouts', w);
@@ -536,7 +544,7 @@ async function showSummary(w, prs, restByEx) {
       </div>
       <div class="stats">
         <div class="card stat"><div class="label">Duración</div><div class="val">${fmtDur(w.end - w.start)}</div></div>
-        <div class="card stat"><div class="label">Volumen</div><div class="val">${fmtInt(wVolume(w))}</div><div class="sub">kg</div></div>
+        <div class="card stat"><div class="label">Volumen</div><div class="val">${GymUnits.formatWeight(wVolume(w))}</div><div class="sub">${GymUnits.unitFor('weight')}</div></div>
         <div class="card stat"><div class="label">Series</div><div class="val">${wSetCount(w)}</div></div>
       </div>
       ${prs.length ? `<h3 class="section-title">Récords nuevos</h3><div class="card list-wrap">${prs.map(p => `<div class="pr-row"><span>🏆 ${esc(exName(p.exId))}<small>${p.label}</small></span><b>${p.value}</b></div>`).join('')}</div>` : ''}
@@ -551,7 +559,7 @@ async function showSummary(w, prs, restByEx) {
     if (sig(r.exercises) !== sig(w.exercises)) {
       const ok = await ask({ title: `¿Actualizar «${r.name}»?`, message: 'Has cambiado ejercicios o series respecto a la rutina. ¿Guardo estos cambios en la rutina?', ok: 'Actualizar', cancel: 'No' });
       if (ok) {
-        r.exercises = w.exercises.map(e => ({ exId: e.exId, rest: restByEx.get(e.exId) ?? null, ...(e.sup ? { sup: e.sup } : {}), sets: e.sets.map(s => ({ type: s.type, kg: s.kg, reps: s.reps })) }));
+        r.exercises = w.exercises.map(e => ({ exId: e.exId, rest: restByEx.get(e.exId) ?? null, ...(e.sup ? { sup: e.sup } : {}), sets: e.sets.map(s => ({ type: s.type, kg: s.kg, reps: s.reps, ...(s.km ? { km: s.km } : {}), ...(s.sec ? { sec: s.sec } : {}) })) }));
         await DB.put('routines', r);
         gymRenderAll();
         toast('Rutina actualizada');
@@ -735,7 +743,7 @@ function editRoutine(r) {
       if (!ids) return;
       ids.forEach(id => {
         const prev = prevSetsFor(id);
-        data.exercises.push({ exId: id, rest: null, sets: prev ? prev.map(s => ({ type: s.type, kg: s.kg, reps: s.reps })) : [{ type: 'normal', kg: null, reps: null }, { type: 'normal', kg: null, reps: null }, { type: 'normal', kg: null, reps: null }] });
+        data.exercises.push({ exId: id, rest: null, sets: prev ? prev.map(s => ({ type: s.type, kg: s.kg, reps: s.reps, ...(s.km ? { km: s.km } : {}), ...(s.sec ? { sec: s.sec } : {}) })) : [{ type: 'normal', kg: null, reps: null }, { type: 'normal', kg: null, reps: null }, { type: 'normal', kg: null, reps: null }] });
       });
       draw();
     } else if (!ex) return;
@@ -776,7 +784,7 @@ function renderGymHistory() {
     <div class="card-head"><h2>Últimas 12 semanas</h2></div>
     <div class="seg seg-small seg-block" id="stat-seg"><button data-st="count" class="${metric === 'count' ? 'on' : ''}">Entrenos</button><button data-st="vol" class="${metric === 'vol' ? 'on' : ''}">Volumen</button><button data-st="dur" class="${metric === 'dur' ? 'on' : ''}">Tiempo</button></div>
     <div class="bars">${weeks.map(x => `<div class="bar-col"><small>${val(x) ? fmtV(val(x)) : ''}</small><div class="bar" style="height:${(val(x) / max * 100).toFixed(1)}%"></div><span>${new Date(x.t).getDate()}/${new Date(x.t).getMonth() + 1}</span></div>`).join('')}</div>
-    <p class="fine center">Esta semana: <b>${thisW.n}</b> ${thisW.n === 1 ? 'entreno' : 'entrenos'} · ${fmtInt(thisW.vol)} kg</p>
+    <p class="fine center">Esta semana: <b>${thisW.n}</b> ${thisW.n === 1 ? 'entreno' : 'entrenos'} · ${GymUnits.formatWeight(thisW.vol)} ${GymUnits.unitFor('weight')}</p>
   </div>`;
   html += calendarHTML() + muscleHTML();
   let month = '';
@@ -786,7 +794,7 @@ function renderGymHistory() {
     if (m !== month) { html += `<div class="month-head"><span>${cap(fmtD(F.monYear, m + '-01'))}</span></div>`; month = m; }
     html += `<button class="card wk-item" data-wid="${w.id}">
       <div class="wk-item-head"><b>${esc(w.title)}</b><small>${fmtWDate(w.start)}</small></div>
-      <div class="wk-item-stats"><span>⏱ ${fmtDur(w.end - w.start)}</span><span>🏋️ ${fmtInt(wVolume(w))} kg</span><span>${wSetCount(w)} series</span></div>
+      <div class="wk-item-stats"><span>⏱ ${fmtDur(w.end - w.start)}</span><span>🏋️ ${GymUnits.formatWeight(wVolume(w))} ${GymUnits.unitFor('weight')}</span><span>${wSetCount(w)} series</span></div>
       <div class="wk-item-ex">${w.exercises.slice(0, 4).map(e => `${workSets(e.sets).length}× ${esc(exName(e.exId))}`).join('<br>')}${w.exercises.length > 4 ? `<br><span class="sub">+${w.exercises.length - 4} más</span>` : ''}</div>
     </button>`;
   }
@@ -846,7 +854,7 @@ function renderDetail(id) {
     <div class="page-body">
       <div class="stats">
         <div class="card stat"><div class="label">Duración</div><div class="val">${fmtDur(w.end - w.start)}</div></div>
-        <div class="card stat"><div class="label">Volumen</div><div class="val">${fmtInt(wVolume(w))}</div><div class="sub">kg</div></div>
+        <div class="card stat"><div class="label">Volumen</div><div class="val">${GymUnits.formatWeight(wVolume(w))}</div><div class="sub">${GymUnits.unitFor('weight')}</div></div>
         <div class="card stat"><div class="label">Récords</div><div class="val">${prs.length ? '🏆 ' + prs.length : '—'}</div></div>
       </div>
       ${w.exercises.map(e => `<div class="card ex-detail">
@@ -905,9 +913,9 @@ function openExercise(id) {
         ${typeof exerciseGuideHTML === 'function' ? exerciseGuideHTML(ex) : ''}
         ${ss.length ? `
         <div class="stats stats-2">
-          <div class="card stat"><div class="label">Peso máximo</div><div class="val">${fmtN(b.kg)} kg</div></div>
-          <div class="card stat"><div class="label">1RM estimado</div><div class="val">${fmtN(Math.round(b.e1 * 10) / 10)} kg</div><div class="sub">${bestE1Set ? esc(fmtSet(bestE1Set)) : ''}</div></div>
-          <div class="card stat"><div class="label">Mejor serie</div><div class="val">${fmtInt(b.vol)} kg</div><div class="sub">volumen (kg × reps)</div></div>
+          <div class="card stat"><div class="label">Peso máximo</div><div class="val">${GymUnits.formatWeight(b.kg)} ${GymUnits.unitFor('weight')}</div></div>
+          <div class="card stat"><div class="label">1RM estimado</div><div class="val">${GymUnits.formatWeight(Math.round(b.e1 * 10) / 10)} ${GymUnits.unitFor('weight')}</div><div class="sub">${bestE1Set ? esc(fmtSet(bestE1Set)) : ''}</div></div>
+          <div class="card stat"><div class="label">Mejor serie</div><div class="val">${GymUnits.formatWeight(b.vol)} ${GymUnits.unitFor('weight')}</div><div class="sub">volumen (${GymUnits.unitFor('weight')} × reps)</div></div>
           <div class="card stat"><div class="label">Máx. reps</div><div class="val">${b.reps}</div><div class="sub">${maxRepsSet ? esc(fmtSet(maxRepsSet)) : ''}</div></div>
         </div>
         ${exChartHTML(metric, range)}
@@ -1041,10 +1049,10 @@ function renderInicio() {
   if (G.workouts.length) {
     const w = G.workouts[0];
     html += `<button class="card quick" data-quick-w="${w.id}">
-      <div><div class="label">Último entreno</div><div class="quick-val">${esc(w.title)}</div><small class="sub">${fmtWDate(w.start)} · ${fmtDur(w.end - w.start)} · ${fmtInt(wVolume(w))} kg</small></div>${chevIcon}
+      <div><div class="label">Último entreno</div><div class="quick-val">${esc(w.title)}</div><small class="sub">${fmtWDate(w.start)} · ${fmtDur(w.end - w.start)} · ${GymUnits.formatWeight(wVolume(w))} ${GymUnits.unitFor('weight')}</small></div>${chevIcon}
     </button>
     <div class="card quick">
-      <div><div class="label">Esta semana</div><div class="quick-val">${week.length} ${week.length === 1 ? 'entreno' : 'entrenos'}</div><small class="sub">${fmtInt(week.reduce((a, w2) => a + wVolume(w2), 0))} kg de volumen</small></div>
+      <div><div class="label">Esta semana</div><div class="quick-val">${week.length} ${week.length === 1 ? 'entreno' : 'entrenos'}</div><small class="sub">${GymUnits.formatWeight(week.reduce((a, w2) => a + wVolume(w2), 0))} ${GymUnits.unitFor('weight')} de volumen</small></div>
     </div>`;
   }
   box.innerHTML = html;
@@ -1058,13 +1066,13 @@ $('#home-quick').addEventListener('click', e => {
 function renderGymSettings() {
   $('#set-rest').textContent = fmtRest(S.rest);
   $('#set-sound').checked = S.sound !== false;
-  $('#set-bar').textContent = S.bar ? `${S.bar} kg` : 'Sin barra';
+  $('#set-bar').textContent = S.bar ? `${GymUnits.formatWeight(S.bar)} ${GymUnits.unitFor('weight')}` : 'Sin barra';
   renderRestModeSetting();
 }
 $('#set-rest').addEventListener('click', async () => { const v = await pickRest(S.rest); if (v != null) { S.rest = v; saveSettings(); renderGymSettings(); } });
 $('#set-sound').addEventListener('change', e => { S.sound = e.target.checked; saveSettings(); if (S.sound) beep(); });
 $('#set-bar').addEventListener('click', async () => {
-  const v = await actionSheet('Barra', [20, 15, 10, 0].map(b => ({ label: b ? `${b} kg` : 'Sin barra', value: b, on: S.bar === b })));
+  const v = await actionSheet('Barra', [20, 15, 10, 0].map(b => ({ label: b ? `${GymUnits.formatWeight(b)} ${GymUnits.unitFor('weight')}` : 'Sin barra', value: b, on: S.bar === b })));
   if (v != null) { S.bar = v; saveSettings(); renderGymSettings(); }
 });
 
@@ -1248,7 +1256,7 @@ function gymHevyImport(text) {
     for (const r of routineOpts) {
       if (!r.on) continue;
       const w = toWorkout(r.last);
-      const ro = { id: uid(), name: r.title, order: G.routines.length + newRoutines.length, exercises: w.exercises.map(e2 => ({ exId: e2.exId, rest: null, sets: e2.sets.map(s => ({ type: s.type, kg: s.kg, reps: s.reps })) })) };
+      const ro = { id: uid(), name: r.title, order: G.routines.length + newRoutines.length, exercises: w.exercises.map(e2 => ({ exId: e2.exId, rest: null, sets: e2.sets.map(s => ({ type: s.type, kg: s.kg, reps: s.reps, ...(s.km ? { km: s.km } : {}), ...(s.sec ? { sec: s.sec } : {}) })) })) };
       newRoutines.push(ro);
       routineByTitle.set(norm(r.title), ro);
     }

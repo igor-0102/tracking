@@ -173,7 +173,28 @@
         <span>Barra (calculadora de discos)</span>
         <button class="pill-btn" id="set-bar"></button>
       </div>
+      <div class="field">
+        <span>Cargas en los entrenos</span>
+        <div class="seg seg-small" id="set-weight-unit"><button data-unit="kg">kg</button><button data-unit="lb">lb</button></div>
+      </div>
+      <div class="field">
+        <span>Distancias de cardio</span>
+        <div class="seg seg-small" id="set-distance-unit"><button data-unit="km">km</button><button data-unit="mi">mi</button></div>
+      </div>
+      <label class="field">
+        <span>Avisos de récord y progreso</span>
+        <input type="checkbox" class="switch" id="set-motivation" checked>
+      </label>
     </div>
+
+    <!-- Claude: ajustes plegados para dar control sin recargar la pantalla principal de entrenamiento. -->
+    <details class="card workout-layout-settings">
+      <summary>Personalizar pantalla del entreno</summary>
+      <label class="field"><span>Mostrar datos de la sesión anterior</span><input type="checkbox" class="switch" id="set-workout-previous" checked></label>
+      <label class="field"><span>Mostrar sugerencias de progresión</span><input type="checkbox" class="switch" id="set-workout-suggestions" checked></label>
+      <label class="field"><span>Mostrar notas de ejercicios</span><input type="checkbox" class="switch" id="set-workout-notes" checked></label>
+      <p class="fine">Al ocultar una sección, sus datos guardados se conservan.</p>
+    </details>
 
     <h3 class="section-title">Apariencia</h3>
     <div class="seg seg-block" id="theme-seg">
@@ -185,6 +206,7 @@
     <h3 class="section-title">Copias de seguridad</h3>
     <div class="card list-card">
       <p class="fine" id="last-backup"></p>
+      <p class="fine privacy-note">Tus datos se guardan en este móvil. La copia JSON incluye notas y sesiones en curso; el Excel solo exporta fecha y peso; el CSV de entrenos usa kg/km y omite notas; el resumen compartido también omite notas.</p>
       <button class="row-btn" data-action="export"><span>Exportar copia completa</span><small>Pesos, entrenos, rutinas y dietas en un archivo</small></button>
       <button class="row-btn" data-action="export-excel"><span>Exportar pesos a Excel</span><small>Hoja de datos con gráfico de líneas</small></button>
       <button class="row-btn" data-action="import-file"><span>Importar archivo</span><small>Copia de Tracking (.json), pesos (.txt) o CSV de Hevy</small></button>
@@ -220,6 +242,10 @@
     <button class="rest-btn" data-rest="-15">−15</button>
     <div class="rest-time"><small id="rest-label">Descanso</small><b id="rest-time">1:30</b></div>
     <button class="rest-btn" data-rest="15">+15</button>
+  </div>
+  <div class="rest-controls">
+    <button class="rest-btn" data-rest="toggle">Pausar</button>
+    <button class="rest-btn" data-rest="reset" aria-label="Reiniciar descanso">Reiniciar</button>
     <button class="rest-btn rest-skip" data-rest="skip">Saltar</button>
   </div>
 </div>
@@ -327,11 +353,23 @@
 <script src="chart-ranges.js"></script>
 <script src="gymcalc.js"></script>
 <script src="gym.js"></script>
+<script src="gym-note-visibility.js"></script>
+<script src="gym-active-backup.js"></script>
+<script src="gym-rest-state.js"></script>
 <script src="exercise-guide.js"></script>
+<script src="gym-exercise-enhancements.js"></script>
 <script src="gym-plus.js"></script>
+<script src="gym-workout-layout.js"></script>
+<script src="gym-units.js"></script>
+<script src="gym-exercise-history.js"></script>
+<script src="gym-portability.js"></script>
+<script src="gym-summary-comparison.js"></script>
+<script src="gym-history-tools.js"></script>
+<script src="gym-motivation.js"></script>
 <script src="foods.js"></script>
 <script src="prepared-foods.js"></script>
 <script src="diet.js"></script>
+<script src="diet-get-info.js"></script>
 <script src="body.js"></script>
 <script src="native.js"></script>
 </body>

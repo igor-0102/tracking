@@ -1,0 +1,73 @@
+/* Tracking · service worker: guarda la app para usarla sin conexión.
+   Al publicar cambios, sube VERSION para que los móviles se actualicen. */
+const VERSION = 'tracking-2.6.0';
+const ASSETS = [
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './weight-xlsx.js',
+  './weight-extras.js',
+  './ranges.js',
+  './chart-ranges.js',
+  './gym.js',
+  // Claude: los módulos añadidos aquí deben estar también en index.html y tools/build-www.mjs.
+  './gym-note-visibility.js',
+  './gym-active-backup.js',
+  './gym-rest-state.js',
+  './gym-exercise-enhancements.js',
+  './gym-units.js',
+  './gym-exercise-history.js',
+  './gym-portability.js',
+  './gym-summary-comparison.js',
+  './gym-history-tools.js',
+  './gym-motivation.js',
+  './diet-get-info.js',
+  './exercise-guide.js',
+  './gymcalc.js',
+  './gym-plus.js',
+  './gym-workout-layout.js',
+  './body.js',
+  './native.js',
+  './nutri.js',
+  './foods.js',
+  './prepared-foods.js',
+  './foods-db.js',
+  './foods-usda.js',
+  './diet.js',
+  './manifest.webmanifest',
+  './icons/icon.svg',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
+  './icons/apple-touch-icon.png',
+];
+
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(VERSION).then(c => c.addAll(ASSETS.map(u => new Request(u, { cache: 'reload' })))));
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k.startsWith('tracking-') && k !== VERSION).map(k => caches.delete(k)));
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener('message', e => {
+  if (e.data === 'skipWaiting') self.skipWaiting();
+});
+
+self.addEventListener('fetch', e => {
+  const req = e.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  e.respondWith((async () => {
+    const cache = await caches.open(VERSION);
+    if (req.mode === 'navigate') {
+      return (await cache.match('./index.html')) || fetch(req);
+    }
+    const hit = await cache.match(req, { ignoreSearch: true });
+    return hit || fetch(req);
+  })());
+});

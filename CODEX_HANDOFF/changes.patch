@@ -1,0 +1,2351 @@
+diff --git a/app.js b/app.js
+index 75929a9..cdac386 100644
+--- a/app.js
++++ b/app.js
+@@ -1141,7 +1141,7 @@ function backupData() {
+     ...gym, ...diet, ...(typeof bodyBackupData === 'function' ? bodyBackupData() : {}),
+   };
+ }
+-const hasData = d => !!(d.entries.length || (d.workouts && d.workouts.length) || (d.routines && d.routines.length) || (d.diets && d.diets.length) || (d.customFoods && d.customFoods.length) || (d.measures && d.measures.length));
++const hasData = d => !!(d.entries.length || d.activeWorkout || (d.workouts && d.workouts.length) || (d.routines && d.routines.length) || (d.diets && d.diets.length) || (d.customFoods && d.customFoods.length) || (d.measures && d.measures.length));
+ 
+ // Copia automática: en la app nativa se guarda un archivo con todo en la carpeta privada de la app.
+ // Android incluye esa carpeta en la copia de seguridad de la cuenta de Google del móvil.
+@@ -1333,7 +1333,7 @@ async function importJSON(text, intro = '') {
+   const n = k => (Array.isArray(d[k]) ? d[k].length : 0);
+   const ok = await ask({
+     title: 'Importar copia',
+-    message: `${intro}Copia del ${d.exported ? fmtD(F.dayMonYear, d.exported.slice(0, 10)) : '¿?'}: ${ents.length} pesos, ${n('workouts')} entrenos, ${n('routines')} rutinas y ${n('diets')} dietas. Se combinará con lo que ya tienes (si algo coincide, gana la copia).`,
++    message: `${intro}Copia del ${d.exported ? fmtD(F.dayMonYear, d.exported.slice(0, 10)) : '¿?'}: ${ents.length} pesos, ${n('workouts')} entrenos, ${n('routines')} rutinas y ${n('diets')} dietas${d.activeWorkout ? ' y un entreno en curso' : ''}. Se combinará con lo que ya tienes; si ya hay otro entreno activo, se conservará ese.`,
+     ok: 'Importar', cancel: 'Cancelar',
+   });
+   if (!ok) return;
+diff --git a/diet-get-info.js b/diet-get-info.js
+new file mode 100644
+index 0000000..ee75ed3
+--- /dev/null
++++ b/diet-get-info.js
+@@ -0,0 +1,33 @@
++/* Aclara el ajuste energético sin tocar el cálculo nutricional ni introducir dependencias. */
++'use strict';
++
++(() => {
++  const message = 'Este porcentaje suma o resta calorías al GET estimado. En pérdida de grasa deportiva se usa 0,5–1 % del peso por semana como orientación, no como límite universal. El 1 % no garantiza evitar daño hormonal: una disponibilidad energética muy baja o prolongada puede afectar la salud. Si tienes síntomas o una enfermedad, consulta con un profesional.';
++  window.DietGetInfo = Object.freeze({ message });
++
++  function addInfo(root) {
++    const input = root.querySelector('[data-goal="pct"]');
++    const label = input && input.closest('label.field');
++    const title = label && label.querySelector('span');
++    if (!title || title.querySelector('[data-get-info]')) return;
++    const button = document.createElement('button');
++    button.type = 'button'; button.className = 'get-info'; button.dataset.getInfo = 'true';
++    button.setAttribute('aria-label', 'Información sobre el ajuste del GET');
++    button.setAttribute('aria-expanded', 'false'); button.textContent = 'i';
++    const help = document.createElement('small');
++    help.className = 'fine get-info-text'; help.dataset.getInfoText = 'true'; help.hidden = true; help.textContent = message;
++    title.append(' ', button); label.append(help);
++  }
++
++  const root = document.querySelector('#goal-box');
++  if (!root) return;
++  new MutationObserver(() => addInfo(root)).observe(root, { childList: true, subtree: true });
++  root.addEventListener('click', event => {
++    const button = event.target.closest('[data-get-info]');
++    if (!button) return;
++    const help = button.closest('label').querySelector('[data-get-info-text]');
++    help.hidden = !help.hidden;
++    button.setAttribute('aria-expanded', String(!help.hidden));
++  });
++  addInfo(root);
++})();
+diff --git a/exercise-guide.js b/exercise-guide.js
+index 6a3534b..ecdce28 100644
+--- a/exercise-guide.js
++++ b/exercise-guide.js
+@@ -1,21 +1,48 @@
+-/* Guía local de ejercicios: zonas musculares esquemáticas e instrucciones breves. */
++/* Catálogo sin red, inspirado en la claridad didáctica de MuscleWiki; dibujos propios, no imágenes copiadas. */
+ 'use strict';
+ 
+ (() => {
+   const guides = [
+-    [/press banca|press de banca|banca|flexion|apertura|cruce|pec deck/, 'Pecho', 'Tumbado o con el torso estable, baja el peso con control hacia el pecho. Empuja sin rebotar y mantén las muñecas alineadas.'],
+-    [/remo|jalon|pulldown|dominada|face pull/, 'Espalda', 'Inicia el tirón llevando los codos hacia atrás o abajo. Mantén el tronco firme y evita balancearte para mover el peso.'],
+-    [/sentadilla|prensa|zancada|extension de cuadriceps|curl femoral/, 'Piernas', 'Apoya todo el pie y acompaña el movimiento con las rodillas en la dirección de los pies. Usa un recorrido cómodo y controlado.'],
+-    [/peso muerto|rumano|buenos dias/, 'Espalda', 'Lleva la cadera atrás con la espalda neutra y el peso cerca del cuerpo. Termina erguido sin hiperextender la zona lumbar.'],
+-    [/hip thrust|puente de gluteo|patada de gluteo/, 'Glúteos', 'Empuja desde los talones y extiende la cadera. Mantén las costillas recogidas y no arquees la espalda al final.'],
+-    [/press militar|press hombro|arnold/, 'Hombros', 'Empuja sobre la cabeza con abdomen firme. Baja hasta un rango cómodo sin encoger los hombros.'],
+-    [/elevacion lateral|elevacion frontal|pajaro|deltoide posterior/, 'Hombros', 'Eleva los brazos con ligera flexión de codos y sin impulso. Detén el recorrido antes de que los hombros se encojan.'],
+-    [/curl|biceps/, 'Bíceps', 'Mantén los codos cerca del cuerpo. Flexiona y baja el brazo despacio, sin balancear el tronco.'],
+-    [/triceps|extension de codo|fondos/, 'Tríceps', 'Fija los hombros y mueve el antebrazo. Extiende el codo con control, sin bloquearlo con fuerza.'],
+-    [/plancha|crunch|abdominal|rueda/, 'Core', 'Mantén el tronco estable y respira. Evita que la zona lumbar se hunda o que el cuello cargue el esfuerzo.'],
+-    [/correr|cinta|bici|eliptica/, 'Cardio', 'Empieza a un ritmo que puedas sostener y aumenta la intensidad de forma gradual. Ajusta la máquina antes de empezar.'],
++    [/press banca|press de banca|bench press/, 'Pecho', 'Apoya pies, espalda y glúteos; coloca las manos algo más abiertas que los hombros.', 'Baja la barra hacia el pecho con control y empuja sin rebotar ni bloquear los brazos.', 'No separes los glúteos del banco ni pierdas la alineación de las muñecas.', ['Tríceps', 'Hombros']],
++    [/press inclinado|banca inclinada/, 'Pecho', 'Ajusta el banco a una inclinación moderada y apoya los pies en el suelo.', 'Baja las mancuernas o la barra a la parte alta del pecho y vuelve a empujar.', 'No arquees la espalda ni choques las pesas arriba.', ['Tríceps', 'Hombros']],
++    [/press declinado/, 'Pecho', 'Asegura los pies y mantén la cabeza apoyada en el banco.', 'Baja el peso hacia la zona baja del pecho y empuja en la misma trayectoria.', 'No fuerces el cuello ni rebotes abajo.', ['Tríceps', 'Hombros']],
++    [/apertura|cruce de polea|crossover|pec deck|contractora/, 'Pecho', 'Mantén una ligera flexión de codos y coloca los hombros bajos.', 'Junta los brazos delante del pecho y vuelve despacio hasta un estiramiento cómodo.', 'No conviertas la apertura en un press doblando más los codos.', ['Hombros']],
++    [/flexion|push ?up|fondos en paralelas/, 'Pecho', 'Forma una línea estable de cabeza a talones y coloca las manos bajo los hombros.', 'Baja el pecho entre las manos y empuja el suelo para volver.', 'No dejes caer la cadera ni adelantes la cabeza.', ['Tríceps', 'Core']],
++    [/remo sentado|remo en polea|remo con cable|seated cable row|seated row|cable row/, 'Espalda', 'Siéntate estable, sujeta el agarre y alarga los brazos sin redondear la espalda.', 'Lleva los codos atrás y acerca el agarre al torso; vuelve lentamente.', 'No te balancees ni eleves los hombros.', ['Bíceps', 'Hombros']],
++    [/remo con barra|remo inclinado/, 'Espalda', 'Inclina la cadera con la espalda neutra y las rodillas ligeramente flexionadas.', 'Lleva la barra hacia el abdomen y baja con control.', 'No redondees la zona lumbar ni uses impulso.', ['Bíceps', 'Core']],
++    [/remo con mancuerna|remo unilateral/, 'Espalda', 'Apoya una mano y mantén el torso firme y paralelo al suelo.', 'Lleva el codo hacia la cadera y baja la mancuerna sin girar el cuerpo.', 'No tires del hombro hacia la oreja.', ['Bíceps', 'Hombros']],
++    [/jalon|jalón|pulldown/, 'Espalda', 'Sujeta la barra algo más abierta que los hombros y fija los muslos bajo el apoyo.', 'Lleva la barra hacia la parte alta del pecho y controla la subida.', 'No tires tras la nuca ni te balancees hacia atrás.', ['Bíceps', 'Hombros']],
++    [/dominada|pull ?up/, 'Espalda', 'Cuelga con un agarre firme y activa los hombros antes de iniciar.', 'Sube llevando los codos hacia abajo y desciende de forma controlada.', 'Evita impulsarte con las piernas o encoger el cuello.', ['Bíceps', 'Core']],
++    [/face ?pull|tiron a la cara/, 'Hombros', 'Coloca la polea a la altura de la cara y sujeta la cuerda con pulgares hacia atrás.', 'Separa las manos hacia las sienes y junta suavemente los omóplatos.', 'No arquees la espalda ni eleves los hombros.', ['Espalda']],
++    [/peso muerto rumano|peso muerto con piernas rigidas|buenos dias/, 'Piernas', 'Sujeta el peso cerca del cuerpo y desbloquea ligeramente las rodillas.', 'Lleva la cadera atrás hasta notar tensión en la parte posterior de las piernas; vuelve apretando glúteos.', 'No redondees la espalda ni bajes más allá de tu movilidad.', ['Glúteos', 'Espalda']],
++    [/peso muerto|deadlift/, 'Piernas', 'Coloca los pies bajo la barra y acerca las espinillas; prepara el abdomen y la espalda neutra.', 'Empuja el suelo y extiende cadera y rodillas a la vez; baja siguiendo el mismo recorrido.', 'No tires de la barra con la espalda redondeada ni hiperextiendas arriba.', ['Glúteos', 'Espalda']],
++    [/sentadilla|squat/, 'Piernas', 'Apoya todo el pie y coloca las rodillas en la dirección de los dedos.', 'Flexiona cadera y rodillas hasta un rango cómodo y empuja el suelo para subir.', 'No levantes los talones ni dejes colapsar las rodillas hacia dentro.', ['Glúteos', 'Core']],
++    [/prensa de piernas|leg press|prensa/, 'Piernas', 'Apoya espalda y cadera en el respaldo y coloca los pies a una anchura cómoda.', 'Desbloquea el seguro, baja controladamente y empuja sin bloquear las rodillas.', 'No despegues la cadera del respaldo ni bajes con dolor.', ['Glúteos']],
++    [/extension de cuadriceps|extension de pierna|leg extension/, 'Piernas', 'Ajusta el eje de la máquina a la rodilla y coloca el rodillo sobre los tobillos.', 'Extiende las rodillas y baja el peso lentamente.', 'No des golpes al final del recorrido.', []],
++    [/curl femoral|leg curl/, 'Piernas', 'Alinea la rodilla con el eje y apoya el rodillo sobre la parte baja de la pierna.', 'Flexiona la rodilla acercando el rodillo y regresa despacio.', 'No levantes la cadera ni rebotes el peso.', ['Glúteos']],
++    [/aduccion de cadera|aductor|hip adduction/, 'Piernas', 'Siéntate con la espalda apoyada y ajusta los soportes al interior de las rodillas.', 'Junta las piernas de forma controlada y vuelve sin dejar que el peso golpee.', 'No uses impulso ni fuerces una apertura dolorosa.', []],
++    [/abduccion de cadera|abductor|hip abduction/, 'Glúteos', 'Siéntate estable con las rodillas apoyadas en los soportes exteriores.', 'Abre las piernas contra la resistencia y regresa lentamente.', 'No arquees la espalda ni rebotes al cerrar.', ['Piernas']],
++    [/zancada|lunge|bulgara|búlgara/, 'Piernas', 'Coloca los pies en dos carriles y mantén el torso erguido.', 'Baja la rodilla de atrás hacia el suelo y empuja con el pie delantero para subir.', 'No juntes los pies en una sola línea ni dejes caer la rodilla hacia dentro.', ['Glúteos', 'Core']],
++    [/hip thrust|puente de gluteo|glute bridge/, 'Glúteos', 'Apoya la parte alta de la espalda y coloca los pies bajo las rodillas.', 'Extiende la cadera hasta alinear torso y muslos, y baja sin perder el control.', 'No arquees la zona lumbar para ganar recorrido.', ['Piernas', 'Core']],
++    [/patada de gluteo|kickback/, 'Glúteos', 'Sujétate a la máquina o polea y mantén el abdomen firme.', 'Lleva la pierna atrás sin girar la pelvis y vuelve despacio.', 'No balancees el tronco ni arquees la espalda.', ['Piernas']],
++    [/gemelo|elevacion de talones|calf raise/, 'Piernas', 'Apoya la parte delantera del pie y mantén las rodillas relajadas.', 'Eleva los talones, pausa arriba y baja hasta un estiramiento cómodo.', 'No rebotes ni acortes el recorrido.', []],
++    [/press militar|press de hombro|press hombro|shoulder press|overhead press|arnold/, 'Hombros', 'Coloca las pesas a la altura de los hombros y aprieta abdomen y glúteos.', 'Empuja sobre la cabeza y baja hasta una posición cómoda.', 'No arquees la zona lumbar ni encojas los hombros.', ['Tríceps']],
++    [/elevacion(?:es)? lateral(?:es)?|lateral raise/, 'Hombros', 'Sujeta las mancuernas a los lados con los codos ligeramente flexionados.', 'Eleva los brazos hasta la altura de los hombros y baja despacio.', 'No cojas impulso ni eleves los hombros hacia las orejas.', []],
++    [/elevacion frontal|elevación frontal/, 'Hombros', 'Mantén el tronco firme y las muñecas neutras.', 'Eleva las manos delante hasta la altura de los hombros y desciende con control.', 'No balancees el cuerpo para subir más peso.', ['Pecho']],
++    [/pajaro|deltoide posterior|reverse fly|aperturas inversas/, 'Hombros', 'Inclina el torso o apoya el pecho y deja una flexión suave en los codos.', 'Abre los brazos hacia los lados y vuelve lentamente.', 'No encorves el cuello ni conviertas el gesto en un remo.', ['Espalda']],
++    [/curl predicador|curl scott|preacher curl/, 'Bíceps', 'Apoya los brazos en el banco y mantén los hombros relajados.', 'Flexiona los codos y baja hasta casi extenderlos, sin perder tensión.', 'No despegues los brazos del apoyo ni rebotes abajo.', ['Antebrazos']],
++    [/curl martillo|hammer curl/, 'Bíceps', 'Sujeta las mancuernas con las palmas enfrentadas y los codos junto al torso.', 'Flexiona un brazo cada vez y baja despacio.', 'No balancees el tronco ni adelantes los codos.', ['Antebrazos']],
++    [/curl barra|curl con barra|curl mancuerna|curl de biceps|bicep curl|biceps/, 'Bíceps', 'Mantén los codos cerca del cuerpo y las muñecas rectas.', 'Flexiona el codo y baja el peso lentamente.', 'No balancees el torso para completar la repetición.', ['Antebrazos']],
++    [/triceps en polea|tríceps en polea|pushdown|jalon de triceps/, 'Tríceps', 'Fija los codos junto al cuerpo y sujeta la cuerda o barra.', 'Extiende los codos y regresa hasta una flexión cómoda.', 'No muevas los hombros ni uses el peso del cuerpo.', []],
++    [/extension de triceps sobre la cabeza|overhead tricep extension|lying tricep extension|extension francesa|skull crusher|rompecraneos/, 'Tríceps', 'Mantén los brazos estables y los codos apuntando al frente.', 'Flexiona los codos para bajar el peso y extiéndelos sin mover el hombro.', 'No abras los codos ni dejes caer la carga rápidamente.', ['Hombros']],
++    [/plancha|plank/, 'Core', 'Apoya antebrazos y pies, con cabeza, cadera y talones alineados.', 'Mantén la postura respirando con normalidad y aprieta el abdomen.', 'No dejes caer la cadera ni contengas la respiración.', ['Hombros']],
++    [/crunch|abdominal|sit ?up/, 'Core', 'Túmbate con las rodillas flexionadas y relaja el cuello.', 'Acerca las costillas a la pelvis y baja lentamente.', 'No tires de la cabeza ni uses impulso.', []],
++    [/rueda abdominal|ab wheel|rollout/, 'Core', 'Arrodíllate, sujeta la rueda y aprieta glúteos y abdomen.', 'Avanza solo hasta donde puedas mantener el tronco estable y vuelve.', 'No dejes que la zona lumbar se hunda.', ['Hombros']],
++    [/correr|cinta|running|treadmill/, 'Cardio', 'Ajusta velocidad e inclinación antes de subir y empieza suave.', 'Mantén un ritmo que puedas sostener y aumenta gradualmente.', 'No saltes de la cinta en movimiento; reduce la velocidad primero.', ['Piernas']],
++    [/bicicleta|bici|cycling|spinning/, 'Cardio', 'Ajusta altura del sillín para que la rodilla quede ligeramente flexionada abajo.', 'Pedalea fluido y regula la resistencia de forma gradual.', 'No pedalees con el sillín demasiado bajo ni fuerces una cadencia dolorosa.', ['Piernas']],
++    [/eliptica|elíptica|elliptical|remo indoor|ergometro/, 'Cardio', 'Coloca los pies en los apoyos y agarra las empuñaduras con una postura alta.', 'Mantén un ritmo continuo y acompaña el movimiento con brazos y piernas.', 'No te encorves ni aumentes la resistencia de golpe.', ['Piernas', 'Espalda']],
+   ];
+-  const targets = { Pecho: 'chest', Espalda: 'back', Hombros: 'shoulders', Bíceps: 'biceps', Tríceps: 'triceps', Piernas: 'legs', Glúteos: 'glutes', Core: 'core', Cardio: 'legs', Otro: 'core' };
++  const targets = { Pecho: 'chest', Espalda: 'back', Hombros: 'shoulders', Bíceps: 'biceps', Antebrazos: 'biceps', Tríceps: 'triceps', Piernas: 'legs', Glúteos: 'glutes', Core: 'core', Cardio: 'legs', Otro: 'core' };
+   const BACK = new Set(['back', 'triceps', 'glutes']);      // se ven mejor por detrás
+   const targetOf = muscle => (Object.prototype.hasOwnProperty.call(targets, muscle) ? targets[muscle] : 'core');
+   const escape = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+@@ -32,20 +59,40 @@
+     <path class="muscle glutes" d="M65 99 Q80 91 95 99 L93 112 67 112Z"/>
+     <path class="muscle legs" d="M65 113 77 114 75 158 63 158ZM83 114 95 113 97 158 85 158Z"/>`,
+   };
+-  const body = muscle => {
+-    const target = targetOf(muscle), view = BACK.has(target) ? 'back' : 'front';
+-    const shapes = SHAPES[view].replace(new RegExp(`class="muscle ${target}"`, 'g'), `class="muscle active ${target}"`);
+-    return `<svg class="muscle-map" viewBox="0 0 160 180" role="img" aria-label="Esquema del grupo muscular: ${escape(muscle)}${view === 'back' ? ', vista de espaldas' : ''}">
+-    <circle cx="80" cy="20" r="12"/><path class="silhouette" d="M68 35 Q80 30 92 35 L100 73 95 107 98 166 83 166 80 118 77 166 62 166 65 107 60 73Z"/>
+-    <path class="silhouette" d="M62 42 47 48 35 85 42 89 58 61M98 42 113 48 125 85 118 89 102 61"/>
+-    ${shapes}</svg>${view === 'back' ? '<small class="view-note">Vista de espaldas</small>' : ''}`;
++  function mapView(view, muscle, secondary) {
++    const primary = targetOf(muscle);
++    const other = new Set(secondary.map(targetOf).filter(target => target !== primary));
++    const shapes = SHAPES[view].replace(/class="muscle ([a-z]+)"/g, (match, part) =>
++      part === primary ? `class="muscle active ${part}"` : other.has(part) ? `class="muscle active-secondary ${part}"` : match);
++    const side = view === 'back' ? 'espaldas' : 'frontal';
++    return `<svg class="muscle-map" viewBox="0 0 160 180" role="img" aria-label="Mapa muscular ${side}: ${escape(muscle)}${secondary.length ? `; también ${secondary.map(escape).join(', ')}` : ''}">
++      <circle cx="80" cy="20" r="12"/><path class="silhouette" d="M68 35 Q80 30 92 35 L100 73 95 107 98 166 83 166 80 118 77 166 62 166 65 107 60 73Z"/>
++      <path class="silhouette" d="M62 42 47 48 35 85 42 89 58 61M98 42 113 48 125 85 118 89 102 61"/>${shapes}</svg>
++      <small class="view-note">${view === 'back' ? 'vista de espaldas' : 'vista frontal'}</small>`;
++  }
++  const body = (muscle, secondary = []) => {
++    const views = new Set([targetOf(muscle), ...secondary.map(targetOf)].map(target => BACK.has(target) ? 'back' : 'front'));
++    const maps = [...views].map(view => mapView(view, muscle, secondary)).join('');
++    return `<div class="muscle-views${views.size > 1 ? ' multi' : ''}">${maps}</div><small class="map-legend"><i class="map-key primary-key"></i> Principal <i class="map-key secondary-key"></i> Secundario</small>`;
+   };
++  const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
++  const findGuide = name => guides.find(([pattern]) => pattern.test(normalize(name))) || null;
+   function guideHTML(ex) {
+-    const name = String(ex.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+-    const guide = guides.find(([pattern]) => pattern.test(name));
+-    const muscle = guide ? guide[1] : (ex.muscle || 'Otro');
+-    const instruction = guide ? guide[2] : 'Consulta el nombre y el grupo muscular como referencia. Empieza con poco peso, controla el recorrido y detente si aparece dolor.';
+-    return `<section class="card exercise-guide"><div>${body(muscle)}</div><div><div class="label">${escape(muscle)}</div><h3>Cómo hacerlo</h3><p>${instruction}</p><small>Ilustración esquemática del grupo principal; otros músculos también pueden participar.</small></div></section>`;
++    const guide = findGuide(ex.name);
++    const custom = ex.guide || {};
++    const muscle = custom.primary ? (ex.muscle || guide?.[1] || 'Otro') : (guide ? guide[1] : (ex.muscle || 'Otro'));
++    const instruction = guide ? [['Colocación', guide[2]], ['Movimiento', guide[3]], ['Error típico', guide[4]]]
++      .map(([label, value]) => `<p><b>${label}:</b> ${escape(value)}</p>`).join('')
++      : '<p>Empieza con poco peso, controla el recorrido y detente si aparece dolor. Si no conoces la técnica, pide orientación antes de aumentar la carga.</p>';
++    const customSteps = [['Colocación', custom.setup], ['Movimiento', custom.move], ['Evita', custom.error]]
++      .filter(([, value]) => value).map(([label, value]) => `<p><b>${label}:</b> ${escape(value)}</p>`).join('');
++    const secondary = (Array.isArray(custom.secondaryMuscles) ? custom.secondaryMuscles : (guide ? guide[5] : []))
++      .filter((x, i, values) => x && x !== muscle && values.indexOf(x) === i);
++    const extraMuscles = secondary.length ? `<p class="sub">También trabaja: ${secondary.map(escape).join(', ')}</p>` : '';
++    const ownNotes = custom.notes ? `<p class="fine">${escape(custom.notes)}</p>` : '';
++    const actions = ex.id ? `<div class="exercise-guide-actions"><button class="btn btn-ghost btn-small" data-guide-edit data-guide-id="${escape(ex.id)}">Editar mi guía</button><button class="btn btn-ghost btn-small${ex.favorite ? ' on' : ''}" data-ex-favorite data-guide-id="${escape(ex.id)}">${ex.favorite ? '★ Favorito' : '☆ Favorito'}</button></div>` : '';
++    return `<section class="card exercise-guide" data-guide-card="${escape(ex.id || '')}"><div>${body(muscle, secondary)}</div><div><div class="label">${escape(muscle)}</div><h3>Cómo hacerlo</h3>${customSteps || instruction}${extraMuscles}${ownNotes}<small>Mapa esquemático orientativo, no una ilustración anatómica clínica.</small>${actions}</div></section>`;
+   }
+   window.exerciseGuideHTML = guideHTML;
++  window.GymExerciseGuide = Object.freeze({ find: name => { const row = findGuide(name); return row && { muscle: row[1], setup: row[2], move: row[3], error: row[4], secondary: row[5] }; }, count: guides.length });
+ })();
+diff --git a/gym-active-backup.js b/gym-active-backup.js
+new file mode 100644
+index 0000000..201ca72
+--- /dev/null
++++ b/gym-active-backup.js
+@@ -0,0 +1,31 @@
++/* Incluye la sesión en curso en las copias y la restaura solo si no hay otra activa. */
++'use strict';
++
++(() => {
++  function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
++
++  function validActiveWorkout(workout) {
++    return !!workout && typeof workout.id === 'string' && Number.isFinite(workout.start)
++      && Array.isArray(workout.exercises)
++      && workout.exercises.every(ex => ex && typeof ex.exId === 'string' && Array.isArray(ex.sets)
++        && ex.sets.every(set => set && typeof set === 'object'));
++  }
++
++  const originalBackup = gymBackupData;
++  gymBackupData = () => ({ ...originalBackup(), activeWorkout: clone(G.active) });
++
++  const originalImport = gymImportBackup;
++  gymImportBackup = async data => {
++    await originalImport(data);
++    const workout = data && data.activeWorkout;
++    if (G.active || !validActiveWorkout(workout)) return;
++    const known = new Set(G.exercises.map(ex => ex.id));
++    if (!workout.exercises.every(ex => known.has(ex.exId))) return;
++    G.active = clone(workout);
++    await DB.putKey('active', G.active);
++    renderActiveBar();
++    if (typeof nativeWorkoutSync === 'function') nativeWorkoutSync();
++  };
++
++  window.GymActiveBackup = Object.freeze({ validActiveWorkout });
++})();
+diff --git a/gym-exercise-enhancements.js b/gym-exercise-enhancements.js
+new file mode 100644
+index 0000000..7914f73
+--- /dev/null
++++ b/gym-exercise-enhancements.js
+@@ -0,0 +1,146 @@
++/* Guías propias, favoritos y filtros locales; los metadatos siguen dentro del ejercicio existente. */
++'use strict';
++
++(() => {
++  const state = { favorite: false, muscle: '', equipment: '' };
++  const normText = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
++
++  function matches(exercise, query, filters = {}) {
++    const text = normText(query);
++    const searchText = normText([exercise.name, exercise.muscle, exercise.guide && exercise.guide.equipment].join(' '));
++    return (!text || searchText.includes(text))
++      && (!filters.favorite || !!exercise.favorite)
++      && (!filters.muscle || exercise.muscle === filters.muscle)
++      && (!filters.equipment || (exercise.guide && exercise.guide.equipment) === filters.equipment);
++  }
++
++  function esc(value) { return String(value || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
++
++  function filterControls(root) {
++    if (!root) return;
++    const existing = root.querySelector('[data-exercise-filters]');
++    const muscles = [...new Set(G.exercises.map(ex => ex.muscle).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
++    const equipment = [...new Set(G.exercises.map(ex => ex.guide && ex.guide.equipment).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
++    if (existing) {
++      const update = (select, label, values) => {
++        const current = [...select.options].slice(1).map(option => option.value);
++        if (current.join('\u0000') === values.join('\u0000')) return;
++        select.innerHTML = `<option value="">${label}</option>${values.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('')}`;
++      };
++      const muscleSelect = existing.querySelector('[data-filter-muscle]');
++      const equipmentSelect = existing.querySelector('[data-filter-equipment]');
++      update(muscleSelect, 'Todos los músculos', muscles);
++      update(equipmentSelect, 'Todo el equipamiento', equipment);
++      muscleSelect.value = state.muscle;
++      equipmentSelect.value = state.equipment;
++      return;
++    }
++    const controls = document.createElement('div');
++    controls.className = 'exercise-filters';
++    controls.dataset.exerciseFilters = 'true';
++    controls.innerHTML = `<select data-filter-muscle aria-label="Filtrar por músculo"><option value="">Todos los músculos</option>${muscles.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('')}</select>
++      <select data-filter-equipment aria-label="Filtrar por equipamiento"><option value="">Todo el equipamiento</option>${equipment.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('')}</select>
++      <label class="filter-fav"><input type="checkbox" data-filter-favorite> Solo favoritos</label>`;
++    root.prepend(controls);
++    controls.querySelector('[data-filter-muscle]').value = state.muscle;
++    controls.querySelector('[data-filter-equipment]').value = state.equipment;
++    controls.querySelector('[data-filter-favorite]').checked = state.favorite;
++  }
++
++  function applyFilters() {
++    const root = document.querySelector('#ex-list');
++    if (!root) return;
++    filterControls(root);
++    const query = document.querySelector('#ex-search')?.value || '';
++    const filters = { favorite: state.favorite, muscle: state.muscle, equipment: state.equipment };
++    let visible = 0;
++    const exercises = new Map(G.exercises.map(ex => [ex.id, ex]));
++    root.querySelectorAll('[data-exid]').forEach(row => {
++      const exercise = exercises.get(row.dataset.exid);
++      row.hidden = !exercise || !matches(exercise, query, filters);
++      if (!row.hidden) visible++;
++    });
++    let empty = root.querySelector('[data-filter-empty]');
++    if (!visible && G.exercises.length) {
++      if (!empty) { empty = document.createElement('p'); empty.className = 'fine center'; empty.dataset.filterEmpty = 'true'; empty.textContent = 'No hay ejercicios con esos filtros.'; root.prepend(empty); }
++    } else empty?.remove();
++  }
++
++  function refreshGuide(exercise) {
++    const card = [...document.querySelectorAll('[data-guide-card]')].find(el => el.dataset.guideCard === exercise.id);
++    if (card) card.outerHTML = window.exerciseGuideHTML(exercise);
++  }
++
++  function openGuideEditor(exercise) {
++    const guide = exercise.guide || {};
++    const muscleRows = MUSCLES.map(muscle => `<option value="${esc(muscle)}"${exercise.muscle === muscle ? ' selected' : ''}>${esc(muscle)}</option>`).join('');
++    const secondaryRows = MUSCLES.filter(muscle => muscle !== exercise.muscle).map(muscle => `<label class="field"><span>${esc(muscle)}</span><input type="checkbox" data-secondary value="${esc(muscle)}"${(guide.secondaryMuscles || []).includes(muscle) ? ' checked' : ''}></label>`).join('');
++    return new Promise(resolve => {
++      let result = null;
++      genSheet.innerHTML = `<div class="grabber"></div><h2>Guía propia</h2>
++        <label class="field"><span>Músculo principal</span><select id="guide-primary">${muscleRows}</select></label>
++        <label class="field"><span>Colocación</span><textarea id="guide-setup" rows="2">${esc(guide.setup || '')}</textarea></label>
++        <label class="field"><span>Movimiento</span><textarea id="guide-move" rows="2">${esc(guide.move || '')}</textarea></label>
++        <label class="field"><span>Error que evitar</span><textarea id="guide-error" rows="2">${esc(guide.error || '')}</textarea></label>
++        <label class="field"><span>Equipamiento</span><input id="guide-equipment" value="${esc(guide.equipment || '')}" placeholder="Mancuernas, polea…"></label>
++        <h3 class="section-title">Músculos secundarios</h3><div class="card form-card">${secondaryRows}</div>
++        <label class="field"><span>Notas propias</span><textarea id="guide-notes" rows="2">${esc(guide.notes || '')}</textarea></label>
++        <button class="btn btn-primary btn-block" data-guide-save>Guardar guía</button>
++        <button class="btn btn-ghost btn-block" data-guide-cancel>Cancelar</button>`;
++      genSheet.onclick = event => {
++        if (event.target.closest('[data-guide-cancel]')) { closeSheet(); return; }
++        if (!event.target.closest('[data-guide-save]')) return;
++        result = {
++          muscle: genSheet.querySelector('#guide-primary').value,
++          guide: {
++            primary: true,
++            setup: genSheet.querySelector('#guide-setup').value.trim(),
++            move: genSheet.querySelector('#guide-move').value.trim(),
++            error: genSheet.querySelector('#guide-error').value.trim(),
++            equipment: genSheet.querySelector('#guide-equipment').value.trim(),
++            notes: genSheet.querySelector('#guide-notes').value.trim(),
++            secondaryMuscles: [...genSheet.querySelectorAll('[data-secondary]:checked')].map(input => input.value),
++          },
++        };
++        closeSheet();
++      };
++      openSheet(genSheet, () => resolve(result));
++    });
++  }
++
++  const root = document.querySelector('#ex-list');
++  if (root && typeof MutationObserver === 'function') new MutationObserver(applyFilters).observe(root, { childList: true });
++  document.addEventListener('change', event => {
++    const control = event.target.closest('[data-filter-muscle],[data-filter-equipment],[data-filter-favorite]');
++    if (!control) return;
++    if (control.matches('[data-filter-muscle]')) state.muscle = control.value;
++    if (control.matches('[data-filter-equipment]')) state.equipment = control.value;
++    if (control.matches('[data-filter-favorite]')) state.favorite = control.checked;
++    applyFilters();
++  });
++  document.addEventListener('click', async event => {
++    const button = event.target.closest('[data-guide-edit],[data-ex-favorite]');
++    if (!button) return;
++    const exercise = G.exercises.find(ex => ex.id === button.dataset.guideId);
++    if (!exercise) return;
++    event.preventDefault();
++    event.stopPropagation();
++    if (button.matches('[data-ex-favorite]')) {
++      exercise.favorite = !exercise.favorite;
++      await DB.put('exercises', exercise);
++      button.textContent = exercise.favorite ? '★ Favorito' : '☆ Favorito';
++      button.classList.toggle('on', exercise.favorite);
++      applyFilters();
++      return;
++    }
++    const result = await openGuideEditor(exercise);
++    if (!result) return;
++    exercise.muscle = result.muscle;
++    exercise.guide = result.guide;
++    await DB.put('exercises', exercise);
++    gymDerive(); gymRenderAll(); refreshGuide(exercise); applyFilters();
++  });
++
++  window.GymExerciseTools = Object.freeze({ matches, applyFilters });
++  applyFilters();
++})();
+diff --git a/gym-exercise-history.js b/gym-exercise-history.js
+new file mode 100644
+index 0000000..0bf88bd
+--- /dev/null
++++ b/gym-exercise-history.js
+@@ -0,0 +1,52 @@
++/* Carga por tandas el historial de cada ejercicio para evitar un límite fijo y cuidar el móvil. */
++'use strict';
++
++(() => {
++  const batchSize = 40;
++  const pages = new WeakMap();
++  const nextBatch = (items, start, size = batchSize) => items.slice(start, start + size);
++
++  function sessionHTML({ w, ex }) {
++    return `<div class="card ex-detail"><div class="wk-item-head"><b>${esc(w.title)}</b><small>${fmtWDate(w.start)}</small></div>
++      ${ex.sets.map((set, i) => `<div class="det-set"><span class="set-lbl t-${set.type}">${setLabel(ex, i)}</span><span>${esc(fmtSet(set))}</span><small class="sub">${set.type !== 'warmup' && set.kg && set.reps ? `1RM ≈ ${GymUnits.formatWeight(Math.round(e1rm(set.kg, set.reps)))} ${GymUnits.unitFor('weight')}` : ''}</small></div>`).join('')}</div>`;
++  }
++
++  function loadBatch(button) {
++    const container = [...document.querySelectorAll('[data-ex-history-list]')].find(item => item.dataset.exHistoryList === button.dataset.exHistoryMore);
++    const state = container && pages.get(container);
++    if (!state) return;
++    const next = nextBatch(state.records, state.loaded);
++    container.insertAdjacentHTML('beforeend', next.map(sessionHTML).join(''));
++    state.loaded += next.length;
++    button.textContent = `Ver más sesiones (${state.records.length - state.loaded})`;
++    if (state.loaded >= state.records.length) button.remove();
++  }
++
++  function addHistoryLoader(id) {
++    const openPages = document.querySelectorAll('body > .page');
++    const page = openPages[openPages.length - 1];
++    const body = page && page.querySelector('.page-body');
++    const heading = body && [...body.querySelectorAll('.section-title')].find(item => item.textContent.trim() === 'Historial');
++    const records = exHist.get(id) || [];
++    const cards = body && [...body.querySelectorAll('.ex-detail')];
++    if (!heading || !cards.length || records.length <= cards.length) return;
++    body.querySelectorAll('p').forEach(item => { if (/Mostrando las 40 sesiones/.test(item.textContent)) item.remove(); });
++    const container = document.createElement('div');
++    container.dataset.exHistoryList = id;
++    cards[0].before(container);
++    cards.forEach(card => container.append(card));
++    pages.set(container, { records, loaded: cards.length });
++    const button = document.createElement('button');
++    button.className = 'btn btn-ghost btn-block'; button.dataset.exHistoryMore = id;
++    button.textContent = `Ver más sesiones (${records.length - cards.length})`;
++    container.after(button);
++  }
++
++  const originalOpenExercise = openExercise;
++  openExercise = id => { originalOpenExercise(id); addHistoryLoader(id); };
++  document.addEventListener('click', event => {
++    const button = event.target.closest('[data-ex-history-more]');
++    if (button) loadBatch(button);
++  });
++  window.GymExerciseHistory = Object.freeze({ nextBatch, batchSize });
++})();
+diff --git a/gym-history-tools.js b/gym-history-tools.js
+new file mode 100644
+index 0000000..24efdb4
+--- /dev/null
++++ b/gym-history-tools.js
+@@ -0,0 +1,80 @@
++/* Añade búsqueda por fecha/ejercicio sin alterar el formato persistido de los entrenos. */
++'use strict';
++
++(() => {
++  const state = { query: '', from: '', to: '' };
++  let queryTimer = 0;
++  const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
++
++  function matchesWorkout(workout, query, from, to, exercises) {
++    const names = exercises instanceof Map ? exercises : new Map(exercises.map(ex => [ex.id, ex.name]));
++    const text = normalize([workout.title, ...(workout.exercises || []).map(ex => names.get(ex.exId) || '')].join(' '));
++    const day = localISO(workout.start);
++    return (!query || text.includes(normalize(query))) && (!from || day >= from) && (!to || day <= to);
++  }
++
++  function controlsHTML() {
++    return `<div class="card history-filters" data-history-filters>
++      <label class="field"><span>Buscar entreno o ejercicio</span><input type="search" data-history-query placeholder="Nombre del entreno o ejercicio" value="${esc(state.query)}"></label>
++      <div class="history-dates"><label class="field"><span>Desde</span><input type="date" data-history-from value="${state.from}"></label><label class="field"><span>Hasta</span><input type="date" data-history-to value="${state.to}"></label></div>
++      <button class="btn btn-ghost btn-small" data-history-export>Exportar entrenos CSV</button>
++    </div>`;
++  }
++
++  function ensureControls(root) {
++    if (root.querySelector('[data-history-filters]')) return;
++    root.insertAdjacentHTML('afterbegin', controlsHTML());
++  }
++
++  function applyFilters(root) {
++    const controls = root.querySelector('[data-history-filters]');
++    if (!controls) return;
++    const workouts = new Map(G.workouts.map(item => [item.id, item]));
++    const exercises = new Map(G.exercises.map(item => [item.id, item.name]));
++    let visible = 0;
++    root.querySelectorAll('[data-wid]').forEach(row => {
++      const workout = workouts.get(row.dataset.wid);
++      row.hidden = !workout || !matchesWorkout(workout, state.query, state.from, state.to, exercises);
++      if (!row.hidden) visible++;
++    });
++    const active = !!(state.query || state.from || state.to);
++    let empty = root.querySelector('[data-history-empty]');
++    if (active && !visible) {
++      if (!empty) { empty = document.createElement('p'); empty.className = 'fine center'; empty.dataset.historyEmpty = 'true'; empty.textContent = 'No hay entrenos con esos filtros.'; controls.after(empty); }
++    } else empty?.remove();
++  }
++
++  function installFilters() {
++    const root = document.querySelector('#gym-historial');
++    const original = renderGymHistory;
++    renderGymHistory = () => {
++      original();
++      ensureControls(root);
++      applyFilters(root);
++    };
++    root.addEventListener('input', event => {
++      if (!event.target.matches('[data-history-query]')) return;
++      state.query = event.target.value;
++      const cursor = event.target.selectionStart;
++      clearTimeout(queryTimer);
++      queryTimer = setTimeout(() => {
++        histLimit = state.query || state.from || state.to ? G.workouts.length : 30;
++        renderGymHistory();
++        const input = root.querySelector('[data-history-query]');
++        input?.focus();
++        if (input && cursor != null) input.setSelectionRange(cursor, cursor);
++      }, 140);
++    });
++    root.addEventListener('change', event => {
++      if (event.target.matches('[data-history-from]')) state.from = event.target.value;
++      else if (event.target.matches('[data-history-to]')) state.to = event.target.value;
++      else return;
++      histLimit = state.query || state.from || state.to ? G.workouts.length : 30;
++      renderGymHistory();
++    });
++    root.addEventListener('click', event => { if (event.target.closest('[data-history-export]')) GymPortability.exportWorkouts(); });
++  }
++
++  installFilters();
++  window.GymHistoryTools = Object.freeze({ matchesWorkout });
++})();
+diff --git a/gym-motivation.js b/gym-motivation.js
+new file mode 100644
+index 0000000..72c1371
+--- /dev/null
++++ b/gym-motivation.js
+@@ -0,0 +1,23 @@
++/* Permite apagar los avisos positivos sin ocultar errores, descansos ni notificaciones nativas. */
++'use strict';
++
++(() => {
++  const enabled = () => S.motivation !== false;
++  const weightToast = weightSavedToast;
++  const recordToast = livePR;
++  weightSavedToast = (...args) => enabled() ? weightToast(...args) : undefined;
++  livePR = (...args) => enabled() ? recordToast(...args) : undefined;
++
++  const control = document.querySelector('#set-motivation');
++  if (control) {
++    const baseSettings = renderGymSettings;
++    renderGymSettings = (...args) => { baseSettings(...args); control.checked = enabled(); };
++    control.checked = enabled();
++    control.addEventListener('change', async () => {
++      S.motivation = control.checked;
++      await saveSettings();
++      toast(control.checked ? 'Avisos motivadores activados' : 'Avisos motivadores desactivados');
++    });
++  }
++  window.GymMotivation = Object.freeze({ enabled });
++})();
+diff --git a/gym-note-visibility.js b/gym-note-visibility.js
+new file mode 100644
+index 0000000..42967e1
+--- /dev/null
++++ b/gym-note-visibility.js
+@@ -0,0 +1,15 @@
++/* Controla la visibilidad de las notas sin borrar el texto guardado del ejercicio. */
++'use strict';
++
++(() => {
++  function isVisible(exercise) {
++    return !!exercise && exercise.showNotes !== false && (!!exercise.notes || exercise.showNotes === true);
++  }
++
++  function toggleVisibility(exercise) {
++    exercise.showNotes = !isVisible(exercise);
++    return exercise.showNotes;
++  }
++
++  window.GymNotes = Object.freeze({ isVisible, toggleVisibility });
++})();
+diff --git a/gym-plus.js b/gym-plus.js
+index 2400e39..a62c4bb 100644
+--- a/gym-plus.js
++++ b/gym-plus.js
+@@ -12,13 +12,12 @@ function startRest(sec) {
+     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+     if (audioCtx.resume) audioCtx.resume();
+   } catch (e) { console.warn('Sin audio para el aviso de descanso:', e); }
+-  if (isStopwatch()) { G.active.restStart = Date.now(); G.active.restEnd = 0; }
+-  else { G.active.restEnd = Date.now() + sec * 1000; G.active.restTotal = sec; G.active.restStart = 0; }
++  window.GymRest.start(G.active, sec, Date.now(), isStopwatch());
+   saveActive();
+   tick();
+ }
+ function stopRest() {
+-  if (G.active) { G.active.restEnd = 0; G.active.restStart = 0; saveActive(); }
++  if (G.active) { window.GymRest.stop(G.active); saveActive(); }
+   $('#rest-bar').hidden = true;
+   document.body.classList.remove('resting');
+   if (typeof nativeWorkoutSync === 'function') nativeWorkoutSync();
+@@ -27,22 +26,26 @@ $('#rest-bar').addEventListener('click', e => {
+   const b = e.target.closest('[data-rest]');
+   if (!b || !G.active) return;
+   if (b.dataset.rest === 'skip') { stopRest(); return; }
+-  if (!G.active.restEnd) return;
+-  const d = +b.dataset.rest * 1000;
+-  G.active.restEnd = Math.max(Date.now() + 1000, G.active.restEnd + d);
+-  G.active.restTotal = Math.max(G.active.restTotal + d / 1000, 1);
++  if (b.dataset.rest === 'toggle') window.GymRest.toggle(G.active, Date.now(), isStopwatch());
++  else if (b.dataset.rest === 'reset') window.GymRest.reset(G.active, Date.now(), isStopwatch());
++  else if (!isStopwatch() && (G.active.restEnd || G.active.restPaused)) window.GymRest.adjust(G.active, +b.dataset.rest, Date.now());
++  else return;
+   saveActive();
+   tick();
+   if (typeof nativeWorkoutSync === 'function') nativeWorkoutSync();
+ });
+-function showRestBar(text, frac, stopwatch) {
++function showRestBar(text, frac, stopwatch, paused = false) {
+   const bar = $('#rest-bar');
+   bar.hidden = false;
+   bar.classList.toggle('sw', stopwatch);
++  bar.classList.toggle('paused', paused);
+   document.body.classList.add('resting');
+   $('#rest-time').textContent = text;
+-  $('#rest-label').textContent = stopwatch ? 'Descansando' : 'Descanso';
++  $('#rest-label').textContent = paused ? 'Pausado' : stopwatch ? 'Descansando' : 'Descanso';
+   $('#rest-bar [data-rest="skip"]').textContent = stopwatch ? 'Parar' : 'Saltar';
++  const toggle = $('#rest-bar [data-rest="toggle"]');
++  toggle.textContent = paused ? 'Reanudar' : 'Pausar';
++  toggle.setAttribute('aria-label', paused ? 'Reanudar descanso' : 'Pausar descanso');
+   $('#rest-fill').style.width = `${frac * 100}%`;
+ }
+ function restEnded(late) {
+@@ -55,12 +58,16 @@ function restEnded(late) {
+ function tick() {
+   const now = Date.now(), a = G.active;
+   $$('[data-clock]').forEach(el => { if (a) el.textContent = fmtClock((now - a.start) / 1000); });
+-  if (a && a.restEnd) {
++  if (a && a.restPaused) {
++    const state = window.GymRest.read(a, now, isStopwatch());
++    showRestBar(fmtClock(state.seconds), state.fraction, isStopwatch(), true);
++  } else if (a && a.restEnd) {
+     const left = (a.restEnd - now) / 1000;
+     if (left <= 0) restEnded(left < -5);
+     else showRestBar(fmtClock(Math.ceil(left)), clamp(left / (a.restTotal || 1), 0, 1), false);
+-  } else if (a && a.restStart) {
+-    showRestBar(fmtClock((now - a.restStart) / 1000), 1, true);
++  } else if (a && (a.restStart || (isStopwatch() && a.restElapsed))) {
++    const state = window.GymRest.read(a, now, true);
++    showRestBar(fmtClock(state.seconds), 1, true);
+   } else if (!$('#rest-bar').hidden) {
+     $('#rest-bar').hidden = true;
+     document.body.classList.remove('resting');
+@@ -84,11 +91,19 @@ $('#set-restmode').addEventListener('click', e => {
+ 
+ /* ================= Marcar una serie y saltar a la siguiente ================= */
+ function checkSet(ex, ei, si, row, fromKeyboard) {
++  // Claude: la rama cardio guarda distancia y duración sin contaminar peso/repeticiones.
+   const s = ex.sets[si];
+   if (s.done) { s.done = false; s.pr = false; wkChanged(); renderWk(); return; }
++  if (s.km == null && s.ph && s.ph.km != null) s.km = s.ph.km;
++  if (s.sec == null && s.ph && s.ph.sec != null) s.sec = s.ph.sec;
++  const distance = GymUnits.isDistanceExercise(ex.exId);
++  if (distance) {
++    if (s.km == null && s.sec == null) { toast('Escribe una distancia o una duración'); if (row) row.querySelector('.set-in').focus(); return; }
++    s.kg = 0; s.reps = 0;
++  }
+   if (s.kg == null && s.ph && s.ph.kg != null) s.kg = s.ph.kg;
+   if (s.reps == null && s.ph && s.ph.reps != null) s.reps = s.ph.reps;
+-  if (s.reps == null && s.kg == null) {
++  if (!distance && s.reps == null && s.kg == null) {
+     toast('Escribe los kg y las repeticiones');
+     if (row) row.querySelector('.set-in').focus();
+     return;
+@@ -117,14 +132,14 @@ function livePR(ex, si, s) {
+     if (k !== si && o.done && o.type !== 'warmup') { cur.kg = Math.max(cur.kg, o.kg || 0); cur.e1 = Math.max(cur.e1, e1rm(o.kg, o.reps)); }
+   });
+   const e1 = e1rm(s.kg, s.reps);
+-  if (s.kg > Math.max(b.kg, cur.kg) && b.kg > 0) { s.pr = true; toast(`🏆 ¡Récord! Peso máximo en ${exName(ex.exId)}: ${fmtN(s.kg)} kg`, { ms: 3500 }); }
+-  else if (e1 > Math.max(b.e1, cur.e1) + 0.01 && b.e1 > 0) { s.pr = true; toast(`🏆 ¡Récord! 1RM estimado: ${fmtN(Math.round(e1 * 10) / 10)} kg`, { ms: 3500 }); }
++  if (s.kg > Math.max(b.kg, cur.kg) && b.kg > 0) { s.pr = true; toast(`🏆 ¡Récord! Peso máximo en ${exName(ex.exId)}: ${GymUnits.formatWeight(s.kg)} ${GymUnits.unitFor('weight')}`, { ms: 3500 }); }
++  else if (e1 > Math.max(b.e1, cur.e1) + 0.01 && b.e1 > 0) { s.pr = true; toast(`🏆 ¡Récord! 1RM estimado: ${GymUnits.formatWeight(Math.round(e1 * 10) / 10)} ${GymUnits.unitFor('weight')}`, { ms: 3500 }); }
+ }
+ function focusSet([ei, si], withKeyboard) {
+   const row = wkPage && wkPage.el.querySelector(`.set-row[data-ex="${ei}"][data-set="${si}"]`);
+   if (!row) return;
+   row.classList.add('next');
+-  if (withKeyboard) row.querySelector('[data-f="kg"]').focus({ preventScroll: true });
++  if (withKeyboard) row.querySelector('[data-f="kg"], [data-f="distance"]').focus({ preventScroll: true });
+   row.scrollIntoView({ block: 'center', behavior: withKeyboard ? 'auto' : 'smooth' });
+ }
+ // Intro / ✓ del teclado: de kg pasa a reps; en reps marca la serie.
+@@ -132,7 +147,10 @@ function wkKey(e) {
+   if (e.key !== 'Enter' || !e.target.matches('.set-in')) return;
+   e.preventDefault();
+   const row = e.target.closest('.set-row');
+-  if (e.target.dataset.f === 'kg') { row.querySelector('[data-f="reps"]').focus(); return; }
++  if (e.target.dataset.f === 'kg' || e.target.dataset.f === 'distance') {
++    const next = e.target.dataset.f === 'distance' ? 'duration' : 'reps';
++    row.querySelector(`[data-f="${next}"]`).focus(); return;
++  }
+   const ei = +row.dataset.ex, si = +row.dataset.set;
+   const ex = wkData.exercises[ei];
+   if (ex.sets[si].done) { const n = GymCalc.nextSet(wkData.exercises, ei, si); if (n) focusSet(n, true); return; }
+@@ -167,7 +185,7 @@ function exExtrasHTML(ex) {
+   const rest = isStopwatch() ? '<span class="ex-rest">⏱ Descanso: cronómetro</span>'
+     : `<button class="ex-rest" data-act="ex-rest">⏱ Descanso: ${fmtRest(ex.rest ?? S.rest)}</button>`;
+   const sug = GymCalc.suggestProgression(prevSetsFor(ex.exId, wkData.id));
+-  const chips = sug.map(s => `<button class="chip chip-s" data-act="sug" data-kg="${s.kg}" data-reps="${s.reps}">${s.kg ? `${fmtN(s.kg)} × ${s.reps}` : `${s.reps} reps`}</button>`);
++  const chips = sug.map(s => `<button class="chip chip-s" data-act="sug" data-kg="${s.kg}" data-reps="${s.reps}">${s.kg ? `${GymUnits.formatWeight(s.kg)} ${GymUnits.unitFor('weight')} × ${s.reps}` : `${s.reps} reps`}</button>`);
+   return badge + rest + (chips.length ? `<div class="sug"><span>💡 Hoy prueba</span>${chips.join('<em>o</em>')}</div>` : '');
+ }
+ function applySug(ex, b) {
+@@ -207,7 +225,7 @@ function exPoints(sessions, metric) {
+ }
+ function exChartOpts(metric) {
+   const f = v => (metric === 'vol' ? fmtInt(v) : fmtN(Math.round(v * 10) / 10));
+-  return { trend: true, minMarker: false, fmtY: v => `${f(v)} kg`, fmtTag: f, tip3: p => `Mejor serie: ${fmtSet(p.best)} · media ${f(p.t)}` };
++  return { trend: true, minMarker: false, fmtY: v => `${GymUnits.formatWeight(v)} ${GymUnits.unitFor('weight')}`, fmtTag: f, tip3: p => `Mejor serie: ${fmtSet(p.best)} · media ${GymUnits.formatWeight(p.t)} ${GymUnits.unitFor('weight')}` };
+ }
+ function exChartMount(el, sessions, metric, range, title) {
+   const cv = el.querySelector('.ex-chart canvas');
+@@ -296,6 +314,6 @@ $('#gym-historial').addEventListener('click', async e => {
+   if (!day) return;
+   const ws = workoutsByDay().get(day.dataset.cal) || [];
+   if (ws.length === 1) return openWorkoutDetail(ws[0].id);
+-  const id = await actionSheet(cap(fmtD(F.wdDayMon, day.dataset.cal)), ws.map(w => ({ label: w.title, sub: `${fmtDur(w.end - w.start)} · ${fmtInt(wVolume(w))} kg`, value: w.id })));
++  const id = await actionSheet(cap(fmtD(F.wdDayMon, day.dataset.cal)), ws.map(w => ({ label: w.title, sub: `${fmtDur(w.end - w.start)} · ${GymUnits.formatWeight(wVolume(w))} ${GymUnits.unitFor('weight')}`, value: w.id })));
+   if (id) openWorkoutDetail(id);
+ });
+diff --git a/gym-portability.js b/gym-portability.js
+new file mode 100644
+index 0000000..3a909b1
+--- /dev/null
++++ b/gym-portability.js
+@@ -0,0 +1,140 @@
++/* Exporta entrenos y comparte un resumen revisable; nunca incluye notas privadas. */
++'use strict';
++
++(() => {
++  // Nombres importados no deben convertirse en fórmulas al abrir el CSV en una hoja de cálculo.
++  const cell = value => {
++    const text = String(value ?? '').replace(/[\r\n]+/g, ' ');
++    const numeric = typeof value === 'number' || /^\s*-?\d+(?:[.,]\d+)?\s*$/.test(text);
++    const safe = !numeric && /^[\s\u0000-\u001f]*[=+@-]/.test(text) ? `'${text}` : text;
++    return `"${safe.replace(/"/g, '""')}"`;
++  };
++  const dateOf = time => {
++    const date = new Date(time);
++    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
++  };
++
++  function makeWorkoutCsv(workouts, exercises) {
++    const names = new Map(exercises.map(ex => [ex.id, ex.name]));
++    const rows = [['Fecha', 'Entreno', 'Ejercicio', 'Serie', 'Peso (kg)', 'Repeticiones', 'Distancia (km)', 'Duración (s)']];
++    for (const workout of workouts) for (const exercise of workout.exercises || []) {
++      for (const [index, set] of (exercise.sets || []).entries()) rows.push([
++        dateOf(workout.start), workout.title, names.get(exercise.exId) || 'Ejercicio borrado', index + 1,
++        set.kg ?? '', set.reps ?? '', set.km ?? '', set.sec ?? '',
++      ]);
++    }
++    return `\uFEFF${rows.map(row => row.map(cell).join(';')).join('\r\n')}`;
++  }
++
++  function duration(ms) {
++    const total = Math.max(0, Math.floor(ms / 60000));
++    return total < 60 ? `${total} min` : `${Math.floor(total / 60)} h ${total % 60} min`;
++  }
++
++  function makeShareSummary(workout, exercises) {
++    const names = new Map(exercises.map(ex => [ex.id, ex.name]));
++    const sets = (workout.exercises || []).flatMap(ex => ex.sets || []);
++    const weightUnit = window.GymUnits ? window.GymUnits.unitFor('weight') : 'kg';
++    const distanceUnit = window.GymUnits ? window.GymUnits.unitFor('distance') : 'km';
++    const weightValue = value => window.GymUnits ? window.GymUnits.formatWeight(value) : Math.round(value * 100) / 100;
++    const distanceValue = value => window.GymUnits ? window.GymUnits.formatDistance(value) : Math.round(value * 100) / 100;
++    const list = (workout.exercises || []).map(ex => {
++      const rows = ex.sets || [], best = rows.filter(set => set.kg || set.reps).sort((a, b) => (b.kg || 0) * (b.reps || 0) - (a.kg || 0) * (a.reps || 0))[0];
++      const distance = rows.reduce((sum, set) => sum + (set.km || 0), 0);
++      const seconds = rows.reduce((sum, set) => sum + (set.sec || 0), 0);
++      const details = distance || seconds ? [distance && `${distanceValue(distance)} ${distanceUnit}`, seconds && duration(seconds * 1000)].filter(Boolean).join(' · ')
++        : best && `${weightValue(best.kg || 0)} ${weightUnit} × ${best.reps || 0}`;
++      return `• ${names.get(ex.exId) || 'Ejercicio'}: ${rows.length} series${details ? ` · ${details}` : ''}`;
++    }).join('\n');
++    const total = sets.reduce((sum, set) => sum + (set.kg || 0) * (set.reps || 0), 0);
++    const volumeText = window.GymUnits ? window.GymUnits.formatWeight(total) : total.toLocaleString('es-ES');
++    return [`${workout.title || 'Entreno'} · ${new Date(workout.start).toLocaleDateString('es-ES')}`,
++      `Duración: ${duration((workout.end || workout.start) - workout.start)} · ${sets.length} series`,
++      `Volumen: ${volumeText} ${weightUnit}`, list]
++      .filter(Boolean).join('\n');
++  }
++
++  async function shareFile(name, text) {
++    if (typeof isNative === 'function' && isNative() && typeof nativeCall === 'function') {
++      const encoded = btoa(unescape(encodeURIComponent(text)));
++      const file = await nativeCall('Filesystem', 'writeFile', { path: name, data: encoded, directory: 'CACHE', encoding: 'base64' });
++      await nativeCall('Share', 'share', { title: 'Entrenos de Tracking', dialogTitle: 'Guardar o enviar el CSV', files: [file.uri] });
++      return;
++    }
++    const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
++    const anchor = document.createElement('a');
++    anchor.href = URL.createObjectURL(blob); anchor.download = name;
++    document.body.appendChild(anchor); anchor.click(); anchor.remove();
++    setTimeout(() => URL.revokeObjectURL(anchor.href), 1000);
++  }
++
++  async function copySummary(text) {
++    if (navigator.clipboard) return navigator.clipboard.writeText(text);
++    const input = document.createElement('textarea');
++    input.value = text; input.setAttribute('readonly', '');
++    document.body.appendChild(input); input.select();
++    const copied = document.execCommand('copy');
++    input.remove();
++    if (!copied) throw new Error('No se pudo copiar el resumen');
++  }
++
++  const cancelled = error => error && error.name === 'AbortError' || /cancel/i.test(String(error && error.message));
++
++  async function exportWorkouts() {
++    if (!G.workouts.length) return toast('No hay entrenos que exportar');
++    try {
++      await shareFile(`tracking-entrenos-${todayISO()}.csv`, makeWorkoutCsv(G.workouts, G.exercises));
++      toast('Entrenos exportados');
++    } catch (error) {
++      if (!cancelled(error)) toast('No se pudo exportar el CSV');
++    }
++  }
++
++  function openPreview(workout) {
++    const preview = makeShareSummary(workout, G.exercises);
++    genSheet.innerHTML = '<div class="grabber"></div><h2>Compartir entreno</h2><p class="fine">Vista previa. Las notas privadas no se incluyen.</p><textarea class="share-preview" readonly aria-label="Vista previa del resumen"></textarea><button class="btn btn-primary btn-block" data-share-send>Compartir</button><button class="btn btn-ghost btn-block" data-share-cancel>Cancelar</button>';
++    genSheet.querySelector('.share-preview').value = preview;
++    genSheet.onclick = async event => {
++      if (event.target.closest('[data-share-cancel]')) { closeSheet(); return; }
++      if (!event.target.closest('[data-share-send]')) return;
++      closeSheet();
++      try {
++        if (typeof isNative === 'function' && isNative() && typeof nativeCall === 'function') await nativeCall('Share', 'share', { title: workout.title || 'Entreno de Tracking', text: preview, dialogTitle: 'Compartir entreno' });
++        else if (navigator.share) await navigator.share({ title: workout.title || 'Entreno de Tracking', text: preview });
++        else { await copySummary(preview); toast('Resumen copiado'); }
++      } catch (error) { if (!cancelled(error)) toast('No se pudo compartir el resumen'); }
++    };
++    openSheet(genSheet, () => { genSheet.onclick = null; });
++  }
++
++  function addShareButton(container, workout) {
++    const body = container && container.querySelector('.page-body');
++    if (!body || body.querySelector('[data-gym-share]')) return;
++    const button = document.createElement('button');
++    button.className = 'btn btn-secondary btn-block'; button.dataset.gymShare = workout.id;
++    button.textContent = 'Compartir resumen';
++    const stats = body.querySelector('.stats');
++    if (stats) stats.after(button); else body.append(button);
++  }
++
++  function installShareButtons() {
++    const originalSummary = showSummary;
++    showSummary = async (...args) => {
++      await originalSummary(...args);
++      const workout = args[0];
++      const pages = document.querySelectorAll('body > .page');
++      addShareButton(pages[pages.length - 1], workout);
++    };
++    const originalDetail = renderDetail;
++    renderDetail = id => { originalDetail(id); addShareButton(curDetail && curDetail.el, G.workouts.find(w => w.id === id)); };
++  }
++
++  document.addEventListener('click', event => {
++    const button = event.target.closest('[data-gym-share]');
++    if (!button) return;
++    const workout = G.workouts.find(item => item.id === button.dataset.gymShare);
++    if (workout) openPreview(workout);
++  });
++  window.GymPortability = Object.freeze({ makeWorkoutCsv, makeShareSummary, duration, exportWorkouts, installShareButtons });
++  installShareButtons();
++})();
+diff --git a/gym-rest-state.js b/gym-rest-state.js
+new file mode 100644
+index 0000000..71a60f3
+--- /dev/null
++++ b/gym-rest-state.js
+@@ -0,0 +1,73 @@
++/* Lógica pura del descanso para poder pausar, reanudar y reiniciar también sin conexión. */
++'use strict';
++
++(() => {
++  function start(active, seconds, now, stopwatch) {
++    active.restPaused = false;
++    active.restRemaining = 0;
++    active.restElapsed = 0;
++    active.restTotal = seconds;
++    active.restEnd = stopwatch ? 0 : now + seconds * 1000;
++    active.restStart = stopwatch ? now : 0;
++    return active;
++  }
++
++  function pause(active, now, stopwatch) {
++    if (active.restPaused) return active;
++    if (stopwatch && active.restStart) {
++      active.restElapsed = (active.restElapsed || 0) + Math.max(0, now - active.restStart) / 1000;
++      active.restStart = 0;
++    } else if (active.restEnd) {
++      active.restRemaining = Math.max(0, active.restEnd - now) / 1000;
++      active.restEnd = 0;
++    } else return active;
++    active.restPaused = true;
++    return active;
++  }
++
++  function resume(active, now, stopwatch) {
++    if (!active.restPaused) return active;
++    if (stopwatch) active.restStart = now;
++    else active.restEnd = now + (active.restRemaining || 0) * 1000;
++    active.restPaused = false;
++    return active;
++  }
++
++  function toggle(active, now, stopwatch) {
++    return active.restPaused ? resume(active, now, stopwatch) : pause(active, now, stopwatch);
++  }
++
++  function reset(active, now, stopwatch) {
++    active.restPaused = false;
++    active.restRemaining = 0;
++    active.restElapsed = 0;
++    active.restEnd = stopwatch ? 0 : now + (active.restTotal || 0) * 1000;
++    active.restStart = stopwatch ? now : 0;
++    return active;
++  }
++
++  function adjust(active, deltaSeconds, now) {
++    if (active.restPaused) active.restRemaining = Math.max(1, (active.restRemaining || 0) + deltaSeconds);
++    else if (active.restEnd) active.restEnd = Math.max(now + 1000, active.restEnd + deltaSeconds * 1000);
++    active.restTotal = Math.max(1, (active.restTotal || 1) + deltaSeconds);
++    return active;
++  }
++
++  function stop(active) {
++    active.restEnd = 0;
++    active.restStart = 0;
++    active.restRemaining = 0;
++    active.restElapsed = 0;
++    active.restPaused = false;
++    return active;
++  }
++
++  function read(active, now, stopwatch) {
++    if (active.restPaused) return { seconds: stopwatch ? active.restElapsed || 0 : active.restRemaining || 0, fraction: 0 };
++    if (stopwatch) return { seconds: (active.restElapsed || 0) + Math.max(0, now - (active.restStart || now)) / 1000, fraction: 1 };
++    const seconds = Math.max(0, (active.restEnd - now) / 1000);
++    return { seconds, fraction: Math.min(1, seconds / (active.restTotal || 1)) };
++  }
++
++  window.GymRest = Object.freeze({ start, pause, resume, toggle, reset, adjust, stop, read });
++})();
+diff --git a/gym-summary-comparison.js b/gym-summary-comparison.js
+new file mode 100644
+index 0000000..d909fbc
+--- /dev/null
++++ b/gym-summary-comparison.js
+@@ -0,0 +1,50 @@
++/* Completa el resumen al terminar con la sesión comparable más reciente. */
++'use strict';
++
++(() => {
++  const volume = workout => (workout.exercises || []).reduce((total, exercise) => total
++    + (exercise.sets || []).filter(set => set.type !== 'warmup').reduce((sum, set) => sum + (set.kg || 0) * (set.reps || 0), 0), 0);
++  const setCount = workout => (workout.exercises || []).reduce((total, exercise) => total
++    + (exercise.sets || []).filter(set => set.type !== 'warmup').length, 0);
++  const exerciseIds = workout => [...new Set((workout.exercises || []).map(ex => ex.exId))].sort();
++  const sameExercises = (left, right) => {
++    const a = exerciseIds(left), b = exerciseIds(right);
++    return a.length > 0 && a.length === b.length && a.every((id, index) => id === b[index]);
++  };
++
++  function comparable(workout, history) {
++    return history.filter(item => item.id !== workout.id && item.start < workout.start)
++      .filter(item => (workout.routineId && item.routineId === workout.routineId)
++        || (item.title === workout.title) || sameExercises(workout, item))
++      .sort((a, b) => b.start - a.start)[0] || null;
++  }
++
++  function comparison(workout, history) {
++    const previous = comparable(workout, history);
++    if (!previous) return null;
++    return { previous, volumeDelta: volume(workout) - volume(previous), setDelta: setCount(workout) - setCount(previous),
++      durationDelta: (workout.end - workout.start) - (previous.end - previous.start) };
++  }
++
++  function comparisonCard(result) {
++    if (!result) return null;
++    const card = document.createElement('div');
++    card.className = 'card summary-comparison';
++    const delta = value => `${value > 0 ? '+' : ''}${Math.round(value).toLocaleString('es-ES')}`;
++    const unit = GymUnits.unitFor('weight'), volumeDelta = result.volumeDelta * (unit === 'lb' ? 2.2046226218 : 1);
++    card.innerHTML = `<div class="label">Comparación con «${esc(result.previous.title || 'Entreno anterior')}»</div><p>Volumen ${delta(volumeDelta)} ${unit} · Series ${delta(result.setDelta)} · Duración ${delta(result.durationDelta / 60000)} min</p>`;
++    return card;
++  }
++
++  const original = showSummary;
++  showSummary = async (...args) => {
++    await original(...args);
++    const result = comparison(args[0], G.workouts);
++    const pages = document.querySelectorAll('body > .page');
++    const body = pages[pages.length - 1]?.querySelector('.page-body');
++    const card = comparisonCard(result);
++    const stats = body && body.querySelector('.stats');
++    if (stats && card) stats.after(card);
++  };
++  window.GymSummaryComparison = Object.freeze({ volume, setCount, sameExercises, comparison });
++})();
+diff --git a/gym-units.js b/gym-units.js
+new file mode 100644
+index 0000000..44a82eb
+--- /dev/null
++++ b/gym-units.js
+@@ -0,0 +1,71 @@
++/* Unidades solo de presentación: los entrenos siguen guardando kg, km y segundos. */
++'use strict';
++
++(() => {
++  const lbPerKg = 2.2046226218;
++  const unitFor = kind => kind === 'weight' ? (S.gymWeightUnit === 'lb' ? 'lb' : 'kg') : (S.gymDistanceUnit === 'mi' ? 'mi' : 'km');
++  const displayNumber = value => fmtN(Math.round(value * 100) / 100);
++  const numberFromInput = value => {
++    const text = String(value || '').trim().replace(',', '.');
++    return /^\d+(\.\d{1,2})?$/.test(text) ? Number(text) : NaN;
++  };
++
++  function formatWeight(kg) { return kg == null ? '' : displayNumber(unitFor('weight') === 'lb' ? kg * lbPerKg : kg); }
++  function parseWeight(value) { const n = numberFromInput(value); return Number.isFinite(n) ? (unitFor('weight') === 'lb' ? n / lbPerKg : n) : NaN; }
++  function formatDistance(km) { return km == null ? '' : displayNumber(unitFor('distance') === 'mi' ? km * 0.6213711922 : km); }
++  function parseDistance(value) { const n = numberFromInput(value); return Number.isFinite(n) ? (unitFor('distance') === 'mi' ? n / 0.6213711922 : n) : NaN; }
++  function parseDuration(value) { const n = numberFromInput(value); return Number.isFinite(n) ? Math.round(n * 60) : NaN; }
++  function formatDuration(seconds) { return seconds == null ? '' : displayNumber(seconds / 60); }
++  function isDistanceExercise(id) {
++    const exercise = exById.get(id);
++    return !!exercise && (exercise.muscle === 'Cardio' || /correr|cinta|running|treadmill|bicicleta|bici|cycling|spinning|eliptica|elíptica|elliptical|remo indoor|ergometro/i.test(exercise.name));
++  }
++
++  function updateSettings() {
++    const weight = document.querySelector('#set-weight-unit');
++    const distance = document.querySelector('#set-distance-unit');
++    if (weight) weight.querySelectorAll('[data-unit]').forEach(button => button.classList.toggle('on', button.dataset.unit === unitFor('weight')));
++    if (distance) distance.querySelectorAll('[data-unit]').forEach(button => button.classList.toggle('on', button.dataset.unit === unitFor('distance')));
++  }
++
++  function repaint() {
++    if (typeof gymRenderAll === 'function') gymRenderAll();
++    if (typeof wkPage !== 'undefined' && wkPage) renderWk();
++    if (typeof curDetail !== 'undefined' && curDetail) renderDetail(curDetail.wid);
++    updateSettings();
++  }
++
++  function setUnit(kind, value) {
++    if (!['kg', 'lb', 'km', 'mi'].includes(value)) return;
++    if (kind === 'weight') S.gymWeightUnit = value; else S.gymDistanceUnit = value;
++    saveSettings(); repaint();
++  }
++
++  const baseSettings = renderGymSettings;
++  renderGymSettings = () => { baseSettings(); updateSettings(); };
++  const baseBackup = backupData;
++  backupData = () => {
++    const data = baseBackup();
++    return { ...data, settings: { ...data.settings, gymWeightUnit: unitFor('weight'), gymDistanceUnit: unitFor('distance') } };
++  };
++  const baseGymImport = gymImportBackup;
++  gymImportBackup = async data => {
++    await baseGymImport(data);
++    const settings = data && data.settings;
++    if (settings && ['kg', 'lb'].includes(settings.gymWeightUnit)) S.gymWeightUnit = settings.gymWeightUnit;
++    if (settings && ['km', 'mi'].includes(settings.gymDistanceUnit)) S.gymDistanceUnit = settings.gymDistanceUnit;
++    if (settings && (settings.gymWeightUnit || settings.gymDistanceUnit)) await saveSettings();
++    updateSettings();
++  };
++  document.querySelector('#set-weight-unit')?.addEventListener('click', event => {
++    const button = event.target.closest('[data-unit]');
++    if (button) setUnit('weight', button.dataset.unit);
++  });
++  document.querySelector('#set-distance-unit')?.addEventListener('click', event => {
++    const button = event.target.closest('[data-unit]');
++    if (button) setUnit('distance', button.dataset.unit);
++  });
++
++  window.GymUnits = Object.freeze({ unitFor, formatWeight, parseWeight, formatDistance, parseDistance, parseDuration, formatDuration, isDistanceExercise });
++  updateSettings();
++})();
+diff --git a/gym-workout-layout.js b/gym-workout-layout.js
+new file mode 100644
+index 0000000..790ddac
+--- /dev/null
++++ b/gym-workout-layout.js
+@@ -0,0 +1,47 @@
++/* Preferencias sencillas de la pantalla de entreno; se ocultan datos sin borrarlos. */
++'use strict';
++
++(() => {
++  const controlIds = { previous: '#set-workout-previous', suggestions: '#set-workout-suggestions', notes: '#set-workout-notes' };
++  const settingKeys = { previous: 'showPreviousSets', suggestions: 'showProgressSuggestions', notes: 'showWorkoutNotes' };
++  const defaults = Object.freeze({ previous: true, suggestions: true, notes: true });
++
++  function preferences(settings) {
++    return Object.fromEntries(Object.entries(settingKeys).map(([key, field]) => [key, settings[field] !== false]));
++  }
++
++  function applyLayout() {
++    if (typeof wkPage === 'undefined' || !wkPage) return;
++    const prefs = preferences(S);
++    wkPage.el.classList.toggle('hide-prev', !prefs.previous);
++    wkPage.el.classList.toggle('hide-suggestions', !prefs.suggestions);
++    wkPage.el.classList.toggle('hide-notes', !prefs.notes);
++  }
++
++  function syncSettings() {
++    const prefs = preferences(S);
++    for (const [key, selector] of Object.entries(controlIds)) {
++      const control = document.querySelector(selector);
++      if (control) control.checked = prefs[key];
++    }
++  }
++
++  function bindSettings() {
++    for (const [key, selector] of Object.entries(controlIds)) {
++      const control = document.querySelector(selector);
++      if (!control) continue;
++      control.addEventListener('change', async () => {
++        S[settingKeys[key]] = control.checked;
++        await saveSettings();
++        applyLayout();
++      });
++    }
++  }
++
++  const baseRender = renderWk;
++  renderWk = (...args) => { baseRender(...args); applyLayout(); };
++  const baseSettings = renderGymSettings;
++  renderGymSettings = (...args) => { baseSettings(...args); syncSettings(); };
++  bindSettings();
++  window.GymWorkoutLayout = Object.freeze({ preferences, defaults, applyLayout });
++})();
+diff --git a/gym.js b/gym.js
+index c851c29..3a87263 100644
+--- a/gym.js
++++ b/gym.js
+@@ -54,9 +54,9 @@ const setVol = s => (s.kg || 0) * (s.reps || 0);
+ const wVolume = w => w.exercises.reduce((a, e) => a + workSets(e.sets).reduce((b, s) => b + setVol(s), 0), 0);
+ const wSetCount = w => w.exercises.reduce((a, e) => a + workSets(e.sets).length, 0);
+ const fmtSet = s => {
+-  if (s.km || s.sec) return [s.km ? `${fmtN(s.km)} km` : '', s.sec ? fmtClock(s.sec) : ''].filter(Boolean).join(' · ');
++  if (s.km || s.sec) return [s.km ? `${GymUnits.formatDistance(s.km)} ${GymUnits.unitFor('distance')}` : '', s.sec ? fmtClock(s.sec) : ''].filter(Boolean).join(' · ');
+   if (!s.kg) return `${s.reps || 0} reps`;
+-  return `${fmtN(s.kg)} kg × ${s.reps || 0}`;
++  return `${GymUnits.formatWeight(s.kg)} ${GymUnits.unitFor('weight')} × ${s.reps || 0}`;
+ };
+ 
+ /* ================= Carga y guardado ================= */
+@@ -121,9 +121,9 @@ function workoutPRs(w) {
+     if (!prev.n) continue;
+     let kg = 0, e1 = 0, vol = 0;
+     for (const s of workSets(ex.sets)) { kg = Math.max(kg, s.kg || 0); e1 = Math.max(e1, e1rm(s.kg, s.reps)); vol = Math.max(vol, setVol(s)); }
+-    if (kg > prev.kg && prev.kg > 0) out.push({ exId: ex.exId, label: 'Peso máximo', value: `${fmtN(kg)} kg` });
+-    if (e1 > prev.e1 + 0.01 && prev.e1 > 0) out.push({ exId: ex.exId, label: '1RM estimado', value: `${fmtN(Math.round(e1 * 10) / 10)} kg` });
+-    else if (vol > prev.vol && prev.vol > 0) out.push({ exId: ex.exId, label: 'Mejor serie (volumen)', value: `${fmtN(vol)} kg` });
++    if (kg > prev.kg && prev.kg > 0) out.push({ exId: ex.exId, label: 'Peso máximo', value: `${GymUnits.formatWeight(kg)} ${GymUnits.unitFor('weight')}` });
++    if (e1 > prev.e1 + 0.01 && prev.e1 > 0) out.push({ exId: ex.exId, label: '1RM estimado', value: `${GymUnits.formatWeight(Math.round(e1 * 10) / 10)} ${GymUnits.unitFor('weight')}` });
++    else if (vol > prev.vol && prev.vol > 0) out.push({ exId: ex.exId, label: 'Mejor serie (volumen)', value: `${GymUnits.formatWeight(vol)} ${GymUnits.unitFor('weight')}` });
+   }
+   return out;
+ }
+@@ -218,19 +218,19 @@ async function pickRest(current) {
+ 
+ function plateCalc(initial) {
+   genSheet.innerHTML = `<div class="grabber"></div><h2>Calculadora de discos</h2>
+-    <div class="weight-input"><input id="pc-kg" type="text" inputmode="decimal" placeholder="0" value="${initial ? fmtN(initial) : ''}"><span>kg</span></div>
+-    <div class="seg seg-block" id="pc-bar" style="margin-top:12px">${[20, 15, 10, 0].map(b => `<button data-bar="${b}" class="${S.bar === b ? 'on' : ''}">${b ? `Barra ${b}` : 'Sin barra'}</button>`).join('')}</div>
++    <div class="weight-input"><input id="pc-kg" type="text" inputmode="decimal" placeholder="0" value="${initial ? GymUnits.formatWeight(initial) : ''}"><span>${GymUnits.unitFor('weight')}</span></div>
++    <div class="seg seg-block" id="pc-bar" style="margin-top:12px">${[20, 15, 10, 0].map(b => `<button data-bar="${b}" class="${S.bar === b ? 'on' : ''}">${b ? `Barra ${GymUnits.formatWeight(b)} ${GymUnits.unitFor('weight')}` : 'Sin barra'}</button>`).join('')}</div>
+     <div id="pc-out" class="plates-out"></div>`;
+   const out = $('#pc-out', genSheet), inp = $('#pc-kg', genSheet);
+   const calc = () => {
+-    const total = parseKg(inp.value);
++    const total = GymUnits.parseWeight(inp.value);
+     if (isNaN(total) || total <= 0) { out.innerHTML = '<p class="fine center">Escribe el peso total.</p>'; return; }
+     let side = (total - S.bar) / 2;
+-    if (side < 0) { out.innerHTML = `<p class="fine center">Menos que la barra (${S.bar} kg).</p>`; return; }
++    if (side < 0) { out.innerHTML = `<p class="fine center">Menos que la barra (${GymUnits.formatWeight(S.bar)} ${GymUnits.unitFor('weight')}).</p>`; return; }
+     const used = [];
+     for (const p of PLATES) while (side >= p - 1e-9) { used.push(p); side = Math.round((side - p) * 1000) / 1000; }
+-    out.innerHTML = `<div class="label center">En cada lado</div><div class="plates">${used.length ? used.map(p => `<span class="plate p${String(p).replace('.', '_')}">${fmtN(p)}</span>`).join('') : '<span class="fine">Solo la barra</span>'}</div>
+-      ${side > 0 ? `<p class="fine center">Sobran ${fmtN(side * 2)} kg que no salen con discos normales.</p>` : ''}`;
++    out.innerHTML = `<div class="label center">En cada lado · ${GymUnits.unitFor('weight')}</div><div class="plates">${used.length ? used.map(p => `<span class="plate p${String(p).replace('.', '_')}">${GymUnits.formatWeight(p)}</span>`).join('') : '<span class="fine">Solo la barra</span>'}</div>
++      ${side > 0 ? `<p class="fine center">Sobran ${GymUnits.formatWeight(side * 2)} ${GymUnits.unitFor('weight')} que no salen con discos normales.</p>` : ''}`;
+   };
+   inp.addEventListener('input', calc);
+   $('#pc-bar', genSheet).onclick = e => {
+@@ -255,7 +255,7 @@ function newActiveEx(exId, templateSets) {
+   const base = templateSets && templateSets.length ? templateSets : (prev.length ? prev : [{ type: 'normal' }, { type: 'normal' }, { type: 'normal' }]);
+   return {
+     uid: uid(), exId, notes: '', rest: (exById.get(exId) || {}).rest ?? null,
+-    sets: base.map((s, i) => ({ type: s.type || 'normal', kg: null, reps: null, done: false, ph: { kg: (prev[i] || s).kg ?? null, reps: (prev[i] || s).reps ?? null } })),
++    sets: base.map((s, i) => ({ type: s.type || 'normal', kg: null, reps: null, km: null, sec: null, done: false, ph: { kg: (prev[i] || s).kg ?? null, reps: (prev[i] || s).reps ?? null, km: (prev[i] || s).km ?? null, sec: (prev[i] || s).sec ?? null } })),
+   };
+ }
+ async function startWorkout({ routine = null, from = null } = {}) {
+@@ -318,14 +318,19 @@ function setLabel(ex, i) {
+   return String(n);
+ }
+ function exCardHTML(ex, idx) {
++  // Claude: GymUnits solo cambia lo que se muestra; las series guardan kg/km canónicos.
++  const distance = GymUnits.isDistanceExercise(ex.exId);
++  const firstUnit = distance ? GymUnits.unitFor('distance') : GymUnits.unitFor('weight');
+   const prev = prevSetsFor(ex.exId, wkMode === 'edit' ? wkData.id : null) || [];
+   const rows = ex.sets.map((s, i) => {
+     const p = prev[i];
++    const firstValue = distance ? s.km : s.kg, previousValue = distance ? s.ph?.km : s.ph?.kg;
++    const secondValue = distance ? s.sec : s.reps, previousSecond = distance ? s.ph?.sec : s.ph?.reps;
+     return `<div class="set-row${s.done ? ' done' : ''}${s.pr ? ' pr' : ''}" data-ex="${idx}" data-set="${i}">
+       <button class="set-lbl t-${s.type}" data-act="set-menu">${setLabel(ex, i)}</button>
+       <button class="set-prev" data-act="use-prev">${p ? esc(fmtSet(p)) : '—'}</button>
+-      <input class="set-in" data-f="kg" inputmode="decimal" enterkeyhint="next" value="${s.kg != null ? fmtN(s.kg) : ''}" placeholder="${s.ph && s.ph.kg != null ? fmtN(s.ph.kg) : ''}">
+-      <input class="set-in" data-f="reps" inputmode="numeric" enterkeyhint="done" value="${s.reps != null ? s.reps : ''}" placeholder="${s.ph && s.ph.reps != null ? s.ph.reps : ''}">
++      <input class="set-in" data-f="${distance ? 'distance' : 'kg'}" inputmode="decimal" enterkeyhint="next" value="${firstValue != null ? (distance ? GymUnits.formatDistance(firstValue) : GymUnits.formatWeight(firstValue)) : ''}" placeholder="${previousValue != null ? (distance ? GymUnits.formatDistance(previousValue) : GymUnits.formatWeight(previousValue)) : ''}">
++      <input class="set-in" data-f="${distance ? 'duration' : 'reps'}" inputmode="decimal" enterkeyhint="done" value="${secondValue != null ? (distance ? GymUnits.formatDuration(secondValue) : secondValue) : ''}" placeholder="${previousSecond != null ? (distance ? GymUnits.formatDuration(previousSecond) : previousSecond) : ''}">
+       <button class="set-chk" data-act="check" aria-label="Serie hecha">${checkIcon}</button>
+     </div>`;
+   }).join('');
+@@ -334,9 +339,9 @@ function exCardHTML(ex, idx) {
+       <button class="ex-name" data-act="ex-open">${esc(exName(ex.exId))}</button>
+       <button class="icon-btn icon-btn-sm" data-act="ex-menu" aria-label="Opciones">${dotsIcon}</button>
+     </div>
+-    ${ex.showNotes || ex.notes ? `<textarea class="ex-notes" data-act="notes" rows="1" placeholder="Notas del ejercicio">${esc(ex.notes || '')}</textarea>` : ''}
++    ${window.GymNotes.isVisible(ex) ? `<textarea class="ex-notes" data-act="notes" rows="1" placeholder="Notas del ejercicio">${esc(ex.notes || '')}</textarea>` : ''}
+     ${exExtrasHTML(ex)}
+-    <div class="set-head"><span>SERIE</span><span>ANTERIOR</span><span>KG</span><span>REPS</span><span>✓</span></div>
++    <div class="set-head"><span>SERIE</span><span>ANTERIOR</span><span>${distance ? firstUnit.toUpperCase() : firstUnit.toUpperCase()}</span><span>${distance ? 'MIN' : 'REPS'}</span><span>✓</span></div>
+     ${rows}
+     <button class="btn btn-ghost btn-block btn-small add-set" data-act="add-set">＋ Añadir serie</button>
+   </div>`;
+@@ -353,7 +358,7 @@ function renderWk() {
+       <button class="icon-btn" data-act="wk-min" aria-label="${isActive ? 'Minimizar' : 'Cancelar'}">${isActive ? downIcon : backIcon}</button>
+       <div class="page-bar-title">
+         <input class="wk-title" data-act="title" value="${esc(d.title)}" aria-label="Nombre del entreno">
+-        <small>${isActive ? `<span data-clock>${fmtClock((Date.now() - d.start) / 1000)}</span> · ` : esc(fmtWDate(d.start)) + ' · '}${fmtInt(vol)} kg · ${done} series</small>
++        <small>${isActive ? `<span data-clock>${fmtClock((Date.now() - d.start) / 1000)}</span> · ` : esc(fmtWDate(d.start)) + ' · '}${GymUnits.formatWeight(vol)} ${GymUnits.unitFor('weight')} · ${done} series</small>
+       </div>
+       <button class="btn btn-small btn-primary" data-act="wk-finish">${isActive ? 'Terminar' : 'Guardar'}</button>
+     </div>
+@@ -372,16 +377,19 @@ function updateWkHeader() {
+   const d = wkData;
+   const done = d.exercises.reduce((a, e) => a + e.sets.filter(s => s.done).length, 0);
+   const vol = d.exercises.reduce((a, e) => a + e.sets.filter(s => s.done && s.type !== 'warmup').reduce((b, s) => b + setVol(s), 0), 0);
+-  if (small) small.innerHTML = `${wkMode === 'active' ? `<span data-clock>${fmtClock((Date.now() - d.start) / 1000)}</span> · ` : esc(fmtWDate(d.start)) + ' · '}${fmtInt(vol)} kg · ${done} series`;
++  if (small) small.innerHTML = `${wkMode === 'active' ? `<span data-clock>${fmtClock((Date.now() - d.start) / 1000)}</span> · ` : esc(fmtWDate(d.start)) + ' · '}${GymUnits.formatWeight(vol)} ${GymUnits.unitFor('weight')} · ${done} series`;
+ }
+ const wkChanged = () => { if (wkMode === 'active') saveActive(); };
+ 
+ function wkInput(e) {
++  // Claude: convierte cada edición a kg, km o segundos antes de persistir el entreno activo.
+   const t = e.target;
+   if (t.matches('.set-in')) {
+     const row = t.closest('.set-row');
+     const s = wkData.exercises[+row.dataset.ex].sets[+row.dataset.set];
+-    if (t.dataset.f === 'kg') { const v = parseKg(t.value); s.kg = t.value.trim() === '' || isNaN(v) ? null : v; }
++    if (t.dataset.f === 'kg') { const v = GymUnits.parseWeight(t.value); s.kg = t.value.trim() === '' || isNaN(v) ? null : v; }
++    else if (t.dataset.f === 'distance') { const v = GymUnits.parseDistance(t.value); s.km = t.value.trim() === '' || isNaN(v) ? null : v; }
++    else if (t.dataset.f === 'duration') { const v = GymUnits.parseDuration(t.value); s.sec = t.value.trim() === '' || isNaN(v) ? null : v; }
+     else { const v = parseInt(t.value, 10); s.reps = isNaN(v) ? null : v; }
+     if (s.done) updateWkHeader();
+     wkChanged();
+@@ -426,7 +434,7 @@ async function wkClick(e) {
+     const last = ex.sets[ex.sets.length - 1];
+     const prev = prevSetsFor(ex.exId) || [];
+     const p = prev[ex.sets.length];
+-    ex.sets.push({ type: 'normal', kg: null, reps: null, done: wkMode === 'edit', ph: { kg: last ? (last.kg ?? last.ph?.kg ?? null) : p?.kg ?? null, reps: last ? (last.reps ?? last.ph?.reps ?? null) : p?.reps ?? null } });
++    ex.sets.push({ type: 'normal', kg: null, reps: null, km: null, sec: null, done: wkMode === 'edit', ph: { kg: last ? (last.kg ?? last.ph?.kg ?? null) : p?.kg ?? null, reps: last ? (last.reps ?? last.ph?.reps ?? null) : p?.reps ?? null, km: last ? (last.km ?? last.ph?.km ?? null) : p?.km ?? null, sec: last ? (last.sec ?? last.ph?.sec ?? null) : p?.sec ?? null } });
+     wkChanged(); renderWk();
+     return;
+   }
+@@ -442,14 +450,14 @@ async function wkClick(e) {
+     const i = +card.dataset.ex;
+     const lastKg = [...ex.sets].reverse().find(s => s.kg || s.ph?.kg);
+     const v = await actionSheet(exName(ex.exId), [
+-      { label: ex.showNotes || ex.notes ? 'Ocultar notas' : 'Añadir nota', value: 'notes' },
++      { label: window.GymNotes.isVisible(ex) ? 'Ocultar notas' : 'Añadir nota', value: 'notes' },
+       { label: 'Calculadora de discos', value: 'plates' },
+       ...(i > 0 ? [{ label: 'Subir', value: 'up' }] : []),
+       ...(i < wkData.exercises.length - 1 ? [{ label: 'Bajar', value: 'down' }] : []),
+       ...supMenuItems(i), { label: 'Reemplazar ejercicio', value: 'replace' },
+       { label: 'Quitar ejercicio', value: 'remove', danger: true },
+     ]);
+-    if (v === 'notes') { ex.showNotes = !(ex.showNotes || ex.notes); if (!ex.showNotes) ex.notes = ''; }
++    if (v === 'notes') window.GymNotes.toggleVisibility(ex);
+     else if (v === 'plates') { plateCalc(lastKg ? (lastKg.kg || lastKg.ph.kg) : null); return; }
+     else if (v === 'up' || v === 'down') { const j = v === 'up' ? i - 1 : i + 1; [wkData.exercises[i], wkData.exercises[j]] = [wkData.exercises[j], wkData.exercises[i]]; }
+     else if (v === 'replace') {
+@@ -483,7 +491,7 @@ async function wkClick(e) {
+   if (act === 'use-prev') {
+     const p = (prevSetsFor(ex.exId, wkMode === 'edit' ? wkData.id : null) || [])[si];
+     if (!p) return;
+-    s.kg = p.kg ?? null; s.reps = p.reps ?? null;
++    s.kg = p.kg ?? null; s.reps = p.reps ?? null; s.km = p.km ?? null; s.sec = p.sec ?? null;
+     wkChanged(); renderWk();
+     return;
+   }
+@@ -508,7 +516,7 @@ async function finishWorkout() {
+   }
+   const w = {
+     id: a.id, title: (a.title || '').trim() || 'Entreno', routineId: a.routineId || null, start: a.start, end: Date.now(), notes: a.notes || '',
+-    exercises: a.exercises.map(e => ({ exId: e.exId, notes: e.notes || '', ...(e.sup ? { sup: e.sup } : {}), sets: e.sets.filter(s => s.done).map(s => ({ type: s.type, kg: s.kg || 0, reps: s.reps || 0 })) })).filter(e => e.sets.length),
++    exercises: a.exercises.map(e => ({ exId: e.exId, notes: e.notes || '', ...(e.sup ? { sup: e.sup } : {}), sets: e.sets.filter(s => s.done).map(s => ({ type: s.type, kg: s.kg || 0, reps: s.reps || 0, ...(s.km ? { km: s.km } : {}), ...(s.sec ? { sec: s.sec } : {}) })) })).filter(e => e.sets.length),
+   };
+   const prs = workoutPRs(w);
+   await DB.put('workouts', w);
+@@ -536,7 +544,7 @@ async function showSummary(w, prs, restByEx) {
+       </div>
+       <div class="stats">
+         <div class="card stat"><div class="label">Duración</div><div class="val">${fmtDur(w.end - w.start)}</div></div>
+-        <div class="card stat"><div class="label">Volumen</div><div class="val">${fmtInt(wVolume(w))}</div><div class="sub">kg</div></div>
++        <div class="card stat"><div class="label">Volumen</div><div class="val">${GymUnits.formatWeight(wVolume(w))}</div><div class="sub">${GymUnits.unitFor('weight')}</div></div>
+         <div class="card stat"><div class="label">Series</div><div class="val">${wSetCount(w)}</div></div>
+       </div>
+       ${prs.length ? `<h3 class="section-title">Récords nuevos</h3><div class="card list-wrap">${prs.map(p => `<div class="pr-row"><span>🏆 ${esc(exName(p.exId))}<small>${p.label}</small></span><b>${p.value}</b></div>`).join('')}</div>` : ''}
+@@ -551,7 +559,7 @@ async function showSummary(w, prs, restByEx) {
+     if (sig(r.exercises) !== sig(w.exercises)) {
+       const ok = await ask({ title: `¿Actualizar «${r.name}»?`, message: 'Has cambiado ejercicios o series respecto a la rutina. ¿Guardo estos cambios en la rutina?', ok: 'Actualizar', cancel: 'No' });
+       if (ok) {
+-        r.exercises = w.exercises.map(e => ({ exId: e.exId, rest: restByEx.get(e.exId) ?? null, ...(e.sup ? { sup: e.sup } : {}), sets: e.sets.map(s => ({ type: s.type, kg: s.kg, reps: s.reps })) }));
++        r.exercises = w.exercises.map(e => ({ exId: e.exId, rest: restByEx.get(e.exId) ?? null, ...(e.sup ? { sup: e.sup } : {}), sets: e.sets.map(s => ({ type: s.type, kg: s.kg, reps: s.reps, ...(s.km ? { km: s.km } : {}), ...(s.sec ? { sec: s.sec } : {}) })) }));
+         await DB.put('routines', r);
+         gymRenderAll();
+         toast('Rutina actualizada');
+@@ -735,7 +743,7 @@ function editRoutine(r) {
+       if (!ids) return;
+       ids.forEach(id => {
+         const prev = prevSetsFor(id);
+-        data.exercises.push({ exId: id, rest: null, sets: prev ? prev.map(s => ({ type: s.type, kg: s.kg, reps: s.reps })) : [{ type: 'normal', kg: null, reps: null }, { type: 'normal', kg: null, reps: null }, { type: 'normal', kg: null, reps: null }] });
++        data.exercises.push({ exId: id, rest: null, sets: prev ? prev.map(s => ({ type: s.type, kg: s.kg, reps: s.reps, ...(s.km ? { km: s.km } : {}), ...(s.sec ? { sec: s.sec } : {}) })) : [{ type: 'normal', kg: null, reps: null }, { type: 'normal', kg: null, reps: null }, { type: 'normal', kg: null, reps: null }] });
+       });
+       draw();
+     } else if (!ex) return;
+@@ -776,7 +784,7 @@ function renderGymHistory() {
+     <div class="card-head"><h2>Últimas 12 semanas</h2></div>
+     <div class="seg seg-small seg-block" id="stat-seg"><button data-st="count" class="${metric === 'count' ? 'on' : ''}">Entrenos</button><button data-st="vol" class="${metric === 'vol' ? 'on' : ''}">Volumen</button><button data-st="dur" class="${metric === 'dur' ? 'on' : ''}">Tiempo</button></div>
+     <div class="bars">${weeks.map(x => `<div class="bar-col"><small>${val(x) ? fmtV(val(x)) : ''}</small><div class="bar" style="height:${(val(x) / max * 100).toFixed(1)}%"></div><span>${new Date(x.t).getDate()}/${new Date(x.t).getMonth() + 1}</span></div>`).join('')}</div>
+-    <p class="fine center">Esta semana: <b>${thisW.n}</b> ${thisW.n === 1 ? 'entreno' : 'entrenos'} · ${fmtInt(thisW.vol)} kg</p>
++    <p class="fine center">Esta semana: <b>${thisW.n}</b> ${thisW.n === 1 ? 'entreno' : 'entrenos'} · ${GymUnits.formatWeight(thisW.vol)} ${GymUnits.unitFor('weight')}</p>
+   </div>`;
+   html += calendarHTML() + muscleHTML();
+   let month = '';
+@@ -786,7 +794,7 @@ function renderGymHistory() {
+     if (m !== month) { html += `<div class="month-head"><span>${cap(fmtD(F.monYear, m + '-01'))}</span></div>`; month = m; }
+     html += `<button class="card wk-item" data-wid="${w.id}">
+       <div class="wk-item-head"><b>${esc(w.title)}</b><small>${fmtWDate(w.start)}</small></div>
+-      <div class="wk-item-stats"><span>⏱ ${fmtDur(w.end - w.start)}</span><span>🏋️ ${fmtInt(wVolume(w))} kg</span><span>${wSetCount(w)} series</span></div>
++      <div class="wk-item-stats"><span>⏱ ${fmtDur(w.end - w.start)}</span><span>🏋️ ${GymUnits.formatWeight(wVolume(w))} ${GymUnits.unitFor('weight')}</span><span>${wSetCount(w)} series</span></div>
+       <div class="wk-item-ex">${w.exercises.slice(0, 4).map(e => `${workSets(e.sets).length}× ${esc(exName(e.exId))}`).join('<br>')}${w.exercises.length > 4 ? `<br><span class="sub">+${w.exercises.length - 4} más</span>` : ''}</div>
+     </button>`;
+   }
+@@ -846,7 +854,7 @@ function renderDetail(id) {
+     <div class="page-body">
+       <div class="stats">
+         <div class="card stat"><div class="label">Duración</div><div class="val">${fmtDur(w.end - w.start)}</div></div>
+-        <div class="card stat"><div class="label">Volumen</div><div class="val">${fmtInt(wVolume(w))}</div><div class="sub">kg</div></div>
++        <div class="card stat"><div class="label">Volumen</div><div class="val">${GymUnits.formatWeight(wVolume(w))}</div><div class="sub">${GymUnits.unitFor('weight')}</div></div>
+         <div class="card stat"><div class="label">Récords</div><div class="val">${prs.length ? '🏆 ' + prs.length : '—'}</div></div>
+       </div>
+       ${w.exercises.map(e => `<div class="card ex-detail">
+@@ -905,9 +913,9 @@ function openExercise(id) {
+         ${typeof exerciseGuideHTML === 'function' ? exerciseGuideHTML(ex) : ''}
+         ${ss.length ? `
+         <div class="stats stats-2">
+-          <div class="card stat"><div class="label">Peso máximo</div><div class="val">${fmtN(b.kg)} kg</div></div>
+-          <div class="card stat"><div class="label">1RM estimado</div><div class="val">${fmtN(Math.round(b.e1 * 10) / 10)} kg</div><div class="sub">${bestE1Set ? esc(fmtSet(bestE1Set)) : ''}</div></div>
+-          <div class="card stat"><div class="label">Mejor serie</div><div class="val">${fmtInt(b.vol)} kg</div><div class="sub">volumen (kg × reps)</div></div>
++          <div class="card stat"><div class="label">Peso máximo</div><div class="val">${GymUnits.formatWeight(b.kg)} ${GymUnits.unitFor('weight')}</div></div>
++          <div class="card stat"><div class="label">1RM estimado</div><div class="val">${GymUnits.formatWeight(Math.round(b.e1 * 10) / 10)} ${GymUnits.unitFor('weight')}</div><div class="sub">${bestE1Set ? esc(fmtSet(bestE1Set)) : ''}</div></div>
++          <div class="card stat"><div class="label">Mejor serie</div><div class="val">${GymUnits.formatWeight(b.vol)} ${GymUnits.unitFor('weight')}</div><div class="sub">volumen (${GymUnits.unitFor('weight')} × reps)</div></div>
+           <div class="card stat"><div class="label">Máx. reps</div><div class="val">${b.reps}</div><div class="sub">${maxRepsSet ? esc(fmtSet(maxRepsSet)) : ''}</div></div>
+         </div>
+         ${exChartHTML(metric, range)}
+@@ -1041,10 +1049,10 @@ function renderInicio() {
+   if (G.workouts.length) {
+     const w = G.workouts[0];
+     html += `<button class="card quick" data-quick-w="${w.id}">
+-      <div><div class="label">Último entreno</div><div class="quick-val">${esc(w.title)}</div><small class="sub">${fmtWDate(w.start)} · ${fmtDur(w.end - w.start)} · ${fmtInt(wVolume(w))} kg</small></div>${chevIcon}
++      <div><div class="label">Último entreno</div><div class="quick-val">${esc(w.title)}</div><small class="sub">${fmtWDate(w.start)} · ${fmtDur(w.end - w.start)} · ${GymUnits.formatWeight(wVolume(w))} ${GymUnits.unitFor('weight')}</small></div>${chevIcon}
+     </button>
+     <div class="card quick">
+-      <div><div class="label">Esta semana</div><div class="quick-val">${week.length} ${week.length === 1 ? 'entreno' : 'entrenos'}</div><small class="sub">${fmtInt(week.reduce((a, w2) => a + wVolume(w2), 0))} kg de volumen</small></div>
++      <div><div class="label">Esta semana</div><div class="quick-val">${week.length} ${week.length === 1 ? 'entreno' : 'entrenos'}</div><small class="sub">${GymUnits.formatWeight(week.reduce((a, w2) => a + wVolume(w2), 0))} ${GymUnits.unitFor('weight')} de volumen</small></div>
+     </div>`;
+   }
+   box.innerHTML = html;
+@@ -1058,13 +1066,13 @@ $('#home-quick').addEventListener('click', e => {
+ function renderGymSettings() {
+   $('#set-rest').textContent = fmtRest(S.rest);
+   $('#set-sound').checked = S.sound !== false;
+-  $('#set-bar').textContent = S.bar ? `${S.bar} kg` : 'Sin barra';
++  $('#set-bar').textContent = S.bar ? `${GymUnits.formatWeight(S.bar)} ${GymUnits.unitFor('weight')}` : 'Sin barra';
+   renderRestModeSetting();
+ }
+ $('#set-rest').addEventListener('click', async () => { const v = await pickRest(S.rest); if (v != null) { S.rest = v; saveSettings(); renderGymSettings(); } });
+ $('#set-sound').addEventListener('change', e => { S.sound = e.target.checked; saveSettings(); if (S.sound) beep(); });
+ $('#set-bar').addEventListener('click', async () => {
+-  const v = await actionSheet('Barra', [20, 15, 10, 0].map(b => ({ label: b ? `${b} kg` : 'Sin barra', value: b, on: S.bar === b })));
++  const v = await actionSheet('Barra', [20, 15, 10, 0].map(b => ({ label: b ? `${GymUnits.formatWeight(b)} ${GymUnits.unitFor('weight')}` : 'Sin barra', value: b, on: S.bar === b })));
+   if (v != null) { S.bar = v; saveSettings(); renderGymSettings(); }
+ });
+ 
+@@ -1248,7 +1256,7 @@ function gymHevyImport(text) {
+     for (const r of routineOpts) {
+       if (!r.on) continue;
+       const w = toWorkout(r.last);
+-      const ro = { id: uid(), name: r.title, order: G.routines.length + newRoutines.length, exercises: w.exercises.map(e2 => ({ exId: e2.exId, rest: null, sets: e2.sets.map(s => ({ type: s.type, kg: s.kg, reps: s.reps })) })) };
++      const ro = { id: uid(), name: r.title, order: G.routines.length + newRoutines.length, exercises: w.exercises.map(e2 => ({ exId: e2.exId, rest: null, sets: e2.sets.map(s => ({ type: s.type, kg: s.kg, reps: s.reps, ...(s.km ? { km: s.km } : {}), ...(s.sec ? { sec: s.sec } : {}) })) })) };
+       newRoutines.push(ro);
+       routineByTitle.set(norm(r.title), ro);
+     }
+diff --git a/index.html b/index.html
+index 6cab460..80fe827 100644
+--- a/index.html
++++ b/index.html
+@@ -173,8 +173,29 @@
+         <span>Barra (calculadora de discos)</span>
+         <button class="pill-btn" id="set-bar"></button>
+       </div>
++      <div class="field">
++        <span>Cargas en los entrenos</span>
++        <div class="seg seg-small" id="set-weight-unit"><button data-unit="kg">kg</button><button data-unit="lb">lb</button></div>
++      </div>
++      <div class="field">
++        <span>Distancias de cardio</span>
++        <div class="seg seg-small" id="set-distance-unit"><button data-unit="km">km</button><button data-unit="mi">mi</button></div>
++      </div>
++      <label class="field">
++        <span>Avisos de récord y progreso</span>
++        <input type="checkbox" class="switch" id="set-motivation" checked>
++      </label>
+     </div>
+ 
++    <!-- Claude: ajustes plegados para dar control sin recargar la pantalla principal de entrenamiento. -->
++    <details class="card workout-layout-settings">
++      <summary>Personalizar pantalla del entreno</summary>
++      <label class="field"><span>Mostrar datos de la sesión anterior</span><input type="checkbox" class="switch" id="set-workout-previous" checked></label>
++      <label class="field"><span>Mostrar sugerencias de progresión</span><input type="checkbox" class="switch" id="set-workout-suggestions" checked></label>
++      <label class="field"><span>Mostrar notas de ejercicios</span><input type="checkbox" class="switch" id="set-workout-notes" checked></label>
++      <p class="fine">Al ocultar una sección, sus datos guardados se conservan.</p>
++    </details>
++
+     <h3 class="section-title">Apariencia</h3>
+     <div class="seg seg-block" id="theme-seg">
+       <button data-theme-opt="dark">Oscuro</button>
+@@ -185,6 +206,7 @@
+     <h3 class="section-title">Copias de seguridad</h3>
+     <div class="card list-card">
+       <p class="fine" id="last-backup"></p>
++      <p class="fine privacy-note">Tus datos se guardan en este móvil. La copia JSON incluye notas y sesiones en curso; el Excel solo exporta fecha y peso; el CSV de entrenos usa kg/km y omite notas; el resumen compartido también omite notas.</p>
+       <button class="row-btn" data-action="export"><span>Exportar copia completa</span><small>Pesos, entrenos, rutinas y dietas en un archivo</small></button>
+       <button class="row-btn" data-action="export-excel"><span>Exportar pesos a Excel</span><small>Hoja de datos con gráfico de líneas</small></button>
+       <button class="row-btn" data-action="import-file"><span>Importar archivo</span><small>Copia de Tracking (.json), pesos (.txt) o CSV de Hevy</small></button>
+@@ -220,6 +242,10 @@
+     <button class="rest-btn" data-rest="-15">−15</button>
+     <div class="rest-time"><small id="rest-label">Descanso</small><b id="rest-time">1:30</b></div>
+     <button class="rest-btn" data-rest="15">+15</button>
++  </div>
++  <div class="rest-controls">
++    <button class="rest-btn" data-rest="toggle">Pausar</button>
++    <button class="rest-btn" data-rest="reset" aria-label="Reiniciar descanso">Reiniciar</button>
+     <button class="rest-btn rest-skip" data-rest="skip">Saltar</button>
+   </div>
+ </div>
+@@ -327,11 +353,23 @@
+ <script src="chart-ranges.js"></script>
+ <script src="gymcalc.js"></script>
+ <script src="gym.js"></script>
++<script src="gym-note-visibility.js"></script>
++<script src="gym-active-backup.js"></script>
++<script src="gym-rest-state.js"></script>
+ <script src="exercise-guide.js"></script>
++<script src="gym-exercise-enhancements.js"></script>
+ <script src="gym-plus.js"></script>
++<script src="gym-workout-layout.js"></script>
++<script src="gym-units.js"></script>
++<script src="gym-exercise-history.js"></script>
++<script src="gym-portability.js"></script>
++<script src="gym-summary-comparison.js"></script>
++<script src="gym-history-tools.js"></script>
++<script src="gym-motivation.js"></script>
+ <script src="foods.js"></script>
+ <script src="prepared-foods.js"></script>
+ <script src="diet.js"></script>
++<script src="diet-get-info.js"></script>
+ <script src="body.js"></script>
+ <script src="native.js"></script>
+ </body>
+diff --git a/package.json b/package.json
+index 80fe5f9..7ec62a1 100644
+--- a/package.json
++++ b/package.json
+@@ -8,7 +8,7 @@
+     "sync": "npm run build:www && npx cap sync android",
+     "open": "npx cap open android",
+     "apk": "npm run sync && cd android && gradlew assembleRelease",
+-    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs tests/exercise-guide.test.mjs tests/weight-xlsx.test.mjs",
++    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs tests/exercise-guide.test.mjs tests/weight-xlsx.test.mjs tests/prepared-foods.test.mjs tests/foods-list.test.mjs tests/diet-get-info.test.mjs tests/gym-note-visibility.test.mjs tests/gym-active-backup.test.mjs tests/gym-rest-state.test.mjs tests/gym-exercise-enhancements.test.mjs tests/gym-history-tools.test.mjs tests/gym-exercise-history.test.mjs tests/gym-portability.test.mjs tests/gym-summary-comparison.test.mjs tests/gym-motivation.test.mjs tests/gym-units.test.mjs tests/gym-workout-layout.test.mjs",
+     "build:foods": "node tools/build-foods.mjs"
+   },
+   "dependencies": {
+diff --git a/prepared-foods.js b/prepared-foods.js
+index 5d42464..8a9c08f 100644
+--- a/prepared-foods.js
++++ b/prepared-foods.js
+@@ -1,4 +1,4 @@
+-/* Platos preparados sencillos; cada ingrediente usa la base nutricional local USDA. */
++/* Claude: los platos ampliados usan nombres exactos de la base local USDA para conservar la búsqueda nutricional. */
+ 'use strict';
+ 
+ window.PREPARED_MEALS = [
+@@ -9,6 +9,31 @@ window.PREPARED_MEALS = [
+   { name: 'Pasta con tomate y pollo', items: [['Pasta, cocida', 180], ['Pechuga de pollo, asada', 100], ['Salsa de tomate', 80], ['Aceite de oliva', 5]] },
+   { name: 'Gazpacho', items: [['Tomate', 250], ['Pepino', 80], ['Pimiento verde, crudo', 35], ['Cebolla, cruda', 15], ['Aceite de oliva', 8]] },
+   { name: 'Merluza con patata', items: [['Merluza o pescadilla, cruda', 180], ['Patata, cocida', 180], ['Aceite de oliva', 8]] },
++  { name: 'Macarrones con tomate', items: [['Pasta, cocida', 220], ['Salsa de tomate', 100], ['Queso curado (tipo parmesano)', 10], ['Aceite de oliva', 5]] },
++  { name: 'Arroz con pollo y verduras', items: [['Arroz blanco, cocido', 180], ['Pechuga de pollo, asada', 120], ['Guisantes congelados', 50], ['Pimiento rojo, crudo', 40], ['Aceite de oliva', 5]] },
++  { name: 'Cocido sencillo', items: [['Garbanzos, cocidos', 160], ['Patata, cocida', 100], ['Zanahoria, cruda', 50], ['Pollo asado con piel', 80]] },
++  { name: 'Salmorejo con huevo y jamón', items: [['Tomate', 250], ['Pan blanco de molde', 35], ['Aceite de oliva', 8], ['Huevo cocido', 50], ['Jamón curado (tipo serrano)', 20]] },
++  { name: 'Pisto con huevo', items: [['Tomate', 120], ['Calabacín, crudo', 100], ['Berenjena, cruda', 70], ['Pimiento verde, crudo', 40], ['Cebolla, cruda', 30], ['Huevo entero', 55], ['Aceite de oliva', 8]] },
++  { name: 'Revuelto de setas', items: [['Champiñones, crudos', 150], ['Huevo entero', 110], ['Aceite de oliva', 5]] },
++  { name: 'Pechuga a la plancha con ensalada', items: [['Pechuga de pollo, asada', 150], ['Lechuga romana', 60], ['Tomate', 100], ['Pepino', 60], ['Aceite de oliva', 8]] },
++  { name: 'Yogur con avena y fruta', items: [['Yogur natural entero', 125], ['Copos de avena', 35], ['Plátano', 80], ['Fresas', 70]] },
++  { name: 'Tostada con tomate y aceite', items: [['Pan de barra', 70], ['Tomate', 80], ['Aceite de oliva', 8]] },
++  { name: 'Tostada de tomate y jamón', items: [['Pan de barra', 70], ['Tomate', 60], ['Jamón curado (tipo serrano)', 25], ['Aceite de oliva', 5]] },
++  { name: 'Tortilla francesa con queso', items: [['Huevo entero', 110], ['Queso emmental', 20], ['Aceite de oliva', 5]] },
++  { name: 'Patata con huevo y pimentón', items: [['Patata, cocida', 220], ['Huevo cocido', 55], ['Aceite de oliva', 5]] },
++  { name: 'Lentejas con chorizo', items: [['Lentejas, cocidas', 180], ['Chorizo', 30], ['Zanahoria, cruda', 40], ['Cebolla, cruda', 30], ['Aceite de oliva', 5]] },
++  { name: 'Ensalada de garbanzos y atún', items: [['Garbanzos en bote, escurridos', 150], ['Atún en lata al natural, escurrido', 70], ['Tomate', 100], ['Cebolla, cruda', 20], ['Aceite de oliva', 5]] },
++  { name: 'Pasta con atún', items: [['Pasta, cocida', 180], ['Atún en lata al natural, escurrido', 80], ['Salsa de tomate', 80], ['Aceite de oliva', 5]] },
++  { name: 'Cuscús con verduras y garbanzos', items: [['Cuscús, cocido', 160], ['Garbanzos, cocidos', 80], ['Calabacín, crudo', 60], ['Zanahoria, cruda', 40], ['Aceite de oliva', 5]] },
++  { name: 'Quinoa con salmón', items: [['Quinoa, cocida', 150], ['Salmón, crudo', 130], ['Espinacas, crudas', 40], ['Aceite de oliva', 5]] },
++  { name: 'Burrito de pollo y alubias', items: [['Tortilla de trigo (wrap)', 60], ['Pechuga de pollo, asada', 90], ['Alubias negras, cocidas', 70], ['Tomate', 40], ['Lechuga romana', 25]] },
++  { name: 'Bocadillo de tortilla', items: [['Pan de barra', 80], ['Huevo entero', 110], ['Aceite de oliva', 5]] },
++  { name: 'Guisantes con jamón', items: [['Guisantes congelados', 180], ['Jamón curado (tipo serrano)', 30], ['Cebolla, cruda', 25], ['Aceite de oliva', 5]] },
++  { name: 'Ensalada de tomate y mozzarella', items: [['Tomate', 180], ['Mozzarella', 80], ['Aceite de oliva', 5]] },
++  { name: 'Tortitas de avena y plátano', items: [['Copos de avena', 40], ['Huevo entero', 55], ['Plátano', 80]] },
++  { name: 'Tostada de hummus y tomate', items: [['Pan integral', 60], ['Hummus', 45], ['Tomate', 60]] },
++  { name: 'Ensalada de pasta mediterránea', items: [['Pasta, cocida', 150], ['Atún en lata al natural, escurrido', 50], ['Tomate', 70], ['Aceitunas', 15], ['Aceite de oliva', 5]] },
++  { name: 'Arroz con huevo y verduras', items: [['Arroz blanco, cocido', 180], ['Huevo entero', 55], ['Guisantes congelados', 50], ['Zanahoria, cruda', 40], ['Salsa de soja', 5], ['Aceite de oliva', 5]] },
+ ];
+ 
+ // Busca el ingrediente por su nombre exacto en la lista básica (no en «Mis alimentos»,
+diff --git a/styles.css b/styles.css
+index e97772d..a06bbe9 100644
+--- a/styles.css
++++ b/styles.css
+@@ -511,11 +511,14 @@ body.has-active main { padding-bottom: calc(var(--nav-h) + var(--safe-b) + 180px
+ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76px); }
+ .rest-progress { height: 4px; background: var(--surface-2); }
+ .rest-progress div { height: 100%; background: var(--accent); transition: width .25s linear; }
+-.rest-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
++.rest-row { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 10px 4px; }
+ .rest-time { flex: 1; text-align: center; display: flex; flex-direction: column; }
+ .rest-time small { font-size: 12px; color: var(--muted); font-weight: 700; }
+ .rest-time b { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+ .rest-btn { min-width: 54px; height: 44px; border: 0; border-radius: 12px; background: var(--surface-2); font-weight: 800; }
++.rest-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 4px 10px 10px; }
++.rest-controls .rest-btn { min-width: 0; height: 38px; font-size: 13px; }
++.rest-bar.paused .rest-progress div { background: var(--muted); transition: none; }
+ .rest-skip { color: var(--accent); }
+ .page-open .page-body { padding-bottom: calc(110px + var(--safe-b)); }
+ 
+@@ -709,10 +712,29 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
+ .exercise-guide { display: grid; grid-template-columns: 110px 1fr; gap: 14px; align-items: center; }
+ .exercise-guide h3 { margin: 3px 0 6px; font-size: 16px; }
+ .exercise-guide p { margin: 0 0 7px; font-size: 14px; line-height: 1.45; }
++.exercise-guide-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
++.exercise-guide-actions .btn { min-height: 36px; padding: 0 10px; }
+ .exercise-guide small { color: var(--muted); font-size: 11px; line-height: 1.35; }
++.muscle-views { display: flex; align-items: center; justify-content: center; gap: 2px; }
++.muscle-views.multi .muscle-map { width: 49%; max-height: 118px; }
+ .muscle-map { width: 100%; max-height: 145px; fill: var(--surface-2); stroke: var(--muted); stroke-width: 2; stroke-linejoin: round; }
+ .muscle-map .muscle { fill: var(--line); stroke: var(--surface); stroke-width: 1; }
+ .muscle-map .muscle.active { fill: var(--goal); }
++.muscle-map .muscle.active-secondary { fill: var(--accent); }
++.view-note, .map-legend { display: block; text-align: center; color: var(--muted); font-size: 10px; line-height: 1.3; }
++.map-key { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 0 2px 0 5px; }
++.primary-key { background: var(--goal); }
++.secondary-key { background: var(--accent); }
++.get-info { width: 20px; height: 20px; border: 1px solid var(--muted); border-radius: 50%; padding: 0; background: transparent; color: var(--fg); font-size: 12px; font-weight: 800; line-height: 18px; }
++.get-info-text { display: block; margin-top: 6px; max-width: 38em; line-height: 1.45; }
++.history-filters { margin-bottom: 12px; }
++.history-filters .field { margin: 4px 0 8px; }
++.history-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
++.share-preview { width: 100%; min-height: 150px; margin: 8px 0 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); color: var(--fg); font: inherit; resize: vertical; }
++.privacy-note { margin: 0 14px 8px; line-height: 1.45; }
++.exercise-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
++.exercise-filters select { width: 100%; min-width: 0; height: 42px; border: 0; border-radius: 12px; background: var(--surface-2); color: var(--fg); padding: 0 10px; font-size: 14px; }
++.exercise-filters .filter-fav { grid-column: 1 / -1; justify-self: start; }
+ .wstrip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 12px; }
+ .wday { border: 2px solid transparent; border-radius: 12px; background: var(--surface-2); min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--muted); padding: 0; }
+ .wday small { font-size: 11px; font-weight: 700; text-transform: capitalize; }
+@@ -794,3 +816,10 @@ body:not(.page-open) .rest-bar { bottom: calc(var(--nav-h) + var(--safe-b) + 76p
+ .info-text b { color: var(--fg); }
+ 
+ .exercise-guide .view-note { display: block; text-align: center; margin-top: 2px; }
++/* Claude: estas preferencias solo cambian la vista; los valores de series y notas permanecen intactos. */
++.workout-layout-settings { padding: 12px 14px; }
++.workout-layout-settings summary { cursor: pointer; font-weight: 700; }
++.workout-layout-settings .field { margin: 12px 0; }
++.wk-page.hide-prev .set-prev, .wk-page.hide-prev .set-head span:nth-child(2) { display: none; }
++.wk-page.hide-prev .set-head, .wk-page.hide-prev .set-row { grid-template-columns: 40px minmax(64px, 1fr) 70px 46px; }
++.wk-page.hide-suggestions .sug, .wk-page.hide-notes .ex-notes { display: none !important; }
+diff --git a/sw.js b/sw.js
+index 4d8935a..7a42501 100644
+--- a/sw.js
++++ b/sw.js
+@@ -11,9 +11,22 @@ const ASSETS = [
+   './ranges.js',
+   './chart-ranges.js',
+   './gym.js',
++  // Claude: los módulos añadidos aquí deben estar también en index.html y tools/build-www.mjs.
++  './gym-note-visibility.js',
++  './gym-active-backup.js',
++  './gym-rest-state.js',
++  './gym-exercise-enhancements.js',
++  './gym-units.js',
++  './gym-exercise-history.js',
++  './gym-portability.js',
++  './gym-summary-comparison.js',
++  './gym-history-tools.js',
++  './gym-motivation.js',
++  './diet-get-info.js',
+   './exercise-guide.js',
+   './gymcalc.js',
+   './gym-plus.js',
++  './gym-workout-layout.js',
+   './body.js',
+   './native.js',
+   './nutri.js',
+diff --git a/tests/diet-get-info.test.mjs b/tests/diet-get-info.test.mjs
+new file mode 100644
+index 0000000..cba92a5
+--- /dev/null
++++ b/tests/diet-get-info.test.mjs
+@@ -0,0 +1,16 @@
++// Comprueba que la ayuda describe el GET y no presenta el 1 % como garantía hormonal.
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../diet-get-info.js', import.meta.url), 'utf8');
++const window = {};
++vm.runInNewContext(source, { window, document: { querySelector: () => null } });
++
++test('el texto explica el ajuste y limita con cautela la referencia del 1 %', () => {
++  assert.match(window.DietGetInfo.message, /suma o resta calorías al GET/);
++  assert.match(window.DietGetInfo.message, /no como límite universal/);
++  assert.match(window.DietGetInfo.message, /no garantiza evitar daño hormonal/);
++  assert.match(window.DietGetInfo.message, /disponibilidad energética/);
++});
+diff --git a/tests/exercise-guide.test.mjs b/tests/exercise-guide.test.mjs
+index 0835a44..b442200 100644
+--- a/tests/exercise-guide.test.mjs
++++ b/tests/exercise-guide.test.mjs
+@@ -27,7 +27,7 @@ test('espalda, tríceps y glúteos se muestran en la vista de espaldas (no se il
+   const html = render({ name: 'Remo sentado con cable', muscle: 'Espalda' });
+   assert.match(html, /muscle active back/);
+   assert.match(html, /vista de espaldas/);
+-  assert.doesNotMatch(html, /muscle chest/);
++  assert.doesNotMatch(html, /muscle active chest/);
+   assert.match(render({ name: 'Press banca', muscle: 'Pecho' }), /muscle active chest/);
+ });
+ 
+@@ -37,3 +37,20 @@ test('un grupo muscular con un nombre raro (de una copia importada) no rompe la
+     assert.match(html, /Cómo hacerlo/);
+   }
+ });
++
++test('el catálogo local da instrucciones específicas y grupos secundarios para más de 35 ejercicios', () => {
++  const window = {};
++  vm.runInNewContext(source, { window });
++  assert.ok(window.GymExerciseGuide.count >= 35);
++  for (const name of ['Remo sentado con cable', 'Jalón al pecho', 'Sentadilla', 'Peso muerto rumano', 'Curl femoral', 'Extensión de pierna', 'Aducción de cadera', 'Elevaciones laterales', 'Press de hombros', 'Tríceps en polea']) {
++    const guide = window.GymExerciseGuide.find(name);
++    assert.ok(guide && guide.setup && guide.move && guide.error, `falta explicación propia: ${name}`);
++  }
++});
++
++test('la guía distingue el músculo secundario en el mapa y escapa los campos propios', () => {
++  const html = render({ id: 'mine', name: 'Press banca', muscle: 'Pecho', guide: { primary: true, setup: '<script>x</script>', secondaryMuscles: ['Tríceps'] } });
++  assert.match(html, /muscle active-secondary triceps/);
++  assert.match(html, /&lt;script&gt;x&lt;\/script&gt;/);
++  assert.doesNotMatch(html, /<script>/);
++});
+diff --git a/tests/foods-list.test.mjs b/tests/foods-list.test.mjs
+new file mode 100644
+index 0000000..369f77d
+--- /dev/null
++++ b/tests/foods-list.test.mjs
+@@ -0,0 +1,34 @@
++// Simula la selección USDA para detectar errores antes de que se regenere la lista básica.
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const [source, database] = await Promise.all([
++  readFile(new URL('../tools/foods-es.txt', import.meta.url), 'utf8'),
++  readFile(new URL('../foods-usda.js', import.meta.url), 'utf8'),
++]);
++const context = vm.createContext({ window: {} });
++vm.runInContext(database, context);
++const foods = context.window.FOODS_USDA;
++const byId = new Map(foods.map(food => [food[0], food]));
++const rows = source.split(/\r?\n/).filter(line => line.trim() && !line.startsWith('#')).map(line => {
++  const [name, , raw] = line.split('|').map(value => value.trim());
++  const spec = raw.split(';').map(value => value.trim().toLowerCase()).filter(Boolean);
++  if (/^\d{5}$/.test(raw)) return { name, id: byId.has(raw) ? raw : null };
++  const must = spec.filter(value => !value.startsWith('!'));
++  const forbidden = spec.filter(value => value.startsWith('!')).map(value => value.slice(1));
++  const found = foods.filter(food => must.every(word => food[1].toLowerCase().includes(word))
++    && !forbidden.some(word => food[1].toLowerCase().includes(word)))
++    .sort((a, b) => a[1].length - b[1].length)[0];
++  return { name, id: found && found[0] };
++});
++
++test('la lista completa selecciona un alimento USDA por cada nombre', () => {
++  assert.deepEqual(rows.filter(row => !row.id).map(row => row.name), []);
++});
++
++test('ningún alimento de la lista selecciona dos veces el mismo registro USDA', () => {
++  const ids = rows.map(row => row.id).filter(Boolean);
++  assert.equal(new Set(ids).size, ids.length);
++});
+diff --git a/tests/gym-active-backup.test.mjs b/tests/gym-active-backup.test.mjs
+new file mode 100644
+index 0000000..43c9bc2
+--- /dev/null
++++ b/tests/gym-active-backup.test.mjs
+@@ -0,0 +1,53 @@
++// Simula las copias para comprobar recuperación segura de una sesión interrumpida.
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../gym-active-backup.js', import.meta.url), 'utf8');
++const active = { id: 'active-1', title: 'Rutina A', start: 1000, exercises: [{ exId: 'ex-1', sets: [{ kg: 20, reps: 8 }] }] };
++
++function setup(initialActive = null) {
++  const writes = [], restoredBars = [];
++  const context = vm.createContext({
++    window: {}, G: { active: initialActive, exercises: [{ id: 'ex-1' }], routines: [], workouts: [] },
++    gymBackupData: () => ({ exercises: [{ id: 'ex-1' }], routines: [], workouts: [] }),
++    gymImportBackup: async () => {}, DB: { putKey: async (...args) => writes.push(args) },
++    renderActiveBar: () => restoredBars.push(true),
++  });
++  vm.runInContext(source, context);
++  return { context, writes, restoredBars };
++}
++
++test('incluye una copia aislada del entreno activo', () => {
++  const { context } = setup(active);
++  const backup = vm.runInContext('gymBackupData()', context);
++  assert.deepEqual(JSON.parse(JSON.stringify(backup.activeWorkout)), active);
++  assert.notEqual(backup.activeWorkout, active);
++});
++
++test('restaura un entreno válido si no hay otro abierto', async () => {
++  const state = setup();
++  await vm.runInContext('gymImportBackup({ activeWorkout: incoming })', Object.assign(state.context, { incoming: active }));
++  assert.equal(state.context.G.active.id, 'active-1');
++  assert.equal(state.writes[0][0], 'active');
++  assert.equal(state.restoredBars.length, 1);
++});
++
++test('conserva el entreno local si la copia trae otra sesión', async () => {
++  const local = { ...active, id: 'local-2' };
++  const state = setup(local);
++  await vm.runInContext('gymImportBackup({ activeWorkout: incoming })', Object.assign(state.context, { incoming: active }));
++  assert.equal(state.context.G.active.id, 'local-2');
++  assert.equal(state.writes.length, 0);
++});
++
++test('rechaza una sesión mal formada o con ejercicios desconocidos', async () => {
++  const malformed = setup();
++  await vm.runInContext('gymImportBackup({ activeWorkout: { id: 3 } })', malformed.context);
++  assert.equal(malformed.context.G.active, null);
++  const unknown = setup();
++  const other = { ...active, exercises: [{ exId: 'missing', sets: [] }] };
++  await vm.runInContext('gymImportBackup({ activeWorkout: incoming })', Object.assign(unknown.context, { incoming: other }));
++  assert.equal(unknown.context.G.active, null);
++});
+diff --git a/tests/gym-exercise-enhancements.test.mjs b/tests/gym-exercise-enhancements.test.mjs
+new file mode 100644
+index 0000000..db75be8
+--- /dev/null
++++ b/tests/gym-exercise-enhancements.test.mjs
+@@ -0,0 +1,24 @@
++// Comprueba búsqueda segura, filtro por favoritos, músculo y equipamiento.
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../gym-exercise-enhancements.js', import.meta.url), 'utf8');
++const context = vm.createContext({ window: {}, document: { querySelector: () => null, addEventListener() {} } });
++vm.runInContext(source, context);
++const matches = context.window.GymExerciseTools.matches;
++const exercise = { name: 'Press banca', muscle: 'Pecho', favorite: true, guide: { equipment: 'Barra' } };
++
++test('encuentra por nombre y grupo muscular ignorando mayúsculas y acentos', () => {
++  assert.equal(matches(exercise, 'PECHO'), true);
++  assert.equal(matches(exercise, 'bánca'), true);
++  assert.equal(matches(exercise, 'remo'), false);
++});
++
++test('aplica los filtros de favorito, músculo y equipamiento', () => {
++  assert.equal(matches(exercise, '', { favorite: true, muscle: 'Pecho', equipment: 'Barra' }), true);
++  assert.equal(matches(exercise, '', { favorite: true, muscle: 'Espalda' }), false);
++  assert.equal(matches({ ...exercise, favorite: false }, '', { favorite: true }), false);
++  assert.equal(matches(exercise, '', { equipment: 'Polea' }), false);
++});
+diff --git a/tests/gym-exercise-history.test.mjs b/tests/gym-exercise-history.test.mjs
+new file mode 100644
+index 0000000..9671eb5
+--- /dev/null
++++ b/tests/gym-exercise-history.test.mjs
+@@ -0,0 +1,18 @@
++// La carga incremental no pierde sesiones ni impone un total máximo.
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../gym-exercise-history.js', import.meta.url), 'utf8');
++const context = vm.createContext({ window: {}, document: { addEventListener() {}, querySelectorAll: () => [] },
++  openExercise() {}, exHist: new Map() });
++vm.runInContext(source, context);
++const tools = context.window.GymExerciseHistory;
++
++test('recorre listas grandes en tandas contiguas y completas', () => {
++  const sessions = Array.from({ length: 123 }, (_, i) => i);
++  assert.deepEqual(Array.from(tools.nextBatch(sessions, 0)), Array.from({ length: 40 }, (_, i) => i));
++  assert.deepEqual(Array.from(tools.nextBatch(sessions, 40)), Array.from({ length: 40 }, (_, i) => i + 40));
++  assert.deepEqual(Array.from(tools.nextBatch(sessions, 120)), [120, 121, 122]);
++});
+diff --git a/tests/gym-history-tools.test.mjs b/tests/gym-history-tools.test.mjs
+new file mode 100644
+index 0000000..8337e3e
+--- /dev/null
++++ b/tests/gym-history-tools.test.mjs
+@@ -0,0 +1,25 @@
++// Comprueba los filtros del historial con fechas locales y nombres de ejercicio.
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../gym-history-tools.js', import.meta.url), 'utf8');
++const root = { addEventListener() {} };
++const context = vm.createContext({ window: {}, document: { querySelector: () => root }, G: { workouts: [], exercises: [] },
++  renderGymHistory() {}, histLimit: 30, GymPortability: { exportWorkouts() {} }, localISO: () => '2026-11-28', esc: value => value });
++vm.runInContext(source, context);
++const matches = context.window.GymHistoryTools.matchesWorkout;
++const exercises = [{ id: 'e1', name: 'Press banca' }, { id: 'e2', name: 'Remo sentado' }];
++const workout = { title: 'Día A', start: 1795860000000, exercises: [{ exId: 'e2' }] };
++
++test('busca entrenos por ejercicio aunque no aparezca en el resumen de cuatro ejercicios', () => {
++  assert.equal(matches(workout, 'REMO sentado', '', '', exercises), true);
++  assert.equal(matches(workout, 'sentadilla', '', '', exercises), false);
++});
++
++test('aplica intervalos de fechas inclusivos y tolera búsquedas sin acentos', () => {
++  assert.equal(matches(workout, 'dia a', '2026-11-28', '2026-11-28', exercises), true);
++  assert.equal(matches(workout, '', '2026-11-29', '', exercises), false);
++  assert.equal(matches(workout, '', '', '2026-11-27', exercises), false);
++});
+diff --git a/tests/gym-motivation.test.mjs b/tests/gym-motivation.test.mjs
+new file mode 100644
+index 0000000..00b02f6
+--- /dev/null
++++ b/tests/gym-motivation.test.mjs
+@@ -0,0 +1,22 @@
++// Los avisos positivos pueden desactivarse sin tocar las demás funciones.
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../gym-motivation.js', import.meta.url), 'utf8');
++const calls = [];
++const control = { checked: true, addEventListener: (name, fn) => { control.change = fn; } };
++const context = vm.createContext({ window: {}, document: { querySelector: () => control }, S: {},
++  weightSavedToast: () => calls.push('weight'), livePR: () => calls.push('record'), renderGymSettings() {}, saveSettings: async () => {}, toast() {} });
++vm.runInContext(source, context);
++
++test('por defecto conserva las celebraciones existentes y permite desactivarlas', async () => {
++  context.weightSavedToast(); context.livePR();
++  assert.deepEqual(calls, ['weight', 'record']);
++  control.checked = false;
++  await control.change();
++  context.weightSavedToast(); context.livePR();
++  assert.deepEqual(calls, ['weight', 'record']);
++  assert.equal(context.S.motivation, false);
++});
+diff --git a/tests/gym-note-visibility.test.mjs b/tests/gym-note-visibility.test.mjs
+new file mode 100644
+index 0000000..7a515ee
+--- /dev/null
++++ b/tests/gym-note-visibility.test.mjs
+@@ -0,0 +1,31 @@
++// Regresión de notas: ocultarlas en el editor nunca debe borrar su contenido persistido.
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../gym-note-visibility.js', import.meta.url), 'utf8');
++const context = vm.createContext({ window: {} });
++vm.runInContext(source, context);
++const notes = context.window.GymNotes;
++
++test('las notas antiguas siguen visibles y las vacías permanecen ocultas', () => {
++  assert.equal(notes.isVisible({ notes: 'Ajustar el asiento' }), true);
++  assert.equal(notes.isVisible({ notes: '' }), false);
++});
++
++test('ocultar y volver a mostrar conserva el texto de la nota', () => {
++  const exercise = { notes: 'No bloquear los codos' };
++  assert.equal(notes.toggleVisibility(exercise), false);
++  assert.equal(exercise.notes, 'No bloquear los codos');
++  assert.equal(notes.isVisible(exercise), false);
++  assert.equal(notes.toggleVisibility(exercise), true);
++  assert.equal(exercise.notes, 'No bloquear los codos');
++  assert.equal(notes.isVisible(exercise), true);
++});
++
++test('permite abrir una nota vacía y dejarla lista para editar', () => {
++  const exercise = { notes: '' };
++  assert.equal(notes.toggleVisibility(exercise), true);
++  assert.equal(notes.isVisible(exercise), true);
++});
+diff --git a/tests/gym-portability.test.mjs b/tests/gym-portability.test.mjs
+new file mode 100644
+index 0000000..0097966
+--- /dev/null
++++ b/tests/gym-portability.test.mjs
+@@ -0,0 +1,43 @@
++// Garantiza CSV de varias series y un resumen compartible sin notas privadas.
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../gym-portability.js', import.meta.url), 'utf8');
++const context = vm.createContext({ window: {}, document: { addEventListener() {} },
++  showSummary() {}, renderDetail() {}, G: { workouts: [], exercises: [] } });
++vm.runInContext(source, context);
++const tools = context.window.GymPortability;
++const exercises = [{ id: 'e1', name: 'Press "banca"' }];
++const workout = { id: 'w1', title: 'Día A; fuerza', start: 1795860000000, end: 1795863600000, notes: 'nota privada',
++  exercises: [{ exId: 'e1', notes: 'otra nota privada', sets: [{ kg: 40, reps: 8 }, { kg: 42.5, reps: 6 }] }] };
++
++test('el CSV usa una fila por serie, columnas separadas y escapa delimitadores', () => {
++  const csv = tools.makeWorkoutCsv([workout], exercises);
++  assert.match(csv, /"Fecha";"Entreno";"Ejercicio";"Serie";"Peso \(kg\)";"Repeticiones"/);
++  assert.match(csv, /"Día A; fuerza"/);
++  assert.match(csv, /"Press ""banca"""/);
++  assert.equal(csv.split(/\r?\n/).length, 3);
++});
++
++test('la vista previa incluye el trabajo realizado y excluye todas las notas', () => {
++  const text = tools.makeShareSummary(workout, exercises);
++  assert.match(text, /Día A; fuerza/);
++  assert.match(text, /Press "banca": 2 series/);
++  assert.match(text, /Volumen: 575 kg/);
++  assert.doesNotMatch(text, /nota privada/);
++  assert.doesNotMatch(text, /otra nota privada/);
++});
++
++test('el CSV neutraliza nombres que una hoja de cálculo podría ejecutar como fórmula', () => {
++  const unsafe = { ...workout, title: '=HYPERLINK("https://x")', exercises: [{ exId: 'bad', sets: [{ kg: 1, reps: 1 }] }] };
++  const csv = tools.makeWorkoutCsv([unsafe], [{ id: 'bad', name: '+1+1' }]);
++  assert.match(csv, /"'=HYPERLINK\(""https:\/\/x""\)"/);
++  assert.match(csv, /"'\+1\+1"/);
++});
++
++test('al compartir en libras convierte el volumen una sola vez', () => {
++  context.window.GymUnits = { unitFor: () => 'lb', formatWeight: value => String(Math.round(value * 2.2046226218)) };
++  assert.match(tools.makeShareSummary(workout, exercises), /Volumen: 1268 lb/);
++});
+diff --git a/tests/gym-rest-state.test.mjs b/tests/gym-rest-state.test.mjs
+new file mode 100644
+index 0000000..05c2824
+--- /dev/null
++++ b/tests/gym-rest-state.test.mjs
+@@ -0,0 +1,48 @@
++// Comprueba pausas, reinicios y ajuste de tiempo con reloj simulado, sin temporizadores reales.
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../gym-rest-state.js', import.meta.url), 'utf8');
++const context = vm.createContext({ window: {} });
++vm.runInContext(source, context);
++const rest = context.window.GymRest;
++
++test('pausar y reanudar conserva el tiempo que quedaba', () => {
++  const state = { restTotal: 90 };
++  rest.start(state, 90, 1000, false);
++  rest.pause(state, 31000, false);
++  assert.equal(state.restRemaining, 60);
++  assert.equal(state.restEnd, 0);
++  rest.resume(state, 80000, false);
++  assert.equal(state.restEnd, 140000);
++  assert.equal(rest.read(state, 80000, false).seconds, 60);
++});
++
++test('el cronómetro también se puede pausar, reanudar y reiniciar', () => {
++  const state = {};
++  rest.start(state, 0, 1000, true);
++  rest.pause(state, 11000, true);
++  assert.equal(rest.read(state, 30000, true).seconds, 10);
++  rest.resume(state, 50000, true);
++  assert.equal(rest.read(state, 55000, true).seconds, 15);
++  rest.reset(state, 60000, true);
++  assert.equal(rest.read(state, 63000, true).seconds, 3);
++});
++
++test('reiniciar y ajustar el temporizador conserva límites mínimos', () => {
++  const state = {};
++  rest.start(state, 30, 5000, false);
++  rest.adjust(state, 15, 5000);
++  assert.equal(state.restEnd, 50000);
++  assert.equal(state.restTotal, 45);
++  rest.pause(state, 10000, false);
++  rest.adjust(state, -100, 10000);
++  assert.equal(state.restRemaining, 1);
++  rest.reset(state, 10000, false);
++  assert.equal(state.restEnd, 11000);
++  rest.stop(state);
++  assert.equal(state.restPaused, false);
++  assert.equal(state.restEnd, 0);
++});
+diff --git a/tests/gym-summary-comparison.test.mjs b/tests/gym-summary-comparison.test.mjs
+new file mode 100644
+index 0000000..f8c8416
+--- /dev/null
++++ b/tests/gym-summary-comparison.test.mjs
+@@ -0,0 +1,29 @@
++// Evita comparaciones entre fechas incoherentes y calcula deltas solo en series efectivas.
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../gym-summary-comparison.js', import.meta.url), 'utf8');
++const context = vm.createContext({ window: {}, showSummary() {}, document: { querySelectorAll: () => [] }, G: { workouts: [] }, esc: value => value });
++vm.runInContext(source, context);
++const tools = context.window.GymSummaryComparison;
++const prior = { id: 'old', title: 'Día A', start: 1000, end: 61000, exercises: [{ exId: 'e1', sets: [{ kg: 40, reps: 8 }, { kg: 0, reps: 10, type: 'warmup' }] }] };
++const current = { id: 'new', title: 'Día A', start: 70000, end: 190000, exercises: [{ exId: 'e1', sets: [{ kg: 45, reps: 8 }, { kg: 42, reps: 8 }] }] };
++
++test('compara volumen, series y duración con la sesión relacionada anterior', () => {
++  const result = tools.comparison(current, [current, prior]);
++  assert.equal(result.previous.id, 'old');
++  assert.equal(result.volumeDelta, 376);
++  assert.equal(result.setDelta, 1);
++  assert.equal(result.durationDelta, 60000);
++});
++
++test('ignora sesiones posteriores y no inventa una referencia cuando no la hay', () => {
++  assert.equal(tools.comparison(current, [{ ...prior, start: 80000 }]), null);
++});
++
++test('no considera comparable una sesión distinta por compartir solo un ejercicio', () => {
++  const mixed = { ...prior, title: 'Día B', exercises: [...prior.exercises, { exId: 'e2', sets: [{ kg: 10, reps: 10 }] }] };
++  assert.equal(tools.comparison(current, [mixed]), null);
++});
+diff --git a/tests/gym-units.test.mjs b/tests/gym-units.test.mjs
+new file mode 100644
+index 0000000..995a724
+--- /dev/null
++++ b/tests/gym-units.test.mjs
+@@ -0,0 +1,31 @@
++// Los valores editados convierten de vuelta a la unidad métrica canónica.
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../gym-units.js', import.meta.url), 'utf8');
++const context = vm.createContext({ window: {}, document: { querySelector: () => null }, S: {},
++  fmtN: value => String(Math.round(value * 100) / 100), exById: new Map([['run', { muscle: 'Cardio', name: 'Correr' }]]),
++  renderGymSettings() {}, backupData: () => ({ settings: {} }), gymImportBackup: async () => {}, saveSettings: async () => {} });
++vm.runInContext(source, context);
++const units = context.window.GymUnits;
++
++test('convierte cargas entre kg y lb sin cambiar el valor interno', () => {
++  context.S.gymWeightUnit = 'lb';
++  assert.equal(units.unitFor('weight'), 'lb');
++  assert.equal(units.formatWeight(100), '220.46');
++  assert.ok(Math.abs(units.parseWeight('220,46') - 100) < 0.01);
++});
++
++test('convierte distancias entre km y mi y minutos a segundos', () => {
++  context.S.gymDistanceUnit = 'mi';
++  assert.equal(units.formatDistance(5), '3.11');
++  assert.ok(Math.abs(units.parseDistance('3,11') - 5) < 0.02);
++  assert.equal(units.parseDuration('1,5'), 90);
++});
++
++test('reconoce cardio sin depender de red ni de una base externa', () => {
++  assert.equal(units.isDistanceExercise('run'), true);
++  assert.equal(units.isDistanceExercise('unknown'), false);
++});
+diff --git a/tests/gym-workout-layout.test.mjs b/tests/gym-workout-layout.test.mjs
+new file mode 100644
+index 0000000..b62cbb7
+--- /dev/null
++++ b/tests/gym-workout-layout.test.mjs
+@@ -0,0 +1,19 @@
++// Comprueba que las preferencias oculten solo la presentación, no los datos guardados.
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const source = await readFile(new URL('../gym-workout-layout.js', import.meta.url), 'utf8');
++const context = vm.createContext({ window: {}, document: { querySelector: () => null }, S: {},
++  wkPage: null, renderWk() {}, renderGymSettings() {}, saveSettings: async () => {} });
++vm.runInContext(source, context);
++
++test('por defecto la pantalla muestra los datos útiles existentes', () => {
++  assert.deepEqual({ ...context.window.GymWorkoutLayout.preferences({}) }, { previous: true, suggestions: true, notes: true });
++});
++
++test('las preferencias permiten ocultar opciones y mantienen valores activados por defecto', () => {
++  const result = context.window.GymWorkoutLayout.preferences({ showPreviousSets: false, showWorkoutNotes: false });
++  assert.deepEqual({ ...result }, { previous: false, suggestions: true, notes: false });
++});
+diff --git a/tests/prepared-foods.test.mjs b/tests/prepared-foods.test.mjs
+new file mode 100644
+index 0000000..7498d5e
+--- /dev/null
++++ b/tests/prepared-foods.test.mjs
+@@ -0,0 +1,23 @@
++// Asegura que las recetas puedan usar solo alimentos de la base local generada.
++import { readFile } from 'node:fs/promises';
++import vm from 'node:vm';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++const foodsSource = await readFile(new URL('../foods-db.js', import.meta.url), 'utf8');
++const recipesSource = await readFile(new URL('../prepared-foods.js', import.meta.url), 'utf8');
++const context = vm.createContext({ window: {} });
++vm.runInContext(foodsSource, context);
++vm.runInContext(recipesSource, context);
++const meals = context.window.PREPARED_MEALS;
++const names = new Set(context.window.FOODS_ES.map(row => row[1]));
++
++test('hay al menos 25 platos preparados locales', () => {
++  assert.ok(meals.length >= 25);
++  assert.equal(new Set(meals.map(meal => meal.name)).size, meals.length);
++});
++
++test('todos los ingredientes de los platos existen por nombre exacto en foods-db.js', () => {
++  const missing = meals.flatMap(meal => meal.items.filter(([name]) => !names.has(name)).map(([name]) => `${meal.name}: ${name}`));
++  assert.equal(missing.length, 0, missing.join('\n'));
++});
+diff --git a/tests/weight-xlsx.test.mjs b/tests/weight-xlsx.test.mjs
+index b50f15a..cb7bd6b 100644
+--- a/tests/weight-xlsx.test.mjs
++++ b/tests/weight-xlsx.test.mjs
+@@ -10,6 +10,19 @@ async function workbook(entries) {
+   return new Uint8Array(await window.createWeightWorkbook(entries).arrayBuffer());
+ }
+ 
++function unzipStored(bytes) {
++  const files = new Map(), view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), decode = new TextDecoder();
++  let offset = 0;
++  while (offset + 30 < bytes.length && view.getUint32(offset, true) === 0x04034b50) {
++    const size = view.getUint32(offset + 18, true), nameSize = view.getUint16(offset + 26, true), extraSize = view.getUint16(offset + 28, true);
++    const name = decode.decode(bytes.slice(offset + 30, offset + 30 + nameSize));
++    const start = offset + 30 + nameSize + extraSize;
++    files.set(name, decode.decode(bytes.slice(start, start + size)));
++    offset = start + size;
++  }
++  return files;
++}
++
+ test('genera un XLSX con hoja de pesos y gráfico', async () => {
+   const bytes = await workbook([{ date: '2026-01-01', kg: 80.5 }, { date: '2026-01-02', kg: 80 }]);
+   const zipText = new TextDecoder().decode(bytes);
+@@ -19,6 +32,16 @@ test('genera un XLSX con hoja de pesos y gráfico', async () => {
+   assert.match(zipText, /Progreso de peso/);
+ });
+ 
++test('la hoja exportada contiene solo fecha y peso y vincula el gráfico a ambas columnas', async () => {
++  const files = unzipStored(await workbook([{ date: '2026-01-01', kg: 80.5 }]));
++  const sheet = files.get('xl/worksheets/sheet1.xml');
++  assert.equal([...sheet.matchAll(/<c r="[A-Z]+\d+"/g)].length, 4);
++  assert.match(sheet, /<drawing r:id="rId1"\/>/);
++  assert.match(files.get('xl/charts/chart1.xml'), /'Pesos'!\$A\$2:\$A\$2/);
++  assert.match(files.get('xl/charts/chart1.xml'), /'Pesos'!\$B\$2:\$B\$2/);
++  assert.match(files.get('[Content_Types].xml'), /Extension="rels" ContentType="application\/vnd\.openxmlformats-package\.relationships\+xml"/);
++});
++
+ test('escapa valores de fecha al crear la hoja', async () => {
+   const bytes = await workbook([{ date: '<test&"', kg: 70 }]);
+   assert.match(new TextDecoder().decode(bytes), /&lt;test&amp;&quot;/);
+diff --git a/tools/build-www.mjs b/tools/build-www.mjs
+index 351ada0..762e4d9 100644
+--- a/tools/build-www.mjs
++++ b/tools/build-www.mjs
+@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
+ 
+ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+ const out = join(root, 'www');
+-const files = ['index.html', 'styles.css', 'app.js', 'weight-xlsx.js', 'weight-extras.js', 'ranges.js', 'chart-ranges.js', 'gym.js', 'exercise-guide.js', 'gymcalc.js', 'gym-plus.js', 'body.js', 'native.js', 'nutri.js', 'foods.js', 'prepared-foods.js', 'foods-db.js', 'foods-usda.js', 'diet.js', 'sw.js', 'manifest.webmanifest'];
++// Claude: todo script cargado por index.html debe copiarse aquí para que Android y la PWA sigan offline.
++const files = ['index.html', 'styles.css', 'app.js', 'weight-xlsx.js', 'weight-extras.js', 'ranges.js', 'chart-ranges.js', 'gym.js', 'gym-note-visibility.js', 'gym-active-backup.js', 'gym-rest-state.js', 'exercise-guide.js', 'gym-exercise-enhancements.js', 'gymcalc.js', 'gym-plus.js', 'gym-workout-layout.js', 'gym-units.js', 'gym-exercise-history.js', 'gym-portability.js', 'gym-summary-comparison.js', 'gym-history-tools.js', 'gym-motivation.js', 'body.js', 'native.js', 'nutri.js', 'foods.js', 'prepared-foods.js', 'foods-db.js', 'foods-usda.js', 'diet.js', 'diet-get-info.js', 'sw.js', 'manifest.webmanifest'];
+ 
+ rmSync(out, { recursive: true, force: true });
+ mkdirSync(out, { recursive: true });
+diff --git a/tools/foods-es.txt b/tools/foods-es.txt
+index fd43b17..1fa3af9 100644
+--- a/tools/foods-es.txt
++++ b/tools/foods-es.txt
+@@ -2,6 +2,7 @@
+ # Formato:  Nombre en español | Categoría | palabras que debe contener la descripción del USDA (separadas por ;) | porciones opcionales (nombre=gramos; …)
+ # Una palabra que empieza por ! no debe aparecer. Se elige la descripción más corta que cumpla todo.
+ # El número de 5 cifras al principio de la tercera columna fija un alimento concreto (código NDB).
++# Claude: la ampliación propuesta conserva este formato para regenerar la base local con build:foods.
+ 
+ # ---- Carnes
+ Pechuga de pollo, cruda | Carnes | 05062
+@@ -36,6 +37,11 @@ Salchicha tipo frankfurt | Carnes | 07950 | unidad=45
+ Mortadela | Carnes | mortadella
+ Pierna de cordero, cruda | Carnes | lamb; domestic; leg; whole; lean only; raw; 1/4
+ Conejo, crudo | Carnes | rabbit; domesticated; composite; raw
++Salchicha fresca italiana de cerdo, cruda | Carnes | sausage; italian; pork; raw | unidad=80
++Salchicha de cerdo cocida | Carnes | pork; fresh; sausage; cooked | unidad=50
++Panceta de cerdo, cruda | Carnes | pork; fresh; belly; raw
++Pavo asado | Carnes | turkey; breast; meat only; cooked; roasted
++Carne de ternera asada | Carnes | beef; round; roast; cooked; roasted
+ 
+ # ---- Pescados y mariscos
+ Salmón, crudo | Pescados y mariscos | fish, salmon, atlantic, farmed, raw
+@@ -59,6 +65,11 @@ Mejillones, crudos | Pescados y mariscos | mollusks, mussel, blue, raw
+ Calamar, crudo | Pescados y mariscos | mollusks, squid; raw
+ Pulpo, crudo | Pescados y mariscos | mollusks, octopus; raw
+ Almejas, crudas | Pescados y mariscos | mollusks, clam, mixed species, raw
++Sardinas en lata con tomate | Pescados y mariscos | fish; sardine; Pacific; canned in tomato sauce; drained solids | lata=90
++Caballa en lata | Pescados y mariscos | fish; mackerel; canned; drained solids
++Mejillones cocidos | Pescados y mariscos | mollusks; mussel; blue; cooked; moist heat
++Berberechos en lata, escurridos | Pescados y mariscos | mollusks; clam; canned; drained solids
++Salmón en lata, escurrido | Pescados y mariscos | fish; salmon; canned; drained solids
+ 
+ # ---- Huevos y lácteos
+ Huevo entero | Huevos y lácteos | egg, whole, raw, fresh | unidad=55
+@@ -90,6 +101,16 @@ Helado de vainilla | Huevos y lácteos | ice creams, vanilla; !light; !rich; !fa
+ Proteína whey en polvo | Huevos y lácteos | 14066 | cacito=30
+ Bebida de soja | Huevos y lácteos | soymilk, original and vanilla, unfortified | vaso=250
+ Bebida de almendra sin azúcar | Huevos y lácteos | almond milk, unsweetened | vaso=250
++Kéfir natural | Huevos y lácteos | kefir; lowfat; plain | vaso=200
++Queso azul | Huevos y lácteos | cheese; blue; roquefort
++Queso cotija | Huevos y lácteos | cheese; mexican; queso cotija
++Queso provolone | Huevos y lácteos | cheese; provolone
++Queso fresco mexicano | Huevos y lácteos | cheese; fresh; queso fresco
++Mozzarella baja en grasa | Huevos y lácteos | cheese; mozzarella; part skim
++Ricotta entera | Huevos y lácteos | cheese; ricotta; whole milk
++Yogur natural con fruta | Huevos y lácteos | yogurt; fruit; lowfat
++Leche evaporada | Huevos y lácteos | milk; canned; evaporated; with added vitamin d
++Leche en polvo desnatada | Huevos y lácteos | milk; dry; nonfat; regular; without added vitamin a
+ 
+ # ---- Cereales, pan y patata
+ Arroz blanco, crudo | Cereales, pan y patata | rice, white, long-grain, regular, raw, enriched
+@@ -111,6 +132,18 @@ Tortilla de maíz | Cereales, pan y patata | tortillas, ready-to-bake or -fry, c
+ Harina de trigo | Cereales, pan y patata | wheat flour, white, all-purpose, enriched, bleached
+ Harina de trigo integral | Cereales, pan y patata | wheat flour, whole-grain; !soft
+ Maicena | Cereales, pan y patata | cornstarch
++Pan de hamburguesa | Cereales, pan y patata | rolls; hamburger or hotdog; plain | unidad=50
++Pan pita | Cereales, pan y patata | bread; pita; white; enriched | unidad=60
++Pan de masa madre envasado | Cereales, pan y patata | PEPPERIDGE FARM; Farmhouse Sourdough Bread
++Bagel | Cereales, pan y patata | bagels; plain; enriched | unidad=100
++Pan brioche | Cereales, pan y patata | bread; egg
++Galletas de vainilla | Cereales, pan y patata | cookies; vanilla wafers
++Galletas de avena | Cereales, pan y patata | cookies; oatmeal; commercially prepared
++Galletas tipo cracker integrales | Cereales, pan y patata | crackers; whole-wheat
++Bizcocho | Cereales, pan y patata | cake; sponge; prepared from recipe
++Brownie | Cereales, pan y patata | brownies; commercially prepared
++Muesli | Cereales, pan y patata | cereals; ready-to-eat; muesli
++Arroz salvaje, cocido | Cereales, pan y patata | rice; wild; cooked
+ Quinoa, cruda | Cereales, pan y patata | quinoa, uncooked
+ Quinoa, cocida | Cereales, pan y patata | quinoa, cooked
+ Cuscús, crudo | Cereales, pan y patata | couscous, dry
+@@ -145,6 +178,14 @@ Edamame | Legumbres | edamame, frozen, prepared
+ Tofu firme | Legumbres | tofu, raw, firm, prepared with calcium sulfate
+ Hummus | Legumbres | hummus, commercial
+ Proteína de soja aislada | Legumbres | soy protein isolate; !potassium
++Alubias blancas en bote, escurridas | Legumbres | beans; white; mature seeds; canned
++Alubias rojas en bote, escurridas | Legumbres | beans; kidney; canned; drained solids
++Lentejas cocidas con sal | Legumbres | lentils; mature seeds; cooked; boiled; with salt
++Guisantes en conserva, escurridos | Legumbres | peas; green; canned; drained solids
++Alubias pintas cocidas | Legumbres | beans; pinto; mature seeds; cooked; boiled
++Alubias pintas en bote | Legumbres | beans; pinto; canned; drained solids
++Soja cocida | Legumbres | soybeans; mature seeds; cooked; boiled
++Habas cocidas | Legumbres | broadbeans; mature seeds; cooked; boiled
+ 
+ # ---- Verduras
+ Tomate | Verduras | tomatoes, red, ripe, raw, year round average | unidad=120
+@@ -177,6 +218,14 @@ Alcachofa, cruda | Verduras | artichokes, (globe or french), raw
+ Remolacha, cruda | Verduras | beets, raw
+ Apio | Verduras | celery, raw
+ Aceitunas | Verduras | olives, ripe, canned (small-extra large)
++Pimiento rojo cocido | Verduras | peppers; sweet; red; cooked; boiled
++Espárragos en conserva, escurridos | Verduras | asparagus; canned; drained solids
++Alcachofa cocida | Verduras | artichokes; cooked; boiled; drained
++Remolacha cocida | Verduras | beets; cooked; boiled; drained
++Tomate concentrado | Verduras | tomato products; paste; canned
++Judías verdes en conserva | Verduras | beans; snap; green; canned; drained solids
++Champiñones en conserva | Verduras | mushrooms; canned; drained solids
++Maíz dulce congelado | Verduras | corn; sweet; yellow; frozen; kernels; unprepared
+ 
+ # ---- Frutas
+ Manzana | Frutas | apples, raw, with skin | unidad=180
+@@ -249,6 +298,14 @@ Croissant | Dulces y snacks | croissants, butter | unidad=60
+ Donut | Dulces y snacks | doughnuts, cake-type, plain (includes unsugared, old-fashioned) | unidad=50
+ Magdalena | Dulces y snacks | muffins, plain, prepared from recipe | unidad=40
+ Barrita de cereales | Dulces y snacks | snacks, granola bars, hard, plain | unidad=25
++Galletas tipo sándwich de chocolate | Dulces y snacks | cookies; chocolate sandwich; creme filling
++Galletas saladas tipo pretzel | Dulces y snacks | snacks; pretzels; hard; plain; salted
++Bizcocho de chocolate | Dulces y snacks | cake; chocolate; prepared from recipe
++Flan de huevo | Dulces y snacks | custard; flan; caramel
++Natillas | Dulces y snacks | pudding; vanilla; ready-to-eat
++Galletas de cacahuete | Dulces y snacks | cookies; peanut butter; commercially prepared; regular
++Turrón de almendra (aprox.) | Dulces y snacks | candies; nougat; with almonds
++Chocolate blanco | Dulces y snacks | candies; white chocolate
+ 
+ # ---- Bebidas
+ Café solo | Bebidas | beverages, coffee, brewed, prepared with tap water; !decaf | taza=120
+@@ -257,6 +314,9 @@ Refresco de cola | Bebidas | carbonated; cola; !without caffeine; !low calorie;
+ Cerveza | Bebidas | alcoholic beverage, beer, regular, all | caña=200; lata=330
+ Vino tinto | Bebidas | alcoholic beverage, wine, table, red; !merlot; !cabernet; !pinot; !syrah; !zinfandel; !burgundy; !claret; !gamay; !lemberger; !mouvedre; !petite; !sangiovese; !barbera; !carignane; !franc | copa=150
+ Vino blanco | Bebidas | alcoholic beverage, wine, table, white; !riesling; !chardonnay; !sauvignon; !gris; !chenin; !fume; !muller; !gewurz; !late; !blanc; !semillon; !muscat | copa=150
++Zumo de uva | Bebidas | grape juice; canned or bottled; unsweetened
++Bebida energética cítrica | Bebidas | beverages; energy drink; citrus
++Agua de coco | Bebidas | coconut water; ready-to-drink
+ 
+ # ---- Salsas y condimentos
+ Kétchup | Salsas y condimentos | catsup; !low sodium | cucharada=17
+@@ -265,3 +325,12 @@ Salsa de soja | Salsas y condimentos | soy sauce made from soy and wheat (shoyu)
+ Vinagre | Salsas y condimentos | vinegar, cider | cucharada=15
+ Sal | Salsas y condimentos | salt, table | pizca=1
+ Pizza de queso | Salsas y condimentos | pizza, cheese topping, regular crust, frozen, cooked
++Mayonesa ligera | Salsas y condimentos | mayonnaise; reduced-calorie
++Salsa ranchera | Salsas y condimentos | salad dressing; ranch dressing; regular
++Salsa pesto | Salsas y condimentos | sauce; pesto
++Salsa barbacoa | Salsas y condimentos | sauce; barbecue
++Salsa teriyaki | Salsas y condimentos | sauce; teriyaki
++Vinagreta balsámica | Salsas y condimentos | vinaigrette; balsamic
++Salsa de tomate picante | Salsas y condimentos | sauce; tomato; chili; bottled
++Salsa tártara | Salsas y condimentos | sauce; tartar; ready-to-serve
++Salsa de queso | Salsas y condimentos | cheese sauce; prepared from recipe

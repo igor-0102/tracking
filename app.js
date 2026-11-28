@@ -1141,7 +1141,7 @@ function backupData() {
     ...gym, ...diet, ...(typeof bodyBackupData === 'function' ? bodyBackupData() : {}),
   };
 }
-const hasData = d => !!(d.entries.length || (d.workouts && d.workouts.length) || (d.routines && d.routines.length) || (d.diets && d.diets.length) || (d.customFoods && d.customFoods.length) || (d.measures && d.measures.length));
+const hasData = d => !!(d.entries.length || d.activeWorkout || (d.workouts && d.workouts.length) || (d.routines && d.routines.length) || (d.diets && d.diets.length) || (d.customFoods && d.customFoods.length) || (d.measures && d.measures.length));
 
 // Copia automática: en la app nativa se guarda un archivo con todo en la carpeta privada de la app.
 // Android incluye esa carpeta en la copia de seguridad de la cuenta de Google del móvil.
@@ -1333,7 +1333,7 @@ async function importJSON(text, intro = '') {
   const n = k => (Array.isArray(d[k]) ? d[k].length : 0);
   const ok = await ask({
     title: 'Importar copia',
-    message: `${intro}Copia del ${d.exported ? fmtD(F.dayMonYear, d.exported.slice(0, 10)) : '¿?'}: ${ents.length} pesos, ${n('workouts')} entrenos, ${n('routines')} rutinas y ${n('diets')} dietas. Se combinará con lo que ya tienes (si algo coincide, gana la copia).`,
+    message: `${intro}Copia del ${d.exported ? fmtD(F.dayMonYear, d.exported.slice(0, 10)) : '¿?'}: ${ents.length} pesos, ${n('workouts')} entrenos, ${n('routines')} rutinas y ${n('diets')} dietas${d.activeWorkout ? ' y un entreno en curso' : ''}. Se combinará con lo que ya tienes; si ya hay otro entreno activo, se conservará ese.`,
     ok: 'Importar', cancel: 'Cancelar',
   });
   if (!ok) return;

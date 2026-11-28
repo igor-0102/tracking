@@ -27,7 +27,7 @@ test('espalda, tríceps y glúteos se muestran en la vista de espaldas (no se il
   const html = render({ name: 'Remo sentado con cable', muscle: 'Espalda' });
   assert.match(html, /muscle active back/);
   assert.match(html, /vista de espaldas/);
-  assert.doesNotMatch(html, /muscle chest/);
+  assert.doesNotMatch(html, /muscle active chest/);
   assert.match(render({ name: 'Press banca', muscle: 'Pecho' }), /muscle active chest/);
 });
 
@@ -36,4 +36,21 @@ test('un grupo muscular con un nombre raro (de una copia importada) no rompe la 
     const html = render({ name: 'Ejercicio raro', muscle });
     assert.match(html, /Cómo hacerlo/);
   }
+});
+
+test('el catálogo local da instrucciones específicas y grupos secundarios para más de 35 ejercicios', () => {
+  const window = {};
+  vm.runInNewContext(source, { window });
+  assert.ok(window.GymExerciseGuide.count >= 35);
+  for (const name of ['Remo sentado con cable', 'Jalón al pecho', 'Sentadilla', 'Peso muerto rumano', 'Curl femoral', 'Extensión de pierna', 'Aducción de cadera', 'Elevaciones laterales', 'Press de hombros', 'Tríceps en polea']) {
+    const guide = window.GymExerciseGuide.find(name);
+    assert.ok(guide && guide.setup && guide.move && guide.error, `falta explicación propia: ${name}`);
+  }
+});
+
+test('la guía distingue el músculo secundario en el mapa y escapa los campos propios', () => {
+  const html = render({ id: 'mine', name: 'Press banca', muscle: 'Pecho', guide: { primary: true, setup: '<script>x</script>', secondaryMuscles: ['Tríceps'] } });
+  assert.match(html, /muscle active-secondary triceps/);
+  assert.match(html, /&lt;script&gt;x&lt;\/script&gt;/);
+  assert.doesNotMatch(html, /<script>/);
 });
