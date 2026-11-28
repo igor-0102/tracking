@@ -1,6 +1,8 @@
 # Estado del proyecto
 
-Versión actual: **2.6.0** (`sw.js`, `app.js` y `package.json`). APK instalado en el móvil: 2.5.2 (trae todo lo nativo). Tests: `npm test` → 48/48 en verde.
+Versión actual: **2.7.0** (`sw.js`, `app.js` y `package.json`). APK instalado en el móvil: 2.5.2 o posterior (trae todo lo nativo). Tests: `npm test` → 55/55 en verde.
+
+**Chat nuevo:** lee primero `docs/TRASPASO.md` (cómo se trabaja: revisar a Codex, publicar lo bueno, devolverle lo malo).
 
 ## Hecho
 - 1.0 Registro de peso (PWA instalable, sin conexión, datos en IndexedDB).
@@ -20,6 +22,8 @@ Versión actual: **2.6.0** (`sw.js`, `app.js` y `package.json`). APK instalado e
 - Probado por el usuario: botón atrás de Android funciona. Pendiente de confirmar en móvil real: notificación de entreno, widget, recordatorio; calendario de fecha de nacimiento en iPhone.
 
 - 2.6.0 (en `main`) Primera entrega de Codex revisada e integrada con correcciones (PR #1): celebración al acercarte al objetivo, comida trampa, 7 platos preparados, guía de ejercicios con silueta, exportar pesos a Excel. Detalle en `docs/TAREAS.md`.
+
+- 2.7.0 (en `main`) De la segunda entrega de Codex (`handoff/mejoras-opiniones`) solo se publicó lo que estaba bien: 32 platos preparados, 307 alimentos y guía propia de 92 ejercicios. El resto (con dos fallos críticos) volvió a Codex como tareas C4–C10.
 
 La lista completa de tareas pendientes está en `docs/TAREAS.md`.
 
