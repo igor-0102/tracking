@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'www');
 // Claude: todo script cargado por index.html debe copiarse aquí para que Android y la PWA sigan offline.
-const files = ['index.html', 'styles.css', 'app.js', 'weight-xlsx.js', 'weight-extras.js', 'ranges.js', 'chart-ranges.js', 'gym.js', 'gym-note-visibility.js', 'gym-active-backup.js', 'gym-rest-state.js', 'exercise-guide.js', 'gym-exercise-enhancements.js', 'gymcalc.js', 'gym-plus.js', 'gym-workout-layout.js', 'gym-units.js', 'gym-exercise-history.js', 'gym-portability.js', 'gym-summary-comparison.js', 'gym-history-tools.js', 'gym-motivation.js', 'body.js', 'native.js', 'nutri.js', 'foods.js', 'prepared-foods.js', 'foods-db.js', 'foods-usda.js', 'diet.js', 'diet-get-info.js', 'sw.js', 'manifest.webmanifest'];
+const files = ['index.html', 'styles.css', 'app.js', 'weight-xlsx.js', 'weight-extras.js', 'ranges.js', 'chart-ranges.js', 'gym.js', 'gym-note-visibility.js', 'gym-active-backup.js', 'gym-rest-state.js', 'exercise-guide.js', 'exercise-catalog.js', 'gym-exercise-enhancements.js', 'gym-exercise-picker.js', 'gymcalc.js', 'gym-plus.js', 'gym-workout-layout.js', 'gym-units.js', 'gym-exercise-history.js', 'gym-portability.js', 'gym-summary-comparison.js', 'gym-history-tools.js', 'gym-motivation.js', 'gym-dashboard-analysis.js', 'gym-training-dashboard.js', 'body.js', 'native.js', 'nutri.js', 'foods.js', 'prepared-foods.js', 'foods-db.js', 'foods-usda.js', 'diet.js', 'diet-adjustment.js', 'diet-get-info.js', 'diet-adjustment-ui.js', 'ui-info-hints.js', 'sw.js', 'manifest.webmanifest'];
 
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });

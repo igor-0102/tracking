@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prototipo · Fotos de progreso</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; --bg:#10131b; --panel:#1a1f2b; --line:#2a3141; --muted:#a5adc0; --accent:#b59bff; --mint:#9cf2c7; }
+    * { box-sizing:border-box } body { margin:0; background:var(--bg); color:#f6f7fb }
+    main { max-width:760px; margin:auto; padding:24px 18px 96px }
+    header { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:22px }
+    h1 { font-size:1.55rem; margin:0 } h2 { font-size:1.05rem; margin:0 }
+    p,.muted,small { color:var(--muted); line-height:1.45 }
+    .panel,.month { background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:18px; margin:14px 0 }
+    .folder,.row,.month-head { display:flex; align-items:center; justify-content:space-between; gap:12px }
+    .folder { padding:12px 14px; border:1px solid var(--line); border-radius:12px; margin:14px 0 }
+    button,.button { border:0; border-radius:12px; padding:11px 15px; color:#17131f; background:var(--accent); font-weight:700; cursor:pointer }
+    button.secondary { color:#f6f7fb; background:#2a3141 }
+    .add { background:var(--mint); width:100%; margin-top:4px }
+    .photo-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:14px }
+    .photo { margin:0; overflow:hidden; background:#11151e; border:1px solid var(--line); border-radius:14px }
+    .photo img,.mock-photo { width:100%; aspect-ratio:4/5; object-fit:cover; display:block; background:linear-gradient(145deg,#43495e,#242a38 56%,#55516f) }
+    .mock-photo { display:grid; place-items:center }
+    .mock-photo svg { width:60%; opacity:.68 }
+    figcaption { padding:10px 12px; font-size:.9rem }
+    .empty { text-align:center; padding:22px 8px; border:1px dashed #454d60; border-radius:14px }
+    input[type=file] { display:none } input[type=date] { color:inherit; background:#11151e; border:1px solid var(--line); border-radius:9px; padding:9px }
+    .warning { font-size:.82rem; margin-top:12px }
+    @media(max-width:460px) { main { padding:18px 14px 88px } header { align-items:flex-start; flex-direction:column } .photo-grid { gap:9px } }
+  </style>
+</head>
+<body>
+  <main>
+    <header><div><p class="muted" style="margin:0 0 5px">SEGUIMIENTO</p><h1>Fotos de progreso</h1></div><button class="secondary" type="button" aria-label="Volver">← Volver</button></header>
+    <section class="panel" aria-labelledby="folder-title">
+      <div class="row"><div><h2 id="folder-title">Tus fotos se guardan en el dispositivo</h2><small>Carpeta privada de Tracking</small></div><button class="secondary" id="folder-demo" type="button">Elegir carpeta</button></div>
+      <p id="folder-note" class="warning">Demo visual: la carpeta nativa todavía no está conectada.</p>
+    </section>
+    <section class="panel" aria-labelledby="add-title">
+      <div class="row"><div><h2 id="add-title">Añadir una foto</h2><small>Elige una fecha y una imagen</small></div><input id="photo-date" type="date" aria-label="Fecha de la foto"></div>
+      <label class="button add" for="photo-file" style="display:block;text-align:center;margin-top:16px">＋ Seleccionar foto</label>
+      <input id="photo-file" type="file" accept="image/*" aria-label="Seleccionar una foto de progreso">
+      <p class="warning">Las imágenes no se suben. Este prototipo las conserva solo en memoria mientras la página está abierta.</p>
+    </section>
+    <section aria-labelledby="timeline-title">
+      <div class="month-head"><h2 id="timeline-title">Calendario de progreso</h2><button class="secondary" type="button" id="filter-demo">Todos los meses</button></div>
+      <div class="month" id="photo-list">
+        <div class="month-head"><h2>Marzo 2026</h2><small>2 fotos</small></div>
+        <div class="photo-grid">
+          <figure class="photo"><div class="mock-photo" role="img" aria-label="Foto de ejemplo de frente"><svg viewBox="0 0 100 150" aria-hidden="true"><circle cx="50" cy="22" r="13" fill="#bbb2d1"/><path d="M30 44 Q50 34 70 44 L80 96 69 103 65 145 53 145 50 111 47 145 35 145 31 103 20 96Z" fill="#827e9b"/></svg></div><figcaption>Frontal · 1 mar 2026</figcaption></figure>
+          <figure class="photo"><div class="mock-photo" role="img" aria-label="Foto de ejemplo de espalda"><svg viewBox="0 0 100 150" aria-hidden="true"><circle cx="50" cy="22" r="13" fill="#bbb2d1"/><path d="M30 44 Q50 34 70 44 L80 96 69 103 65 145 53 145 50 111 47 145 35 145 31 103 20 96Z" fill="#827e9b"/></svg></div><figcaption>Espalda · 15 mar 2026</figcaption></figure>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    // Claude: demo aislada para validar jerarquía visual; no persiste archivos ni accede a la carpeta privada.
+    const picker = document.querySelector('#photo-file');
+    const date = document.querySelector('#photo-date');
+    const list = document.querySelector('#photo-list');
+    date.value = new Date().toISOString().slice(0, 10);
+    picker.addEventListener('change', () => {
+      const file = picker.files?.[0];
+      if (!file || !file.type.startsWith('image/')) return;
+      const objectUrl = URL.createObjectURL(file);
+      const figure = document.createElement('figure');
+      const image = document.createElement('img');
+      const caption = document.createElement('figcaption');
+      const grid = list.querySelector('.photo-grid');
+      image.src = objectUrl;
+      image.alt = `Foto de progreso ${date.value}`;
+      caption.textContent = `Nueva foto · ${date.value}`;
+      figure.className = 'photo';
+      figure.append(image, caption);
+      if (grid) grid.prepend(figure);
+      else list.append(figure);
+    });
+    document.querySelector('#folder-demo').addEventListener('click', () => {
+      document.querySelector('#folder-note').textContent = 'Prototipo: conectar este control con el selector de carpeta nativo de Android/iOS.';
+    });
+    document.querySelector('#filter-demo').addEventListener('click', event => {
+      event.currentTarget.textContent = event.currentTarget.textContent === 'Todos los meses' ? 'Marzo 2026' : 'Todos los meses';
+    });
+    window.addEventListener('beforeunload', () => document.querySelectorAll('.photo img').forEach(image => {
+      if (image.src.startsWith('blob:')) URL.revokeObjectURL(image.src);
+    }));
+  </script>
+</body>
+</html>

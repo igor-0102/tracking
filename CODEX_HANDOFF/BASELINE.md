@@ -1,9 +1,9 @@
 # Baseline de la entrega
 
-- **Commit de partida:** `017c0f5e1cf813cd4b36b12a991082f153a82a4a`
+- **Commit de partida:** `e1525611aad1c5de8778f206a55a27037487cb35`
 - **Rama de trabajo:** `handoff/mejoras-opiniones`
 - **APP_VERSION:** `2.6.0` (sin cambios)
-- **Estado del repositorio al iniciar esta entrega:** rama basada en la versión local de `main` indicada por el commit anterior.
-- **Generador de datos:** `foods-db.js` y `foods-usda.js` son archivos generados; no se editaron manualmente.
+- **Estado al iniciar esta tanda:** rama con el handoff anterior ya presente; esta entrega recoge los cambios de trabajo posteriores al commit de partida.
+- **Datos:** `foods-db.js` se regeneró desde la base USDA local incluida, sin editar a mano `foods-usda.js` ni instalar dependencias.
 
-El parche de esta entrega se genera contra ese commit. `changes.patch` excluye la carpeta `CODEX_HANDOFF/`; las copias completas listas para revisión están en `REEMPLAZOS/`.
+`changes.patch` se genera contra este commit y excluye `CODEX_HANDOFF/`. Las copias completas listas para revisión están en `REEMPLAZOS/`; los prototipos de tareas de Claude están en `prototypes/`.

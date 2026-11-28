@@ -8,9 +8,11 @@ const source = await readFile(new URL('../diet-get-info.js', import.meta.url), '
 const window = {};
 vm.runInNewContext(source, { window, document: { querySelector: () => null } });
 
-test('el texto explica el ajuste y limita con cautela la referencia del 1 %', () => {
+test('el texto contiene el ejemplo de 80 kg y aclara los límites de la regla energética', () => {
   assert.match(window.DietGetInfo.message, /suma o resta calorías al GET/);
-  assert.match(window.DietGetInfo.message, /no como límite universal/);
-  assert.match(window.DietGetInfo.message, /no garantiza evitar daño hormonal/);
-  assert.match(window.DietGetInfo.message, /disponibilidad energética/);
+  assert.match(window.DietGetInfo.message, /80 kg/);
+  assert.match(window.DietGetInfo.message, /0,8 kg\/semana/);
+  assert.match(window.DietGetInfo.message, /5600 kcal\/semana/);
+  assert.match(window.DietGetInfo.message, /800 kcal\/día/);
+  assert.match(window.DietGetInfo.message, /no es un límite universal ni garantiza evitar cambios hormonales/);
 });

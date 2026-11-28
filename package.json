@@ -8,7 +8,7 @@
     "sync": "npm run build:www && npx cap sync android",
     "open": "npx cap open android",
     "apk": "npm run sync && cd android && gradlew assembleRelease",
-    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs tests/exercise-guide.test.mjs tests/weight-xlsx.test.mjs tests/prepared-foods.test.mjs tests/foods-list.test.mjs tests/diet-get-info.test.mjs tests/gym-note-visibility.test.mjs tests/gym-active-backup.test.mjs tests/gym-rest-state.test.mjs tests/gym-exercise-enhancements.test.mjs tests/gym-history-tools.test.mjs tests/gym-exercise-history.test.mjs tests/gym-portability.test.mjs tests/gym-summary-comparison.test.mjs tests/gym-motivation.test.mjs tests/gym-units.test.mjs tests/gym-workout-layout.test.mjs",
+    "test": "node --test tests/nutri.test.mjs tests/gymcalc.test.mjs tests/ranges.test.mjs tests/exercise-guide.test.mjs tests/weight-xlsx.test.mjs tests/prepared-foods.test.mjs tests/foods-list.test.mjs tests/diet-get-info.test.mjs tests/gym-note-visibility.test.mjs tests/gym-active-backup.test.mjs tests/gym-rest-state.test.mjs tests/gym-exercise-enhancements.test.mjs tests/gym-history-tools.test.mjs tests/gym-exercise-history.test.mjs tests/gym-portability.test.mjs tests/gym-summary-comparison.test.mjs tests/gym-motivation.test.mjs tests/gym-units.test.mjs tests/gym-workout-layout.test.mjs tests/exercise-catalog.test.mjs tests/gym-exercise-picker.test.mjs tests/gym-dashboard-analysis.test.mjs tests/diet-adjustment.test.mjs tests/ui-info-hints.test.mjs",
     "build:foods": "node tools/build-foods.mjs"
   },
   "dependencies": {

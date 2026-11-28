@@ -2,7 +2,7 @@
 //   foods-db.js    lista básica en español (tools/foods-es.txt)
 //   foods-usda.js  base completa en inglés
 // Uso: npm run build:foods
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -12,14 +12,26 @@ const rows = f => readFileSync(join(dataDir, f), 'latin1').split(/\r?\n/).filter
   .map(l => l.split('^').map(c => c.replace(/^~|~$/g, '')));
 const num = v => (v === '' || v == null ? 0 : Number(v));
 const r2 = v => Math.round(v * 100) / 100;
+const printMatches = typeof process !== 'undefined' && process.argv.includes('--check');
 
-const longDesc = new Map(rows('FOOD_DES.txt').map(r => [r[0], r[2]]));
-const foods = rows('ABBREV.txt').map(r => {
+// Claude: si falta el paquete de datos, la base USDA ya empaquetada permite regenerar la lista española sin red.
+const hasSourcePackage = existsSync(join(dataDir, 'ABBREV.txt'));
+function loadBundledFoods() {
+  const source = readFileSync(join(root, 'foods-usda.js'), 'utf8');
+  const prefix = 'window.FOODS_USDA = ';
+  const start = source.indexOf(prefix);
+  if (start < 0) throw new Error('No encuentro la base USDA local para reconstruir foods-db.js');
+  const json = source.slice(start + prefix.length).replace(/;\s*$/, '');
+  return JSON.parse(json).map(([id, n, k, p, c, f, fi, su, na, ps]) => ({ id, n, k, p, c, f, fi, su, na, ps, hasK: true }));
+}
+const longDesc = new Map(hasSourcePackage ? rows('FOOD_DES.txt').map(r => [r[0], r[2]]) : []);
+const sourceFoods = hasSourcePackage ? rows('ABBREV.txt') : null;
+const foods = sourceFoods ? sourceFoods.map(r => {
   const ps = [];
   if (num(r[48]) > 0 && r[49]) ps.push([r[49], num(r[48])]);
   if (num(r[50]) > 0 && r[51]) ps.push([r[51], num(r[50])]);
   return { id: r[0], n: longDesc.get(r[0]) || r[1], k: num(r[3]), p: num(r[4]), f: num(r[5]), c: num(r[7]), fi: num(r[8]), su: num(r[9]), na: num(r[15]), ps, hasK: r[3] !== '' };
-}).filter(f => f.hasK);
+}).filter(f => f.hasK) : loadBundledFoods();
 const byId = new Map(foods.map(f => [f.id, f]));
 const pack = f => [f.id, f.n, r2(f.k), r2(f.p), r2(f.c), r2(f.f), r2(f.fi), r2(f.su), r2(f.na), f.ps];
 
@@ -44,7 +56,7 @@ for (const line of readFileSync(join(root, 'tools', 'foods-es.txt'), 'utf8').spl
   const ps = (portions || '').split(';').map(s => s.trim()).filter(Boolean).map(s => { const [n, g] = s.split('='); return [n.trim(), Number(g)]; });
   es.push({ name, cat, pick, ps });
 }
-if (process.argv.includes('--check')) {
+if (printMatches) {
   for (const e of es) console.log(`${e.name}  =>  [${e.pick.id}] ${e.pick.n}  (${e.pick.k} kcal, P${e.pick.p} C${e.pick.c} G${e.pick.f})`);
 }
 if (problems.length) { console.error('SIN COINCIDENCIA:\n' + problems.join('\n')); process.exit(1); }
@@ -54,5 +66,5 @@ if (dup.length) { console.error('Códigos repetidos: ' + dup.join(', ')); proces
 const header = '/* Datos: USDA National Nutrient Database for Standard Reference, Release 28 (dominio público).\n   Generado con tools/build-foods.mjs. No editar a mano.\n   Campos: [código, nombre, kcal, proteína, carbohidratos, grasa, fibra, azúcar, sodio (mg), porciones [[nombre, gramos]]] por 100 g';
 writeFileSync(join(root, 'foods-db.js'),
   `${header}, categoría] */\nwindow.FOODS_ES = ${JSON.stringify(es.map(e => { const a = pack(e.pick); a[1] = e.name; a[9] = e.ps; a.push(e.cat); return a; }))};\n`);
-writeFileSync(join(root, 'foods-usda.js'), `${header}] */\nwindow.FOODS_USDA = ${JSON.stringify(foods.map(pack))};\n`);
+if (hasSourcePackage) writeFileSync(join(root, 'foods-usda.js'), `${header}] */\nwindow.FOODS_USDA = ${JSON.stringify(foods.map(pack))};\n`);
 console.log(`foods-db.js: ${es.length} alimentos · foods-usda.js: ${foods.length} alimentos`);

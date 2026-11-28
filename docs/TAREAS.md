@@ -13,25 +13,19 @@ Responsable: **Claude** · **Codex** · **Usuario** (pruebas o decisiones).
 - [?] Fecha de nacimiento sin bucle del calendario (iPhone, web).
 - [?] v2.6.0: celebración al acercarte al objetivo, comida trampa, platos preparados, guía de ejercicios.
 - [?] v2.6.0: abrir el Excel de pesos en Excel / Google Sheets y comprobar que sale el gráfico.
+- [?] Revisar visualmente la nueva navegación de Entreno, el buscador incremental, los mapas musculares y el selector GET en un móvil real.
 - [x] Botón «atrás» de Android cierra lo abierto.
 
 ## Tareas para Codex
 Leer antes `CLAUDE.md` → «Codex (becario): cómo trabaja». Una tarea por entrega.
 
-- [ ] **C1 · Más platos preparados.** Ampliar `prepared-foods.js` de 7 a unos 25 platos típicos españoles
-  (macarrones con tomate, paella, cocido, salmorejo, pisto, revuelto de setas, pechuga a la plancha con ensalada,
-  yogur con avena y fruta, tostada con tomate y aceite…). Cada ingrediente con el **nombre exacto** de la lista
-  básica (`tools/foods-es.txt`) y cantidades realistas por ración. Añadir un test que compruebe que todos los
-  ingredientes existen en `foods-db.js`.
-- [ ] **C2 · Ampliar la lista básica de alimentos.** Añadir a `tools/foods-es.txt` unos 60 alimentos habituales en
-  España que falten (embutidos, quesos, pan, bollería, conservas, legumbres en bote, salsas…), con su búsqueda en el
-  USDA y porciones típicas. Si no puede ejecutar `npm run build:foods`, entregar solo `tools/foods-es.txt` y avisarlo:
-  Claude regenera `foods-db.js`.
-- [ ] **C3 · Guía ejercicio por ejercicio.** En `exercise-guide.js`, añadir instrucciones propias (2–3 frases:
-  colocación, movimiento, error típico) y músculos secundarios para los ~40 ejercicios del usuario (los de su
-  historial de Hevy: press de banca, remo sentado con cable, jalón al pecho, sentadilla, peso muerto, curl de pierna,
-  extensión de pierna, aducción de cadera, elevaciones laterales, press de hombros, curls de bíceps, tríceps en
-  polea…). Mantener el resto de patrones como respaldo. Con tests.
+- [~] **C1 · Más platos preparados.** Implementado: `prepared-foods.js` contiene 32 platos; el test valida todos los ingredientes por nombre exacto en `foods-db.js`. Pendiente de revisión de Claude.
+- [~] **C2 · Ampliar la lista básica de alimentos.** Implementado: `tools/foods-es.txt` contiene 307 alimentos; se verificaron las selecciones USDA y se regeneró `foods-db.js` desde el snapshot local. Pendiente de revisión de Claude.
+- [~] **C3 · Guía ejercicio por ejercicio.** Implementado: `exercise-guide.js` cubre los 92 ejercicios del catálogo con instrucciones y músculos secundarios; test de cobertura completa. Pendiente de revisión de Claude.
+
+La rama `handoff/mejoras-opiniones` contiene además mejoras de la interfaz solicitadas por el usuario; la entrega ya está
+preparada en `CODEX_HANDOFF/` (informe, parche, reemplazos completos y prototipos). Sigue pendiente publicarla en GitHub
+y que Claude la revise. Las tareas C1–C3 no se consideran integradas hasta que Claude revise y aplique la entrega.
 
 ## Tareas para Claude
 - [ ] Fotos de progreso con carpeta elegida por el usuario + calendario de fotos (nativo, APK nuevo).
@@ -39,6 +33,9 @@ Leer antes `CLAUDE.md` → «Codex (becario): cómo trabaja». Una tarea por ent
 - [ ] Deuda técnica: reducir `app.js` (≈1550 líneas) y `diet.js` (≈890) por debajo de 800, moviendo partes a archivos nuevos.
 - [ ] Deuda técnica: partir funciones de más de 50 líneas (dibujo del gráfico, importación de Hevy, editor de opciones…).
 - [ ] Deuda técnica: tests de interfaz (pantallas de peso, entreno y dieta) con el navegador de pruebas.
+- [ ] Completar una prueba visual en navegador/Android de la nueva pantalla «Último entreno», selección incremental de ejercicios, mapas frontal/espalda, controles GET kcal/% y ayudas TMB/proteína/grasa; el ensayo automatizado local no llegó a completar la navegación de Entreno.
+- [ ] Evaluar la antigüedad de USDA SR28 y decidir si conviene actualizar el snapshot local con una fuente más reciente, preservando funcionamiento offline, IDs estables y trazabilidad de nutrientes.
+- [ ] Revisar el texto nutricional de pérdida semanal y rangos de macronutrientes con una fuente clínica actual antes de publicar; son orientaciones generales, no recomendaciones individualizadas.
 
 ## Esperando decisión del usuario
 - [ ] Strava y mapa de carreras: necesita un servidor pequeño para la clave secreta de Strava. Decidir dónde alojarlo.

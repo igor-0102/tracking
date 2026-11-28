@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 const source = await readFile(new URL('../exercise-guide.js', import.meta.url), 'utf8');
+const catalogSource = await readFile(new URL('../exercise-catalog.js', import.meta.url), 'utf8');
 function render(exercise) {
   const window = {};
   vm.runInNewContext(source, { window });
@@ -46,6 +47,18 @@ test('el catálogo local da instrucciones específicas y grupos secundarios para
     const guide = window.GymExerciseGuide.find(name);
     assert.ok(guide && guide.setup && guide.move && guide.error, `falta explicación propia: ${name}`);
   }
+});
+
+test('cada ejercicio del catálogo local tiene instrucciones específicas completas', () => {
+  const context = vm.createContext({ module: { exports: {} } });
+  vm.runInContext(catalogSource, context);
+  const window = {};
+  vm.runInNewContext(source, { window });
+  const missing = context.module.exports.exercises.filter(exercise => {
+    const guide = window.GymExerciseGuide.find(exercise.name);
+    return !guide || !guide.setup || !guide.move || !guide.error;
+  }).map(exercise => exercise.name);
+  assert.equal(missing.length, 0, missing.join(', '));
 });
 
 test('la guía distingue el músculo secundario en el mapa y escapa los campos propios', () => {

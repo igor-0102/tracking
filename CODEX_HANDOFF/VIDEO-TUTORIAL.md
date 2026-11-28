@@ -1,21 +1,32 @@
 # Guion y storyboard — Tutorial de Tracking
 
-**Formato:** vídeo vertical 9:16, 2–3 minutos, grabación de pantalla con voz en español. No incluye información personal real: usar una instalación de prueba y datos ficticios.
+**Formato acordado:** vídeo vertical 9:16, de unos 2–3 minutos, grabación de pantalla con voz en español. Este archivo prepara la grabación; no contiene un MP4 ya grabado.
+
+## Preparación
+
+- Usa una instalación de prueba y datos ficticios; no muestres información personal.
+- Oculta notificaciones, deja visibles los toques y mantén los textos en pantalla el tiempo suficiente para leerlos.
+- Añade subtítulos y rótulos; no expliques funciones únicamente con color.
+- Antes de publicar, comprueba la ubicación exacta de los botones y la exportación en el móvil donde se grabará.
+
+## Storyboard
 
 | Tiempo | Imagen / acción | Voz en off |
 |---|---|---|
-| 0:00–0:10 | Logo y pantalla de Inicio. Resaltar la navegación inferior. | «Tracking reúne tu peso, tus entrenamientos y tu alimentación en un solo sitio. Tus datos se guardan en este dispositivo.» |
-| 0:10–0:35 | Abrir Peso. Registrar un valor y una fecha; mostrar el gráfico y cambiar el rango. | «En Peso, añade una medición cuando quieras. El gráfico te ayuda a ver la tendencia, y puedes elegir el periodo que quieres consultar.» |
-| 0:35–1:15 | Abrir Entrenamiento. Iniciar rutina, añadir ejercicio, editar peso/repeticiones, usar datos previos y marcar serie. Mostrar descanso. | «Para entrenar, elige una rutina o empieza vacío. La pantalla muestra lo que hiciste antes. Apunta la serie y márcala; Tracking guarda el progreso y activa el descanso. Puedes pausarlo, reanudarlo o reiniciarlo.» |
-| 1:15–1:35 | Abrir detalle de un ejercicio, mostrar mapa muscular, instrucciones, favorito y búsqueda por músculo. | «En cada ejercicio tienes una guía orientativa, músculos principales y secundarios. Guarda tus propias notas, marca favoritos o filtra por músculo y equipamiento.» |
-| 1:35–1:55 | Terminar un entreno, enseñar comparación con sesión previa y vista previa de compartir. | «Al terminar, revisa duración, series, volumen y comparación con otra sesión. Si compartes el resumen, puedes revisarlo antes; las notas privadas no se incluyen.» |
-| 1:55–2:15 | Abrir Dieta, seleccionar alimento, añadir plato preparado y editar ingrediente. Mostrar el icono “i” del GET. | «En Dieta, registra alimentos de la base local o añade un plato preparado y ajusta sus ingredientes. La información del GET explica cómo interpretar el ajuste de calorías.» |
-| 2:15–2:35 | Abrir ajustes. Mostrar kg/lb, km/mi, preferencias compactas, exportación Excel/JSON/CSV. | «En Ajustes, adapta unidades y la pantalla del entreno. Puedes exportar pesos a Excel con su gráfico, guardar una copia completa o compartir el CSV de entrenos.» |
-| 2:35–2:45 | Regresar a Inicio. Rótulo final con privacidad y aviso. | «Tracking funciona sin conexión. Las guías son orientativas; adapta los ejercicios a tu situación. ¡Listo para empezar!» |
+| 0:00–0:10 | Inicio; señalar la navegación inferior. | «Tracking reúne tu peso, tus entrenamientos y tu alimentación. Empezamos por registrar lo básico y revisar el progreso.» |
+| 0:10–0:32 | Tocar «Añadir peso», guardar un valor ficticio y mostrar Peso → Resumen/Medias. | «Añade tu peso cuando quieras. En la pestaña Peso puedes consultar el gráfico, cambiar el periodo y comparar medias para observar la tendencia.» |
+| 0:32–0:58 | Entreno → Rutinas → Nueva; buscar “sentadilla” o “press” y elegir un resultado. | «Para entrenar, crea una rutina o empieza una sesión vacía. Escribe el nombre del ejercicio y la lista local se filtra mientras buscas; después, elige los movimientos que quieras.» |
+| 0:58–1:13 | Abrir la guía de ejercicio; mostrar músculos coloreados, instrucciones y músculos secundarios. | «La guía explica cómo colocarte, cómo realizar el movimiento y qué errores evitar. El mapa marca los músculos principales y secundarios con un color destacado.» |
+| 1:13–1:37 | Iniciar una sesión, registrar carga/repeticiones, marcar una serie y mostrar el descanso; finalizar la sesión. | «Durante el entreno, registra tus series y repeticiones. Puedes consultar datos anteriores y usar el descanso. Al terminar, guarda la sesión.» |
+| 1:37–1:55 | Entreno → Último entreno; abrir el análisis de un ejercicio. | «En Último entreno revisas la sesión reciente y el análisis por ejercicio. Las marcas y el RM teórico son referencias calculadas, no una medición directa de fuerza.» |
+| 1:55–2:22 | Ajustes → Perfil/Objetivo de la dieta; mostrar TMB, GET, selector porcentaje/kcal e icono “i”. | «Completa el perfil para estimar tu metabolismo basal y tu gasto total. Ajusta el objetivo como porcentaje o como calorías al día; la aplicación muestra la equivalencia y las ayudas explican los términos.» |
+| 2:22–2:40 | Dieta; mostrar objetivos, alimentos y una comida con ingredientes ajustables. | «En Dieta puedes consultar objetivos, registrar alimentos y ajustar las cantidades de un plato. Las cifras nutricionales son orientativas y no sustituyen una recomendación profesional.» |
+| 2:40–2:58 | Ajustes → Copias de seguridad; mostrar exportación completa y Excel. | «Por último, guarda una copia de tus datos. La exportación de pesos crea un Excel con fecha, peso y un gráfico para revisar tu evolución.» |
+| 2:58–3:05 | Volver a Inicio; rótulo final. | «Ya puedes empezar. Registra poco a poco y adapta Tracking a tu rutina.» |
 
-## Edición y accesibilidad
+## Edición y verificación
 
-- Añadir subtítulos completos, contraste alto y rótulos grandes; no depender solo del color para explicar botones.
-- Mantener cada toque visible al menos un segundo y ocultar notificaciones, nombres y datos personales.
-- Grabar con un peso, ejercicio y dieta ficticios. Mostrar la vista previa del resumen, no enviar nada a una cuenta real.
-- Grabar una variante horizontal si se publicará también en web/YouTube; conservar la versión vertical para móvil.
+- Graba con un peso, un entreno y una dieta ficticios; borra ese perfil al acabar.
+- Comprueba que el fichero Excel se abre en el dispositivo de grabación y que se ven las dos columnas y el gráfico.
+- No presentes el límite del 1 % semanal ni el cálculo calórico como garantía de salud o resultado.
+- No muestres Strava: su integración sigue pendiente de decidir dónde alojar el servidor.

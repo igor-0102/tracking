@@ -2,7 +2,8 @@
 'use strict';
 
 (() => {
-  const message = 'Este porcentaje suma o resta calorías al GET estimado. En pérdida de grasa deportiva se usa 0,5–1 % del peso por semana como orientación, no como límite universal. El 1 % no garantiza evitar daño hormonal: una disponibilidad energética muy baja o prolongada puede afectar la salud. Si tienes síntomas o una enfermedad, consulta con un profesional.';
+  const example = window.DietAdjustment?.aggressiveDeficitExample(80) || { maxWeeklyLossKg: 0.8, weeklyDeficit: 5600, dailyDeficit: 800 };
+  const message = `Este ajuste suma o resta calorías al GET. Como ejemplo teórico, con 80 kg, perder el 1 % serían ${String(example.maxWeeklyLossKg).replace('.', ',')} kg/semana; usando una equivalencia aproximada de 7.000 kcal/kg, serían unas ${Math.round(example.weeklyDeficit)} kcal/semana o ${Math.round(example.dailyDeficit)} kcal/día de déficit. Es un extremo ilustrativo, no una meta para todos: la regla de kcal no predice exactamente el peso porque el cuerpo se adapta. En preparación deportiva se usa a veces 0,5–1 % semanal para conservar masa, pero no es un límite universal ni garantiza evitar cambios hormonales.`;
   window.DietGetInfo = Object.freeze({ message });
 
   function addInfo(root) {

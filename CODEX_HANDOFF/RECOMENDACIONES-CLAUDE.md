@@ -4,7 +4,7 @@ Propuestas pendientes o de revisión. Se priorizan privacidad, claridad y estabi
 
 ## P0 — Verificar y preparar la integración
 
-1. **Regenerar la base de alimentos** con `npm install` y `npm run build:foods`. Comparar los nuevos `foods-db.js`/`foods-usda.js`, confirmar que la app encuentra las 68 incorporaciones y repetir la prueba de recetas.
+1. **Revisar la base de alimentos regenerada.** Esta entrega reconstruye `foods-db.js` con 307 alimentos desde el snapshot USDA local; las pruebas verifican la lista y los platos preparados. Validar una muestra nutricional con criterio de producto y evaluar la antigüedad del snapshot antes de actualizar la fuente.
 2. **Probar en móvil y en hojas de cálculo:** abrir el `.xlsx` desde Android en Excel y Google Sheets; comprobar dos columnas y gráfico; probar compartir CSV/resumen, recuperar una sesión y alternar kg/lb y km/mi durante un entreno.
 3. **Revisar la integración de `gym.js`:** el archivo ya supera 800 líneas. Separar las adaptaciones de cardio y presentación de unidades antes de integrarlas, si se puede preservar el flujo de importación de Hevy y rutinas.
 4. **No dar por probado el daño hormonal a partir de una cifra.** El IOC relaciona REDs con baja disponibilidad energética problemática, prolongada o severa; no establece 1 % de peso semanal como garantía o frontera universal. El consenso ISSN de 2026 presenta 0,5–1 % como orientación para preservar masa magra en población deportiva en déficit, y CDC aconseja una pérdida gradual sin expresarla como porcentaje universal.
