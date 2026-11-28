@@ -1,7 +1,7 @@
 /* Tracking · registro de peso. Todo se guarda en este dispositivo (IndexedDB). */
 'use strict';
 
-const APP_VERSION = '2.6.0';
+const APP_VERSION = '2.7.0';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];

@@ -16,32 +16,65 @@ Responsable: **Claude** · **Codex** · **Usuario** (pruebas o decisiones).
 - [x] Botón «atrás» de Android cierra lo abierto.
 
 ## Tareas para Codex
-Leer antes `CLAUDE.md` → «Codex (becario): cómo trabaja». Una tarea por entrega.
+Leer antes `CLAUDE.md` → «Codex (becario): cómo trabaja». **Una tarea por entrega**, cada una en su propia rama
+`handoff/<tarea>` creada desde el `main` más reciente (en `BASELINE.md`, el commit de `main`, no uno tuyo).
 
-- [ ] **C1 · Más platos preparados.** Ampliar `prepared-foods.js` de 7 a unos 25 platos típicos españoles
-  (macarrones con tomate, paella, cocido, salmorejo, pisto, revuelto de setas, pechuga a la plancha con ensalada,
-  yogur con avena y fruta, tostada con tomate y aceite…). Cada ingrediente con el **nombre exacto** de la lista
-  básica (`tools/foods-es.txt`) y cantidades realistas por ración. Añadir un test que compruebe que todos los
-  ingredientes existen en `foods-db.js`.
-- [ ] **C2 · Ampliar la lista básica de alimentos.** Añadir a `tools/foods-es.txt` unos 60 alimentos habituales en
-  España que falten (embutidos, quesos, pan, bollería, conservas, legumbres en bote, salsas…), con su búsqueda en el
-  USDA y porciones típicas. Si no puede ejecutar `npm run build:foods`, entregar solo `tools/foods-es.txt` y avisarlo:
-  Claude regenera `foods-db.js`.
-- [ ] **C3 · Guía ejercicio por ejercicio.** En `exercise-guide.js`, añadir instrucciones propias (2–3 frases:
-  colocación, movimiento, error típico) y músculos secundarios para los ~40 ejercicios del usuario (los de su
-  historial de Hevy: press de banca, remo sentado con cable, jalón al pecho, sentadilla, peso muerto, curl de pierna,
-  extensión de pierna, aducción de cadera, elevaciones laterales, press de hombros, curls de bíceps, tríceps en
-  polea…). Mantener el resto de patrones como respaldo. Con tests.
+Las tareas C4–C10 salen de la entrega `handoff/mejoras-opiniones`: el código ya existe en esa rama, pero no se pudo
+publicar por errores. Para cada una: copia de esa rama **solo** los archivos de la tarea, corrige lo indicado y entrégala
+sola. No toques `docs/`, `tools/build-foods.mjs` ni hagas crecer `gym.js`, `app.js` o `diet.js`.
+
+**Obligatorio en todas:** antes de entregar, abre la app en un navegador (o explica por qué no puedes) y comprueba que
+carga, que se puede importar `hevy.csv` de ejemplo y que las cuatro pestañas y Ajustes se abren sin errores en consola.
+Los dos fallos críticos de la última entrega (app colgada y pantalla rota) pasaban todos los tests: los tests no bastan.
+
+**Normas de diseño nuevas:**
+- No sustituyas funciones globales en cadena (`renderGymSettings = …` en tres archivos distintos). Si necesitas un
+  enganche, deja en el archivo grande una única línea que llame a tu módulo (`if (window.X) X.algo()`).
+- Un `MutationObserver` no puede modificar el mismo árbol que vigila sin desconectarse antes (provoca bucle infinito).
+- Nada puede ser más ancho que la pantalla del móvil (412 px): revisa los botones `btn-block` con márgenes.
+
+- [ ] **C4 · Pantalla «Último entreno» y comparación con el anterior.** Archivos: `gym-training-dashboard.js`,
+  `gym-summary-comparison.js`, `gym-dashboard-analysis.js` (+ tests y CSS). 🔴 Corregir: `gym-summary-comparison.js`
+  no exporta `comparisonCard` y `gym-training-dashboard.js` la llama → con dos entrenos comparables se rompe el pintado
+  de toda la app (la importación de Hevy se queda en «Importando…»).
+- [ ] **C5 · Ajuste de dieta en % o en kcal + ayudas (GET, proteína, grasa).** Archivos: `diet-adjustment.js`,
+  `diet-adjustment-ui.js`, `diet-get-info.js`, `ui-info-hints.js` (+ tests). 🔴 Corregir: el `MutationObserver` de
+  `diet-adjustment-ui.js` modifica lo que vigila → **la app se cuelga al abrirla**. Revisar igual `diet-get-info.js` y
+  `ui-info-hints.js`.
+- [ ] **C6 · Unidades kg/lb y km/mi + series de cardio (distancia y minutos).** Archivos: `gym-units.js` y los cambios
+  de `gym.js` / `gym-plus.js`. Funciona, pero corregir: `gym.js` creció 8 líneas (no puede crecer); en libras las
+  sugerencias salen sin redondear («77,16 lb»: redondear a 0,5 lb o a la carga más cercana); un peso con 3 decimales se
+  borra sin avisar; el «1RM» del detalle sale sin unidad y sin convertir; el campo de repeticiones admite decimales que
+  luego descarta; quitar el `? x : x` repetido en `exCardHTML`.
+- [ ] **C7 · Pausar y reiniciar el descanso.** Archivos: `gym-rest-state.js`, cambios del descanso en `gym-plus.js`,
+  botones en `index.html`. Funciona; corregir que la notificación del móvil no muestra el descanso en pausa
+  (`native.js` mira solo `restEnd`).
+- [ ] **C8 · Copia de seguridad con el entreno en curso.** Archivo: `gym-active-backup.js` y el cambio de `app.js`.
+  Probado y funciona; entregarlo solo, sobre `main`.
+- [ ] **C9 · Buscador de ejercicios con catálogo, filtros, «Editar mi guía» y favoritos.** Archivos:
+  `gym-exercise-picker.js`, `gym-exercise-enhancements.js`. `exercise-catalog.js` ya está en `main` (solo lo usan los
+  tests): cárgalo en `index.html`, `sw.js` y `tools/build-www.mjs`. Los botones «Editar mi guía» y «Favorito» se
+  quitaron de `exercise-guide.js` al publicar C3; vuelve a añadirlos junto con el código que los hace funcionar.
+- [ ] **C10 · Extras del entreno.** Compartir resumen (`gym-portability.js`), historial por tandas
+  (`gym-exercise-history.js`), filtros del historial (`gym-history-tools.js`), motivación (`gym-motivation.js`), notas
+  visibles (`gym-note-visibility.js`), pantalla del entreno personalizable (`gym-workout-layout.js`) y Ajustes en grupos
+  plegables. Corregir: el botón «Compartir resumen» mide 423 px y hace que el detalle del entreno se salga de la
+  pantalla. Si es mucho para una entrega, divídela (C10a, C10b…).
 
 ## Tareas para Claude
 - [ ] Fotos de progreso con carpeta elegida por el usuario + calendario de fotos (nativo, APK nuevo).
-- [ ] Revisar e integrar las entregas de Codex (C1–C3).
+- [ ] Revisar e integrar las entregas de Codex (C4–C10).
 - [ ] Deuda técnica: reducir `app.js` (≈1550 líneas) y `diet.js` (≈890) por debajo de 800, moviendo partes a archivos nuevos.
 - [ ] Deuda técnica: partir funciones de más de 50 líneas (dibujo del gráfico, importación de Hevy, editor de opciones…).
 - [ ] Deuda técnica: tests de interfaz (pantallas de peso, entreno y dieta) con el navegador de pruebas.
 
 ## Esperando decisión del usuario
 - [ ] Strava y mapa de carreras: necesita un servidor pequeño para la clave secreta de Strava. Decidir dónde alojarlo.
+
+## Hecho en v2.7.0 (de la entrega `handoff/mejoras-opiniones`)
+- [x] C1 · 32 platos preparados (antes 7), con test de que todos los ingredientes existen.
+- [x] C2 · Lista básica de alimentos: 307 (antes 239). Los 239 anteriores no cambian.
+- [x] C3 · Guía propia para 92 ejercicios con músculos secundarios y mapa frontal y de espaldas.
 
 ## Hecho en v2.6.0 (entrega de Codex revisada)
 - [x] Celebración al marcar un nuevo peso más cercano al objetivo.
@@ -51,7 +84,19 @@ Leer antes `CLAUDE.md` → «Codex (becario): cómo trabaja». Una tarea por ent
 - [x] Exportar los pesos a Excel con gráfico.
 
 ## Entregas de Codex
-Última entrega revisada: **2026-11-26** · `sha256 e72d803e955798a3018e4eda3e638d66dc6b787283bdd71df9dabc466a8bb9df` · rama `handoff/codex-primera-entrega`.
+Última entrega revisada: **2026-11-28** · `sha256 c67026b4748ca1428670b1e456feb12db51542e76708c6cc9ad3e47298f76252` · rama `handoff/mejoras-opiniones`.
+
+### 2026-11-28 · `handoff/mejoras-opiniones` (C1–C3 + ~10 mejoras no pedidas)
+- Problemas de entrega: muchas tareas juntas; `BASELINE.md` apuntaba a un commit propio (`e152561`) y no a `main`, así que
+  `changes.patch` no tenía todos los cambios; tocó `docs/TAREAS.md` y `tools/build-foods.mjs`; `gym.js` creció; el informe
+  dice que no hizo push y la rama estaba subida. `npm test` 100/100, pero la interfaz no se probó.
+- 🔴 La app se colgaba al abrir (bucle de `MutationObserver` en `diet-adjustment-ui.js`) y 🔴 se rompía el pintado con dos
+  entrenos comparables (`comparisonCard` sin exportar). 🟠 «Compartir resumen» más ancho que la pantalla.
+- **Publicado en v2.7.0** (rama `codex/mejoras-opiniones`): solo C1, C2 y C3. Correcciones de Claude: quitados los botones
+  «Editar mi guía» / «Favorito» de la guía (su código va en C9); CSS de la guía traído de la rama, con la leyenda del mismo
+  color que el mapa y las etiquetas «vista frontal / de espaldas» debajo de cada figura; `foods-db.js` regenerado por
+  Claude (idéntico al de Codex). 55/55 tests y prueba en navegador (guía, platos, Excel, celebración) sin errores.
+- **Devuelto a Codex** como tareas C4–C10.
 
 ### 2026-11-26 · primera entrega (tareas 1–5)
 - Base correcta (`ef9cefb`, 2.5.5). `git apply --check` sin conflictos. 46/46 tests al aplicarla.

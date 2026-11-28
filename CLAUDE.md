@@ -103,4 +103,5 @@ No integres nada que no hayas podido verificar. Si hay conflictos, errores o inc
   explorador (Haiku), arreglador (Sonnet), documentador (Sonnet), seguridad (Opus).
 - Comandos: `/manager`, `/equipo`, `/plan`, `/revisar`, `/cerrar`, `/punto`, `/seguridad`, `/portfolio`.
 - Memoria: estado en `docs/ESTADO.md` (lo carga el hook de inicio), tareas en `docs/TAREAS.md`, plan activo en `docs/plan/PLAN.md`.
+- Traspaso entre chats: `docs/TRASPASO.md` (contexto completo y el ciclo de trabajo con Codex). Léelo al empezar un chat nuevo.
 - `/manager`: activa el modo manager para todo el chat (elige y lanza agentes sin pedir permiso). Sin él, trabaja normal.

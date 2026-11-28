@@ -2,6 +2,7 @@
 # Formato:  Nombre en español | Categoría | palabras que debe contener la descripción del USDA (separadas por ;) | porciones opcionales (nombre=gramos; …)
 # Una palabra que empieza por ! no debe aparecer. Se elige la descripción más corta que cumpla todo.
 # El número de 5 cifras al principio de la tercera columna fija un alimento concreto (código NDB).
+# Claude: la ampliación propuesta conserva este formato para regenerar la base local con build:foods.
 
 # ---- Carnes
 Pechuga de pollo, cruda | Carnes | 05062
@@ -36,6 +37,11 @@ Salchicha tipo frankfurt | Carnes | 07950 | unidad=45
 Mortadela | Carnes | mortadella
 Pierna de cordero, cruda | Carnes | lamb; domestic; leg; whole; lean only; raw; 1/4
 Conejo, crudo | Carnes | rabbit; domesticated; composite; raw
+Salchicha fresca italiana de cerdo, cruda | Carnes | sausage; italian; pork; raw | unidad=80
+Salchicha de cerdo cocida | Carnes | pork; fresh; sausage; cooked | unidad=50
+Panceta de cerdo, cruda | Carnes | pork; fresh; belly; raw
+Pavo asado | Carnes | turkey; breast; meat only; cooked; roasted
+Carne de ternera asada | Carnes | beef; round; roast; cooked; roasted
 
 # ---- Pescados y mariscos
 Salmón, crudo | Pescados y mariscos | fish, salmon, atlantic, farmed, raw
@@ -59,6 +65,11 @@ Mejillones, crudos | Pescados y mariscos | mollusks, mussel, blue, raw
 Calamar, crudo | Pescados y mariscos | mollusks, squid; raw
 Pulpo, crudo | Pescados y mariscos | mollusks, octopus; raw
 Almejas, crudas | Pescados y mariscos | mollusks, clam, mixed species, raw
+Sardinas en lata con tomate | Pescados y mariscos | fish; sardine; Pacific; canned in tomato sauce; drained solids | lata=90
+Caballa en lata | Pescados y mariscos | fish; mackerel; canned; drained solids
+Mejillones cocidos | Pescados y mariscos | mollusks; mussel; blue; cooked; moist heat
+Berberechos en lata, escurridos | Pescados y mariscos | mollusks; clam; canned; drained solids
+Salmón en lata, escurrido | Pescados y mariscos | fish; salmon; canned; drained solids
 
 # ---- Huevos y lácteos
 Huevo entero | Huevos y lácteos | egg, whole, raw, fresh | unidad=55
@@ -90,6 +101,16 @@ Helado de vainilla | Huevos y lácteos | ice creams, vanilla; !light; !rich; !fa
 Proteína whey en polvo | Huevos y lácteos | 14066 | cacito=30
 Bebida de soja | Huevos y lácteos | soymilk, original and vanilla, unfortified | vaso=250
 Bebida de almendra sin azúcar | Huevos y lácteos | almond milk, unsweetened | vaso=250
+Kéfir natural | Huevos y lácteos | kefir; lowfat; plain | vaso=200
+Queso azul | Huevos y lácteos | cheese; blue; roquefort
+Queso cotija | Huevos y lácteos | cheese; mexican; queso cotija
+Queso provolone | Huevos y lácteos | cheese; provolone
+Queso fresco mexicano | Huevos y lácteos | cheese; fresh; queso fresco
+Mozzarella baja en grasa | Huevos y lácteos | cheese; mozzarella; part skim
+Ricotta entera | Huevos y lácteos | cheese; ricotta; whole milk
+Yogur natural con fruta | Huevos y lácteos | yogurt; fruit; lowfat
+Leche evaporada | Huevos y lácteos | milk; canned; evaporated; with added vitamin d
+Leche en polvo desnatada | Huevos y lácteos | milk; dry; nonfat; regular; without added vitamin a
 
 # ---- Cereales, pan y patata
 Arroz blanco, crudo | Cereales, pan y patata | rice, white, long-grain, regular, raw, enriched
@@ -111,6 +132,18 @@ Tortilla de maíz | Cereales, pan y patata | tortillas, ready-to-bake or -fry, c
 Harina de trigo | Cereales, pan y patata | wheat flour, white, all-purpose, enriched, bleached
 Harina de trigo integral | Cereales, pan y patata | wheat flour, whole-grain; !soft
 Maicena | Cereales, pan y patata | cornstarch
+Pan de hamburguesa | Cereales, pan y patata | rolls; hamburger or hotdog; plain | unidad=50
+Pan pita | Cereales, pan y patata | bread; pita; white; enriched | unidad=60
+Pan de masa madre envasado | Cereales, pan y patata | PEPPERIDGE FARM; Farmhouse Sourdough Bread
+Bagel | Cereales, pan y patata | bagels; plain; enriched | unidad=100
+Pan brioche | Cereales, pan y patata | bread; egg
+Galletas de vainilla | Cereales, pan y patata | cookies; vanilla wafers
+Galletas de avena | Cereales, pan y patata | cookies; oatmeal; commercially prepared
+Galletas tipo cracker integrales | Cereales, pan y patata | crackers; whole-wheat
+Bizcocho | Cereales, pan y patata | cake; sponge; prepared from recipe
+Brownie | Cereales, pan y patata | brownies; commercially prepared
+Muesli | Cereales, pan y patata | cereals; ready-to-eat; muesli
+Arroz salvaje, cocido | Cereales, pan y patata | rice; wild; cooked
 Quinoa, cruda | Cereales, pan y patata | quinoa, uncooked
 Quinoa, cocida | Cereales, pan y patata | quinoa, cooked
 Cuscús, crudo | Cereales, pan y patata | couscous, dry
@@ -145,6 +178,14 @@ Edamame | Legumbres | edamame, frozen, prepared
 Tofu firme | Legumbres | tofu, raw, firm, prepared with calcium sulfate
 Hummus | Legumbres | hummus, commercial
 Proteína de soja aislada | Legumbres | soy protein isolate; !potassium
+Alubias blancas en bote, escurridas | Legumbres | beans; white; mature seeds; canned
+Alubias rojas en bote, escurridas | Legumbres | beans; kidney; canned; drained solids
+Lentejas cocidas con sal | Legumbres | lentils; mature seeds; cooked; boiled; with salt
+Guisantes en conserva, escurridos | Legumbres | peas; green; canned; drained solids
+Alubias pintas cocidas | Legumbres | beans; pinto; mature seeds; cooked; boiled
+Alubias pintas en bote | Legumbres | beans; pinto; canned; drained solids
+Soja cocida | Legumbres | soybeans; mature seeds; cooked; boiled
+Habas cocidas | Legumbres | broadbeans; mature seeds; cooked; boiled
 
 # ---- Verduras
 Tomate | Verduras | tomatoes, red, ripe, raw, year round average | unidad=120
@@ -177,6 +218,14 @@ Alcachofa, cruda | Verduras | artichokes, (globe or french), raw
 Remolacha, cruda | Verduras | beets, raw
 Apio | Verduras | celery, raw
 Aceitunas | Verduras | olives, ripe, canned (small-extra large)
+Pimiento rojo cocido | Verduras | peppers; sweet; red; cooked; boiled
+Espárragos en conserva, escurridos | Verduras | asparagus; canned; drained solids
+Alcachofa cocida | Verduras | artichokes; cooked; boiled; drained
+Remolacha cocida | Verduras | beets; cooked; boiled; drained
+Tomate concentrado | Verduras | tomato products; paste; canned
+Judías verdes en conserva | Verduras | beans; snap; green; canned; drained solids
+Champiñones en conserva | Verduras | mushrooms; canned; drained solids
+Maíz dulce congelado | Verduras | corn; sweet; yellow; frozen; kernels; unprepared
 
 # ---- Frutas
 Manzana | Frutas | apples, raw, with skin | unidad=180
@@ -249,6 +298,14 @@ Croissant | Dulces y snacks | croissants, butter | unidad=60
 Donut | Dulces y snacks | doughnuts, cake-type, plain (includes unsugared, old-fashioned) | unidad=50
 Magdalena | Dulces y snacks | muffins, plain, prepared from recipe | unidad=40
 Barrita de cereales | Dulces y snacks | snacks, granola bars, hard, plain | unidad=25
+Galletas tipo sándwich de chocolate | Dulces y snacks | cookies; chocolate sandwich; creme filling
+Galletas saladas tipo pretzel | Dulces y snacks | snacks; pretzels; hard; plain; salted
+Bizcocho de chocolate | Dulces y snacks | cake; chocolate; prepared from recipe
+Flan de huevo | Dulces y snacks | custard; flan; caramel
+Natillas | Dulces y snacks | pudding; vanilla; ready-to-eat
+Galletas de cacahuete | Dulces y snacks | cookies; peanut butter; commercially prepared; regular
+Turrón de almendra (aprox.) | Dulces y snacks | candies; nougat; with almonds
+Chocolate blanco | Dulces y snacks | candies; white chocolate
 
 # ---- Bebidas
 Café solo | Bebidas | beverages, coffee, brewed, prepared with tap water; !decaf | taza=120
@@ -257,6 +314,9 @@ Refresco de cola | Bebidas | carbonated; cola; !without caffeine; !low calorie; 
 Cerveza | Bebidas | alcoholic beverage, beer, regular, all | caña=200; lata=330
 Vino tinto | Bebidas | alcoholic beverage, wine, table, red; !merlot; !cabernet; !pinot; !syrah; !zinfandel; !burgundy; !claret; !gamay; !lemberger; !mouvedre; !petite; !sangiovese; !barbera; !carignane; !franc | copa=150
 Vino blanco | Bebidas | alcoholic beverage, wine, table, white; !riesling; !chardonnay; !sauvignon; !gris; !chenin; !fume; !muller; !gewurz; !late; !blanc; !semillon; !muscat | copa=150
+Zumo de uva | Bebidas | grape juice; canned or bottled; unsweetened
+Bebida energética cítrica | Bebidas | beverages; energy drink; citrus
+Agua de coco | Bebidas | coconut water; ready-to-drink
 
 # ---- Salsas y condimentos
 Kétchup | Salsas y condimentos | catsup; !low sodium | cucharada=17
@@ -265,3 +325,12 @@ Salsa de soja | Salsas y condimentos | soy sauce made from soy and wheat (shoyu)
 Vinagre | Salsas y condimentos | vinegar, cider | cucharada=15
 Sal | Salsas y condimentos | salt, table | pizca=1
 Pizza de queso | Salsas y condimentos | pizza, cheese topping, regular crust, frozen, cooked
+Mayonesa ligera | Salsas y condimentos | mayonnaise; reduced-calorie
+Salsa ranchera | Salsas y condimentos | salad dressing; ranch dressing; regular
+Salsa pesto | Salsas y condimentos | sauce; pesto
+Salsa barbacoa | Salsas y condimentos | sauce; barbecue
+Salsa teriyaki | Salsas y condimentos | sauce; teriyaki
+Vinagreta balsámica | Salsas y condimentos | vinaigrette; balsamic
+Salsa de tomate picante | Salsas y condimentos | sauce; tomato; chili; bottled
+Salsa tártara | Salsas y condimentos | sauce; tartar; ready-to-serve
+Salsa de queso | Salsas y condimentos | cheese sauce; prepared from recipe
