@@ -16,15 +16,15 @@ Responsable: **Claude** · **Codex** · **Usuario** (pruebas o decisiones).
 - [x] Botón «atrás» de Android cierra lo abierto.
 
 ## Tareas para Codex
-Leer antes `CLAUDE.md` → «Codex (becario): cómo trabaja». **Una tarea por entrega**, cada una en su propia rama
-`handoff/<tarea>` creada desde el `main` más reciente (en `BASELINE.md`, el commit de `main`, no uno tuyo).
+Leer antes `CLAUDE.md` → «Codex (becario): cómo trabaja». **Una tarea por entrega**: rama `handoff/<tarea>` desde el
+`main` más reciente y **Pull Request hacia `main`** con la plantilla rellena (ya no se usa `CODEX_HANDOFF/`).
+Antes de subir: `npm test`, `npm run check` y `npm run smoke`; GitHub lo repite en la PR y debe salir en verde.
 
 Las tareas C4–C10 salen de la entrega `handoff/mejoras-opiniones`: el código ya existe en esa rama, pero no se pudo
 publicar por errores. Para cada una: copia de esa rama **solo** los archivos de la tarea, corrige lo indicado y entrégala
 sola. No toques `docs/`, `tools/build-foods.mjs` ni hagas crecer `gym.js`, `app.js` o `diet.js`.
 
-**Obligatorio en todas:** antes de entregar, abre la app en un navegador (o explica por qué no puedes) y comprueba que
-carga, que se puede importar `hevy.csv` de ejemplo y que las cuatro pestañas y Ajustes se abren sin errores en consola.
+**Obligatorio en todas:** `npm run smoke` en verde (abre la app, importa entrenos de ejemplo y recorre las pestañas).
 Los dos fallos críticos de la última entrega (app colgada y pantalla rota) pasaban todos los tests: los tests no bastan.
 
 **Normas de diseño nuevas:**
@@ -106,4 +106,4 @@ Los dos fallos críticos de la última entrega (app colgada y pantalla rota) pas
   3. Guía de ejercicios: vista de espaldas para espalda, tríceps y glúteos (antes se iluminaba el pecho); grupos musculares raros de copias importadas ya no rompen la guía. +2 tests.
   4. Excel verificado: ZIP y XML válidos y leídos con openpyxl; falta abrirlo en Excel real.
 - Nota para Codex: entregar en `main` (carpeta `CODEX_HANDOFF/`) o avisar de la rama; no pudo ejecutar `npm test`.
-Al revisar una, anotar aquí: fecha · huella `sha256` de `changes.patch` · resultado (integrada en PR #… / rechazada y por qué).
+Al revisar una, anotar aquí: fecha · PR (o rama y commit) · resultado (integrada en PR #… / rechazada y por qué).

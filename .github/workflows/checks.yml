@@ -1,0 +1,49 @@
+name: Comprobaciones
+
+# Se ejecuta en cada Pull Request hacia main (y a mano desde Actions).
+# Si algo falla, la PR sale en rojo y no se puede integrar (con main protegido).
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  comprobaciones:
+    name: Tests, normas y prueba de la app
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Sintaxis de todos los .js
+        run: |
+          for f in $(git ls-files '*.js' '*.mjs' '*.cjs' | grep -v '^android/'); do node --check "$f" || exit 1; done
+
+      - name: Tests (npm test)
+        run: npm test
+
+      - name: Normas de CLAUDE.md
+        run: node tools/check-pr.mjs "origin/${{ github.base_ref || 'main' }}" "${{ github.head_ref || github.ref_name }}"
+
+      - name: Instalar navegador de pruebas
+        run: |
+          npm install --prefix "$RUNNER_TEMP/pw" --no-save playwright@1.63.0
+          "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium
+
+      - name: Prueba de la app en el navegador (npm run smoke)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node tools/smoke.cjs
